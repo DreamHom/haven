@@ -1,0 +1,22 @@
+spring:
+  application:
+    name: dreamhomes-haven
+  datasource:
+    url: jdbc:postgresql://localhost:5432/dreamhomes_haven
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+
+server:
+  port: 8080
+
+jwt:
+  secret: ${JWT_SECRET:change-me-to-a-secure-secret-of-at-least-32-bytes}
+  expiration-ms: 3600000
