@@ -1,0 +1,669 @@
+<mxfile host="app.diagrams.net" modified="2026-05-05T00:00:00.000Z" agent="DreamHomes-Capstone" version="24.0.0">
+
+  <!-- ============================================================ -->
+  <!-- PAGE 1 : INSPECTION_REQUESTED                                  -->
+  <!-- ============================================================ -->
+  <diagram name="INSPECTION_REQUESTED" id="seq-inspection">
+    <mxGraphModel dx="2400" dy="1800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2600" pageHeight="1700" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- TITLE -->
+        <mxCell id="title" value="DreamHomes — Sequence: INSPECTION_REQUESTED  (Applicant submits inspection request → owner / assigned agent is notified async)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=15;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="2300" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="legend" value="Solid arrow = synchronous call · Dashed arrow = return / async event delivery · Orange = Kafka / outbox path" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=11;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="40" y="50" width="1500" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- ===== LIFELINE HEADERS (y=80, h=50) ===== -->
+        <mxCell id="L1" value="Applicant&#10;(Browser)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="200" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="L2" value="Vista&#10;(Next.js 14)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="320" y="80" width="200" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="L3" value="Haven · Security Filter&#10;(JWT + RBAC)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="600" y="80" width="200" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="L4" value="Haven · Inspection Service&#10;(producer)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="880" y="80" width="200" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="L5" value="Postgres&#10;(inspection_request, outbox, notification)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1160" y="80" width="220" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="L6" value="Haven · Outbox Relay&#10;(scheduled bean)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1460" y="80" width="200" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="L7" value="Kafka&#10;topic: inspection.requested" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1740" y="80" width="220" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="L8" value="Haven · Notification Consumer&#10;@KafkaListener" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="2040" y="80" width="220" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="L9" value="Recipient&#10;(Owner OR assigned Agent — Browser)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="2340" y="80" width="240" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- ===== LIFELINES (vertical dashed lines) ===== -->
+        <mxCell id="LL1" style="endArrow=none;dashed=1;html=1;rounded=0;strokeColor=#6c8ebf;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="140" y="130" as="sourcePoint" />
+            <mxPoint x="140" y="1620" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="LL2" style="endArrow=none;dashed=1;html=1;rounded=0;strokeColor=#6c8ebf;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="420" y="130" as="sourcePoint" />
+            <mxPoint x="420" y="1620" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="LL3" style="endArrow=none;dashed=1;html=1;rounded=0;strokeColor=#b85450;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="700" y="130" as="sourcePoint" />
+            <mxPoint x="700" y="1620" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="LL4" style="endArrow=none;dashed=1;html=1;rounded=0;strokeColor=#82b366;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="980" y="130" as="sourcePoint" />
+            <mxPoint x="980" y="1620" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="LL5" style="endArrow=none;dashed=1;html=1;rounded=0;strokeColor=#9673a6;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1270" y="130" as="sourcePoint" />
+            <mxPoint x="1270" y="1620" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="LL6" style="endArrow=none;dashed=1;html=1;rounded=0;strokeColor=#d6b656;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1560" y="130" as="sourcePoint" />
+            <mxPoint x="1560" y="1620" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="LL7" style="endArrow=none;dashed=1;html=1;rounded=0;strokeColor=#d79b00;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1850" y="130" as="sourcePoint" />
+            <mxPoint x="1850" y="1620" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="LL8" style="endArrow=none;dashed=1;html=1;rounded=0;strokeColor=#d6b656;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="2150" y="130" as="sourcePoint" />
+            <mxPoint x="2150" y="1620" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="LL9" style="endArrow=none;dashed=1;html=1;rounded=0;strokeColor=#6c8ebf;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="2460" y="130" as="sourcePoint" />
+            <mxPoint x="2460" y="1620" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ===== SYNC PHASE messages ===== -->
+
+        <!-- 1. Applicant → Vista -->
+        <mxCell id="m1" value="1. POST /api/inspection-requests { slotId, listingId }" style="endArrow=classic;html=1;rounded=0;strokeColor=#000000;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="140" y="170" as="sourcePoint" />
+            <mxPoint x="420" y="170" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 2. Vista → Sec Filter -->
+        <mxCell id="m2" value="2. REST + Authorization: Bearer &lt;JWT&gt;" style="endArrow=classic;html=1;rounded=0;strokeColor=#000000;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="420" y="210" as="sourcePoint" />
+            <mxPoint x="700" y="210" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 3. Sec Filter → Inspection Svc -->
+        <mxCell id="m3" value="3. verify JWT, role=APPLICANT, forward principal" style="endArrow=classic;html=1;rounded=0;strokeColor=#000000;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="700" y="250" as="sourcePoint" />
+            <mxPoint x="980" y="250" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 4. Inspection Svc → Postgres BEGIN -->
+        <mxCell id="m4" value="4. BEGIN TRANSACTION" style="endArrow=classic;html=1;rounded=0;strokeColor=#9673a6;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="980" y="300" as="sourcePoint" />
+            <mxPoint x="1270" y="300" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 5. INSERT inspection_request -->
+        <mxCell id="m5" value="5. INSERT inspection_request (slot_id, applicant_id, status=REQUESTED)  ── UNIQUE(slot_id) enforced" style="endArrow=classic;html=1;rounded=0;strokeColor=#9673a6;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="980" y="340" as="sourcePoint" />
+            <mxPoint x="1270" y="340" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Branch note: 409 Conflict path -->
+        <mxCell id="branch1" value="Concurrent-request branch:&#10;&#10;If slot_id already taken → Postgres raises 23505 unique_violation.&#10;Inspection Svc rolls back TX, returns 409 Conflict to Applicant.&#10;&#10;Loser never reaches the outbox → Kafka sees only one event for this slot.&#10;&#10;PRD §6: &quot;no race conditions — handled at the data layer.&quot;" style="shape=note;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;align=left;spacingLeft=8;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="40" y="380" width="700" height="120" as="geometry" />
+        </mxCell>
+
+        <!-- 6. INSERT outbox -->
+        <mxCell id="m6" value="6. INSERT outbox (event_type=INSPECTION_REQUESTED, aggregate_id=request.id, payload=JSON, published_at=NULL)" style="endArrow=classic;html=1;rounded=0;strokeColor=#d79b00;strokeWidth=2;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="980" y="430" as="sourcePoint" />
+            <mxPoint x="1270" y="430" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 7. COMMIT -->
+        <mxCell id="m7" value="7. COMMIT  (atomic: request + outbox row written together)" style="endArrow=classic;html=1;rounded=0;strokeColor=#9673a6;fontSize=11;fontStyle=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="980" y="470" as="sourcePoint" />
+            <mxPoint x="1270" y="470" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 8. Postgres → Inspection Svc OK -->
+        <mxCell id="m8" value="8. OK" style="endArrow=classic;html=1;rounded=0;dashed=1;strokeColor=#9673a6;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1270" y="510" as="sourcePoint" />
+            <mxPoint x="980" y="510" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 9. Inspection Svc → Sec Filter 201 -->
+        <mxCell id="m9" value="9. 201 Created { requestId, status: REQUESTED }" style="endArrow=classic;html=1;rounded=0;dashed=1;strokeColor=#000000;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="980" y="550" as="sourcePoint" />
+            <mxPoint x="700" y="550" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 10. Sec Filter → Vista -->
+        <mxCell id="m10" value="10. 201 Created" style="endArrow=classic;html=1;rounded=0;dashed=1;strokeColor=#000000;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="700" y="590" as="sourcePoint" />
+            <mxPoint x="420" y="590" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 11. Vista → Applicant -->
+        <mxCell id="m11" value="11. UI confirmation — &quot;Inspection requested&quot;" style="endArrow=classic;html=1;rounded=0;dashed=1;strokeColor=#000000;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="420" y="630" as="sourcePoint" />
+            <mxPoint x="140" y="630" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ===== ASYNC BOUNDARY BANNER ===== -->
+        <mxCell id="async-banner" value="═══  ASYNC BOUNDARY  ·  Applicant has their 201 response.  The notification path runs INDEPENDENTLY below this line.  ═══" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;fontSize=12;align=center;" vertex="1" parent="1">
+          <mxGeometry x="40" y="680" width="2540" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ===== ASYNC PHASE messages ===== -->
+
+        <!-- 12. Outbox Relay polls -->
+        <mxCell id="m12" value="12. SELECT * FROM outbox WHERE published_at IS NULL FOR UPDATE SKIP LOCKED LIMIT N" style="endArrow=classic;html=1;rounded=0;strokeColor=#d79b00;strokeWidth=2;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1560" y="760" as="sourcePoint" />
+            <mxPoint x="1270" y="760" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 13. Postgres returns rows -->
+        <mxCell id="m13" value="13. unpublished rows" style="endArrow=classic;html=1;rounded=0;dashed=1;strokeColor=#9673a6;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1270" y="800" as="sourcePoint" />
+            <mxPoint x="1560" y="800" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 14. Outbox Relay → Kafka publish -->
+        <mxCell id="m14" value="14. produce(topic=inspection.requested, key=listingId, value=payload, headers={event_id})" style="endArrow=classic;html=1;rounded=0;strokeColor=#d79b00;strokeWidth=2;fontSize=11;fontStyle=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1560" y="850" as="sourcePoint" />
+            <mxPoint x="1850" y="850" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 15. Kafka ack -->
+        <mxCell id="m15" value="15. ack (offset=N, partition=P)" style="endArrow=classic;html=1;rounded=0;dashed=1;strokeColor=#d79b00;strokeWidth=2;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1850" y="890" as="sourcePoint" />
+            <mxPoint x="1560" y="890" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 16. Outbox Relay marks published -->
+        <mxCell id="m16" value="16. UPDATE outbox SET published_at=NOW() WHERE id=...  ── only after Kafka acks" style="endArrow=classic;html=1;rounded=0;strokeColor=#d79b00;strokeWidth=2;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1560" y="930" as="sourcePoint" />
+            <mxPoint x="1270" y="930" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Crash note -->
+        <mxCell id="crash-note" value="Crash between m14 and m16?&#10;Outbox row stays unpublished → next tick re-publishes.&#10;Kafka may see duplicate → consumer dedupes by event_id.&#10;Net effect: at-least-once delivery, exactly-once-effective application." style="shape=note;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;align=left;spacingLeft=8;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="40" y="850" width="640" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- 17. Kafka → Notif Consumer deliver -->
+        <mxCell id="m17" value="17. deliver(record)  ── consumer group=notification-svc; auto-commit=false" style="endArrow=classic;html=1;rounded=0;strokeColor=#d79b00;strokeWidth=2;fontSize=11;fontStyle=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1850" y="990" as="sourcePoint" />
+            <mxPoint x="2150" y="990" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 18. Notif Consumer → Postgres lookup recipient -->
+        <mxCell id="m18" value="18. SELECT agent_user_id FROM agent_listings WHERE listing_id=? AND status='ACCEPTED'" style="endArrow=classic;html=1;rounded=0;strokeColor=#9673a6;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="2150" y="1040" as="sourcePoint" />
+            <mxPoint x="1270" y="1040" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 19. Postgres → Notif Consumer recipient -->
+        <mxCell id="m19" value="19. agent_user_id (or NULL → fall back to property.owner_user_id)" style="endArrow=classic;html=1;rounded=0;dashed=1;strokeColor=#9673a6;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1270" y="1080" as="sourcePoint" />
+            <mxPoint x="2150" y="1080" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 20. Notif Consumer → Postgres INSERT notification (idempotent) -->
+        <mxCell id="m20" value="20. INSERT INTO notifications (recipient_user_id, type=INSPECTION_REQUESTED, ref_entity_id=request.id, source=ASYNC_KAFKA, event_id=...)  ON CONFLICT (event_id) DO NOTHING" style="endArrow=classic;html=1;rounded=0;strokeColor=#d79b00;strokeWidth=2;fontSize=11;fontStyle=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="2150" y="1130" as="sourcePoint" />
+            <mxPoint x="1270" y="1130" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 21. Notif Consumer → Kafka commit offset -->
+        <mxCell id="m21" value="21. commit offset (manual ack — only after DB insert succeeds)" style="endArrow=classic;html=1;rounded=0;strokeColor=#d79b00;strokeWidth=2;fontSize=11;fontStyle=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="2150" y="1180" as="sourcePoint" />
+            <mxPoint x="1850" y="1180" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Idempotency note -->
+        <mxCell id="idempo-note" value="Why insert BEFORE offset commit:&#10;• If we committed first and crashed before insert, the notification would be lost.&#10;• Insert-then-commit gives at-least-once; ON CONFLICT(event_id) keeps it idempotent.&#10;Net: missed delivery is impossible (PRD §7: &quot;missed notification = missed deal&quot;)." style="shape=note;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;align=left;spacingLeft=8;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1110" width="640" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- ===== Recipient pull phase ===== -->
+
+        <!-- 22. Recipient → Vista pulls notifications -->
+        <mxCell id="m22" value="22. (later) GET /api/notifications?unread=true" style="endArrow=classic;html=1;rounded=0;strokeColor=#000000;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="2460" y="1260" as="sourcePoint" />
+            <mxPoint x="420" y="1260" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 23. Vista → Postgres (via Haven, abbreviated) -->
+        <mxCell id="m23" value="23. SELECT FROM notifications WHERE recipient_user_id=? AND read_at IS NULL ORDER BY created_at DESC" style="endArrow=classic;html=1;rounded=0;strokeColor=#000000;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="420" y="1300" as="sourcePoint" />
+            <mxPoint x="1270" y="1300" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 24. Postgres → Vista return rows -->
+        <mxCell id="m24" value="24. notification rows" style="endArrow=classic;html=1;rounded=0;dashed=1;strokeColor=#9673a6;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1270" y="1340" as="sourcePoint" />
+            <mxPoint x="420" y="1340" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 25. Vista → Recipient render -->
+        <mxCell id="m25" value="25. render unread badge + dashboard alert  ── recipient sees the inspection request" style="endArrow=classic;html=1;rounded=0;dashed=1;strokeColor=#000000;fontSize=11;fontStyle=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="420" y="1380" as="sourcePoint" />
+            <mxPoint x="2460" y="1380" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ===== END STATE box ===== -->
+        <mxCell id="endstate" value="END STATE&#10;&#10;• inspection_requests row exists  (status = REQUESTED, slot_id locked by UNIQUE)&#10;• outbox row exists with published_at set&#10;• Kafka has consumed offset committed&#10;• notifications row exists for the assigned agent (or owner if self-managing)&#10;• Recipient sees badge on next dashboard fetch&#10;&#10;Loser of a concurrent slot race got 409 Conflict at step 5 — never produced an event." style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;spacingLeft=10;spacingTop=8;verticalAlign=top;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1440" width="2540" height="160" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <!-- ============================================================ -->
+  <!-- PAGE 2 : OFFER_SUBMITTED                                       -->
+  <!-- ============================================================ -->
+  <diagram name="OFFER_SUBMITTED" id="seq-offer">
+    <mxGraphModel dx="2400" dy="1800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2600" pageHeight="1700" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- TITLE -->
+        <mxCell id="title" value="DreamHomes — Sequence: OFFER_SUBMITTED  (Applicant submits formal offer → owner / assigned agent is notified async)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=15;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="2300" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="legend" value="Solid arrow = synchronous call · Dashed arrow = return / async event delivery · Orange = Kafka / outbox path&#10;Counter-offers create new Offer rows (parent_offer_id) and re-fire the same flow." style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=11;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="40" y="50" width="2000" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ===== LIFELINE HEADERS ===== -->
+        <mxCell id="L1" value="Applicant&#10;(Browser)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="100" width="200" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="L2" value="Vista&#10;(Next.js 14)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="320" y="100" width="200" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="L3" value="Haven · Security Filter&#10;(JWT + RBAC)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="600" y="100" width="200" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="L4" value="Haven · Offer Service&#10;(producer)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="880" y="100" width="200" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="L5" value="Postgres&#10;(offer, outbox, notification)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1160" y="100" width="220" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="L6" value="Haven · Outbox Relay&#10;(scheduled bean)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1460" y="100" width="200" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="L7" value="Kafka&#10;topic: offer.submitted" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1740" y="100" width="220" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="L8" value="Haven · Notification Consumer&#10;@KafkaListener" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="2040" y="100" width="220" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="L9" value="Recipient&#10;(Owner OR assigned Agent — Browser)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="2340" y="100" width="240" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- ===== LIFELINES ===== -->
+        <mxCell id="LL1" style="endArrow=none;dashed=1;html=1;rounded=0;strokeColor=#6c8ebf;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="140" y="150" as="sourcePoint" />
+            <mxPoint x="140" y="1640" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="LL2" style="endArrow=none;dashed=1;html=1;rounded=0;strokeColor=#6c8ebf;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="420" y="150" as="sourcePoint" />
+            <mxPoint x="420" y="1640" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="LL3" style="endArrow=none;dashed=1;html=1;rounded=0;strokeColor=#b85450;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="700" y="150" as="sourcePoint" />
+            <mxPoint x="700" y="1640" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="LL4" style="endArrow=none;dashed=1;html=1;rounded=0;strokeColor=#82b366;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="980" y="150" as="sourcePoint" />
+            <mxPoint x="980" y="1640" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="LL5" style="endArrow=none;dashed=1;html=1;rounded=0;strokeColor=#9673a6;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1270" y="150" as="sourcePoint" />
+            <mxPoint x="1270" y="1640" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="LL6" style="endArrow=none;dashed=1;html=1;rounded=0;strokeColor=#d6b656;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1560" y="150" as="sourcePoint" />
+            <mxPoint x="1560" y="1640" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="LL7" style="endArrow=none;dashed=1;html=1;rounded=0;strokeColor=#d79b00;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1850" y="150" as="sourcePoint" />
+            <mxPoint x="1850" y="1640" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="LL8" style="endArrow=none;dashed=1;html=1;rounded=0;strokeColor=#d6b656;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="2150" y="150" as="sourcePoint" />
+            <mxPoint x="2150" y="1640" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="LL9" style="endArrow=none;dashed=1;html=1;rounded=0;strokeColor=#6c8ebf;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="2460" y="150" as="sourcePoint" />
+            <mxPoint x="2460" y="1640" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ===== SYNC PHASE ===== -->
+
+        <mxCell id="m1" value="1. POST /api/offers { listingId, intent: RENT|BUY, amount, terms, parentOfferId? }" style="endArrow=classic;html=1;rounded=0;strokeColor=#000000;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="140" y="190" as="sourcePoint" />
+            <mxPoint x="420" y="190" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="m2" value="2. REST + Authorization: Bearer &lt;JWT&gt;" style="endArrow=classic;html=1;rounded=0;strokeColor=#000000;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="420" y="230" as="sourcePoint" />
+            <mxPoint x="700" y="230" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="m3" value="3. verify JWT, role=APPLICANT, forward principal" style="endArrow=classic;html=1;rounded=0;strokeColor=#000000;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="700" y="270" as="sourcePoint" />
+            <mxPoint x="980" y="270" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="m4" value="4. BEGIN TRANSACTION" style="endArrow=classic;html=1;rounded=0;strokeColor=#9673a6;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="980" y="320" as="sourcePoint" />
+            <mxPoint x="1270" y="320" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="m5" value="5. SELECT listing FOR SHARE  ── status must be LIVE; load @Version for optimistic lock" style="endArrow=classic;html=1;rounded=0;strokeColor=#9673a6;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="980" y="360" as="sourcePoint" />
+            <mxPoint x="1270" y="360" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="m5b" value="6. (if parentOfferId) SELECT parent offer; require status=COUNTERED" style="endArrow=classic;html=1;rounded=0;strokeColor=#9673a6;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="980" y="400" as="sourcePoint" />
+            <mxPoint x="1270" y="400" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="m6" value="7. INSERT offer (listing_id, applicant_id, intent, amount, terms, parent_offer_id?, status=SUBMITTED, version=0)" style="endArrow=classic;html=1;rounded=0;strokeColor=#9673a6;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="980" y="440" as="sourcePoint" />
+            <mxPoint x="1270" y="440" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="m7" value="8. (if parent) UPDATE parent SET status=COUNTERED ── @Version check; conflict → 409" style="endArrow=classic;html=1;rounded=0;strokeColor=#9673a6;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="980" y="480" as="sourcePoint" />
+            <mxPoint x="1270" y="480" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="m8" value="9. INSERT outbox (event_type=OFFER_SUBMITTED, aggregate_id=offer.id, payload=JSON, published_at=NULL)" style="endArrow=classic;html=1;rounded=0;strokeColor=#d79b00;strokeWidth=2;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="980" y="520" as="sourcePoint" />
+            <mxPoint x="1270" y="520" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="m9" value="10. COMMIT  (atomic: offer + outbox written together)" style="endArrow=classic;html=1;rounded=0;strokeColor=#9673a6;fontSize=11;fontStyle=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="980" y="560" as="sourcePoint" />
+            <mxPoint x="1270" y="560" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="m10" value="11. OK" style="endArrow=classic;html=1;rounded=0;dashed=1;strokeColor=#9673a6;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1270" y="600" as="sourcePoint" />
+            <mxPoint x="980" y="600" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="m11" value="12. 201 Created { offerId, status: SUBMITTED }" style="endArrow=classic;html=1;rounded=0;dashed=1;strokeColor=#000000;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="980" y="640" as="sourcePoint" />
+            <mxPoint x="700" y="640" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="m12" value="13. 201 Created" style="endArrow=classic;html=1;rounded=0;dashed=1;strokeColor=#000000;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="700" y="680" as="sourcePoint" />
+            <mxPoint x="420" y="680" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="m13" value="14. UI confirmation — &quot;Offer submitted&quot;" style="endArrow=classic;html=1;rounded=0;dashed=1;strokeColor=#000000;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="420" y="720" as="sourcePoint" />
+            <mxPoint x="140" y="720" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Optimistic-lock branch note -->
+        <mxCell id="branch1" value="Counter-offer race branch:&#10;&#10;Two parties counter the same parent offer concurrently → @Version check fails for the loser → ObjectOptimisticLockingException → 409 Conflict.&#10;Loser never produces an event.&#10;&#10;PRD §4.4: &quot;Counter-offer capability — negotiation happens within platform.&quot;" style="shape=note;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;align=left;spacingLeft=8;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="40" y="450" width="700" height="120" as="geometry" />
+        </mxCell>
+
+        <!-- ===== ASYNC BOUNDARY ===== -->
+        <mxCell id="async-banner" value="═══  ASYNC BOUNDARY  ·  Applicant has their 201 response.  The notification path runs INDEPENDENTLY below this line.  ═══" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;fontSize=12;align=center;" vertex="1" parent="1">
+          <mxGeometry x="40" y="770" width="2540" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ===== ASYNC PHASE ===== -->
+
+        <mxCell id="m14" value="15. SELECT * FROM outbox WHERE published_at IS NULL FOR UPDATE SKIP LOCKED LIMIT N" style="endArrow=classic;html=1;rounded=0;strokeColor=#d79b00;strokeWidth=2;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1560" y="850" as="sourcePoint" />
+            <mxPoint x="1270" y="850" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="m15" value="16. unpublished rows" style="endArrow=classic;html=1;rounded=0;dashed=1;strokeColor=#9673a6;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1270" y="890" as="sourcePoint" />
+            <mxPoint x="1560" y="890" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="m16" value="17. produce(topic=offer.submitted, key=listingId, value=payload, headers={event_id})" style="endArrow=classic;html=1;rounded=0;strokeColor=#d79b00;strokeWidth=2;fontSize=11;fontStyle=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1560" y="940" as="sourcePoint" />
+            <mxPoint x="1850" y="940" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="m17" value="18. ack (offset=N, partition=P)" style="endArrow=classic;html=1;rounded=0;dashed=1;strokeColor=#d79b00;strokeWidth=2;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1850" y="980" as="sourcePoint" />
+            <mxPoint x="1560" y="980" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="m18" value="19. UPDATE outbox SET published_at=NOW()  ── only after Kafka acks" style="endArrow=classic;html=1;rounded=0;strokeColor=#d79b00;strokeWidth=2;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1560" y="1020" as="sourcePoint" />
+            <mxPoint x="1270" y="1020" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="ordering-note" value="Ordering guarantee:&#10;Kafka topic key = listingId, single partition per listing → all OFFER_SUBMITTED events for one listing arrive at the consumer in submission order. Critical for counter-offer chains (PRD §4.4).&#10;Across listings, no order — and that is fine." style="shape=note;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;align=left;spacingLeft=8;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="40" y="940" width="640" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="m19" value="20. deliver(record)  ── consumer group=notification-svc; auto-commit=false" style="endArrow=classic;html=1;rounded=0;strokeColor=#d79b00;strokeWidth=2;fontSize=11;fontStyle=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1850" y="1080" as="sourcePoint" />
+            <mxPoint x="2150" y="1080" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="m20" value="21. SELECT agent_user_id FROM agent_listings WHERE listing_id=? AND status='ACCEPTED'" style="endArrow=classic;html=1;rounded=0;strokeColor=#9673a6;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="2150" y="1130" as="sourcePoint" />
+            <mxPoint x="1270" y="1130" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="m21" value="22. agent_user_id (or NULL → fall back to property.owner_user_id)" style="endArrow=classic;html=1;rounded=0;dashed=1;strokeColor=#9673a6;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1270" y="1170" as="sourcePoint" />
+            <mxPoint x="2150" y="1170" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="m22" value="23. INSERT INTO notifications (recipient_user_id, type=OFFER_SUBMITTED, ref_entity_id=offer.id, source=ASYNC_KAFKA, event_id=...)  ON CONFLICT (event_id) DO NOTHING" style="endArrow=classic;html=1;rounded=0;strokeColor=#d79b00;strokeWidth=2;fontSize=11;fontStyle=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="2150" y="1220" as="sourcePoint" />
+            <mxPoint x="1270" y="1220" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="m23" value="24. commit offset (manual ack — only after DB insert succeeds)" style="endArrow=classic;html=1;rounded=0;strokeColor=#d79b00;strokeWidth=2;fontSize=11;fontStyle=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="2150" y="1270" as="sourcePoint" />
+            <mxPoint x="1850" y="1270" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="recommendation-note" value="When recipient = agent (assignment ACCEPTED):&#10;Agent reviews offer, attaches recommendation (Offer.agent_recommendation), then forwards to owner via in-app messaging or by editing the offer record. Owner has final say (PRD §4.4).&#10;That presentation flow is synchronous and not covered by Kafka." style="shape=note;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;align=left;spacingLeft=8;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1200" width="640" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- Recipient pull -->
+        <mxCell id="m24" value="25. (later) GET /api/notifications?unread=true" style="endArrow=classic;html=1;rounded=0;strokeColor=#000000;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="2460" y="1340" as="sourcePoint" />
+            <mxPoint x="420" y="1340" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="m25" value="26. SELECT FROM notifications WHERE recipient_user_id=? AND read_at IS NULL ORDER BY created_at DESC" style="endArrow=classic;html=1;rounded=0;strokeColor=#000000;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="420" y="1380" as="sourcePoint" />
+            <mxPoint x="1270" y="1380" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="m26" value="27. notification rows" style="endArrow=classic;html=1;rounded=0;dashed=1;strokeColor=#9673a6;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1270" y="1420" as="sourcePoint" />
+            <mxPoint x="420" y="1420" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="m27" value="28. render unread badge — &quot;New offer on your listing&quot;" style="endArrow=classic;html=1;rounded=0;dashed=1;strokeColor=#000000;fontSize=11;fontStyle=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="420" y="1460" as="sourcePoint" />
+            <mxPoint x="2460" y="1460" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- END STATE -->
+        <mxCell id="endstate" value="END STATE&#10;&#10;• offers row exists  (status = SUBMITTED, version = 0)&#10;• If counter-offer: parent offer has status = COUNTERED (atomic with insert)&#10;• outbox row exists with published_at set&#10;• Kafka offset committed for notification consumer&#10;• notifications row exists for assigned agent (or owner if self-managing)&#10;• Recipient sees badge + offer detail on next dashboard fetch&#10;&#10;Loser of an optimistic-lock race got 409 at step 8 — never produced an event.&#10;Owner retains final accept/reject authority — that decision is a separate sync API call, not a Kafka flow." style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;spacingLeft=10;spacingTop=8;verticalAlign=top;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1510" width="2540" height="160" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
