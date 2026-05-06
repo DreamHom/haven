@@ -26,29 +26,33 @@ TDD-first. Tests are written before implementation. No exceptions.
 
 ## Getting Started
 
+Requires Java 21 and Docker (Docker Desktop on macOS).
+
 ```bash
-# 1. Configure environment
-export DB_USERNAME=postgres
-export DB_PASSWORD=postgres
+# 1. Start local infra (Postgres + Kafka, persistent volumes)
+docker compose up -d
+
+# 2. Configure environment (defaults match docker-compose.yml)
 export JWT_SECRET=replace-with-a-secret-of-at-least-32-bytes
-export KAFKA_BOOTSTRAP_SERVERS=localhost:9092
 
-# 2. Build
-mvn clean install
-
-# 3. Run
+# 3. Run the app
 mvn spring-boot:run
 ```
 
-Requires Java 21, a running PostgreSQL instance, and a Kafka broker.
+Stop infra with `docker compose down`. Wipe data with `docker compose down -v`.
 
 ## API Documentation
 
 ## Running Tests
 
 ```bash
-mvn test
+mvn test     # fast unit tests (no infra required)
+mvn verify   # adds integration tests (Testcontainers — needs Docker running)
 ```
+
+Unit tests follow the `*Test` / `*Tests` naming convention and run via Surefire.
+Integration tests follow the `*IT` convention, extend `AbstractPostgresIT`,
+and run via Failsafe — each gets a real Postgres container with no boilerplate.
 
 ## Project Structure
 
