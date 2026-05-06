@@ -1,154 +1,92 @@
-<mxfile host="app.diagrams.net" agent="DreamHomes" version="24.0.0">
+<mxfile host="Electron" agent="DreamHomes">
   <diagram name="ERD" id="erd-simple">
-    <mxGraphModel dx="1400" dy="560" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="560" math="0" shadow="0">
+    <mxGraphModel dx="1362" dy="1542" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="600" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-
-        <!-- ===== ROW 1 (y=60) ===== -->
-
-        <!-- Verification (User & identity, blue) -->
-        <mxCell id="verification" value="Verification" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontFamily=Helvetica;fontSize=14;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="480" y="60" width="180" height="60" as="geometry" />
+        <mxCell id="title" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontFamily=Helvetica;fontSize=16;fontStyle=1;align=center;verticalAlign=middle;" value="DreamHomes — Entity Relationship Diagram" vertex="1">
+          <mxGeometry height="30" width="1320" x="40" y="-60" as="geometry" />
         </mxCell>
-
-        <!-- AgentListing (Platform support, orange) -->
-        <mxCell id="agentlisting" value="AgentListing" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontFamily=Helvetica;fontSize=14;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="920" y="60" width="180" height="60" as="geometry" />
+        <mxCell id="verification" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontFamily=Helvetica;fontSize=14;fontStyle=1;" value="Verification" vertex="1">
+          <mxGeometry height="60" width="180" x="480" y="60" as="geometry" />
         </mxCell>
-
-        <!-- ===== ROW 2 (y=240) ===== -->
-
-        <!-- AgentProfile (User & identity, blue) -->
-        <mxCell id="agentprofile" value="AgentProfile" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontFamily=Helvetica;fontSize=14;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="40" y="240" width="180" height="60" as="geometry" />
+        <mxCell id="agentlisting" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontFamily=Helvetica;fontSize=14;fontStyle=1;" value="AgentListing" vertex="1">
+          <mxGeometry height="60" width="180" x="920" y="60" as="geometry" />
         </mxCell>
-
-        <!-- User (User & identity, blue) -->
-        <mxCell id="user" value="User" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontFamily=Helvetica;fontSize=14;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="260" y="240" width="180" height="60" as="geometry" />
+        <mxCell id="agentprofile" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontFamily=Helvetica;fontSize=14;fontStyle=1;" value="AgentProfile" vertex="1">
+          <mxGeometry height="60" width="180" x="40" y="240" as="geometry" />
         </mxCell>
-
-        <!-- Property (Core domain, green) -->
-        <mxCell id="property" value="Property" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontFamily=Helvetica;fontSize=14;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="480" y="240" width="180" height="60" as="geometry" />
+        <mxCell id="user" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontFamily=Helvetica;fontSize=14;fontStyle=1;" value="User" vertex="1">
+          <mxGeometry height="60" width="180" x="260" y="240" as="geometry" />
         </mxCell>
-
-        <!-- Listing (Core domain, green) — taller for verificationStatus subtitle -->
-        <mxCell id="listing" value="&lt;b&gt;Listing&lt;/b&gt;&lt;br&gt;&lt;span style='font-size:10px;font-weight:normal'&gt;verificationStatus:&lt;br&gt;PENDING_DOCUMENTS · UNDER_REVIEW&lt;br&gt;APPROVED · REJECTED&lt;/span&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontFamily=Helvetica;fontSize=14;fontStyle=1;verticalAlign=middle;" vertex="1" parent="1">
-          <mxGeometry x="700" y="240" width="180" height="120" as="geometry" />
+        <mxCell id="property" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontFamily=Helvetica;fontSize=14;fontStyle=1;" value="Property" vertex="1">
+          <mxGeometry height="60" width="180" x="480" y="240" as="geometry" />
         </mxCell>
-
-        <!-- InspectionSlot (Core domain, green) -->
-        <mxCell id="inspectionslot" value="InspectionSlot" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontFamily=Helvetica;fontSize=14;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="920" y="240" width="180" height="60" as="geometry" />
+        <mxCell id="listing" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontFamily=Helvetica;fontSize=14;fontStyle=1;verticalAlign=middle;" value="&lt;b&gt;Listing&lt;/b&gt;&lt;br&gt;&lt;span style=&#39;font-size:10px;font-weight:normal&#39;&gt;verificationStatus:&lt;br&gt;PENDING_DOCUMENTS · UNDER_REVIEW&lt;br&gt;APPROVED · REJECTED&lt;/span&gt;" vertex="1">
+          <mxGeometry height="120" width="180" x="700" y="240" as="geometry" />
         </mxCell>
-
-        <!-- InspectionRequest (Core domain, green) -->
-        <mxCell id="inspectionrequest" value="InspectionRequest" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontFamily=Helvetica;fontSize=14;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="1140" y="240" width="180" height="60" as="geometry" />
+        <mxCell id="inspectionslot" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontFamily=Helvetica;fontSize=14;fontStyle=1;" value="InspectionSlot" vertex="1">
+          <mxGeometry height="60" width="180" x="920" y="240" as="geometry" />
         </mxCell>
-
-        <!-- ===== ROW 3 (y=420) ===== -->
-
-        <!-- Notification (Platform support, orange) -->
-        <mxCell id="notification" value="Notification" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontFamily=Helvetica;fontSize=14;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="260" y="420" width="180" height="60" as="geometry" />
+        <mxCell id="inspectionrequest" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontFamily=Helvetica;fontSize=14;fontStyle=1;" value="InspectionRequest" vertex="1">
+          <mxGeometry height="60" width="180" x="1140" y="240" as="geometry" />
         </mxCell>
-
-        <!-- Document (Platform support, orange) -->
-        <mxCell id="document" value="Document" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontFamily=Helvetica;fontSize=14;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="480" y="420" width="180" height="60" as="geometry" />
+        <mxCell id="notification" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontFamily=Helvetica;fontSize=14;fontStyle=1;" value="Notification" vertex="1">
+          <mxGeometry height="60" width="180" x="260" y="420" as="geometry" />
         </mxCell>
-
-        <!-- Comment (Platform support, orange) -->
-        <mxCell id="comment" value="Comment" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontFamily=Helvetica;fontSize=14;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="700" y="420" width="180" height="60" as="geometry" />
+        <mxCell id="document" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontFamily=Helvetica;fontSize=14;fontStyle=1;" value="Document" vertex="1">
+          <mxGeometry height="60" width="180" x="480" y="420" as="geometry" />
         </mxCell>
-
-        <!-- Offer (Core domain, green) -->
-        <mxCell id="offer" value="Offer" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontFamily=Helvetica;fontSize=14;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="920" y="420" width="180" height="60" as="geometry" />
+        <mxCell id="comment" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontFamily=Helvetica;fontSize=14;fontStyle=1;" value="Comment" vertex="1">
+          <mxGeometry height="60" width="180" x="700" y="420" as="geometry" />
         </mxCell>
-
-        <!-- OutboxEvent (Platform support, orange) -->
-        <mxCell id="outboxevent" value="OutboxEvent" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontFamily=Helvetica;fontSize=14;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="1140" y="420" width="180" height="60" as="geometry" />
+        <mxCell id="offer" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontFamily=Helvetica;fontSize=14;fontStyle=1;" value="Offer" vertex="1">
+          <mxGeometry height="60" width="180" x="920" y="420" as="geometry" />
         </mxCell>
-
-        <!-- ===== EDGES — direct horizontals (row 2 main flow) ===== -->
-
-        <!-- AgentProfile ↔ User (1:1) -->
-        <mxCell id="e-agentprofile-user" value="1:1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;startArrow=ERone;endArrow=ERone;strokeColor=#000000;fontFamily=Helvetica;fontSize=12;" edge="1" parent="1" source="agentprofile" target="user">
+        <mxCell id="outboxevent" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontFamily=Helvetica;fontSize=14;fontStyle=1;" value="OutboxEvent" vertex="1">
+          <mxGeometry height="60" width="180" x="1140" y="420" as="geometry" />
+        </mxCell>
+        <mxCell id="e-agentprofile-user" edge="1" parent="1" source="agentprofile" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;startArrow=ERone;endArrow=ERone;strokeColor=#000000;fontFamily=Helvetica;fontSize=12;" target="user" value="1:1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-
-        <!-- User → Property (1:N) -->
-        <mxCell id="e-user-property" value="1:N" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;startArrow=ERone;endArrow=ERmany;strokeColor=#000000;fontFamily=Helvetica;fontSize=12;" edge="1" parent="1" source="user" target="property">
+        <mxCell id="e-user-property" edge="1" parent="1" source="user" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;startArrow=ERone;endArrow=ERmany;strokeColor=#000000;fontFamily=Helvetica;fontSize=12;" target="property" value="1:N">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-
-        <!-- Property → Listing (1:N) — entryY=0.25 keeps edge straight at y=270 -->
-        <mxCell id="e-property-listing" value="1:N" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.25;entryDx=0;entryDy=0;startArrow=ERone;endArrow=ERmany;strokeColor=#000000;fontFamily=Helvetica;fontSize=12;" edge="1" parent="1" source="property" target="listing">
+        <mxCell id="e-property-listing" edge="1" parent="1" source="property" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.25;entryDx=0;entryDy=0;startArrow=ERone;endArrow=ERmany;strokeColor=#000000;fontFamily=Helvetica;fontSize=12;" target="listing" value="1:N">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-
-        <!-- Listing → InspectionSlot (1:N) — exitY=0.25 keeps edge straight at y=270 -->
-        <mxCell id="e-listing-slot" value="1:N" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.25;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;startArrow=ERone;endArrow=ERmany;strokeColor=#000000;fontFamily=Helvetica;fontSize=12;" edge="1" parent="1" source="listing" target="inspectionslot">
+        <mxCell id="e-listing-slot" edge="1" parent="1" source="listing" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.25;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;startArrow=ERone;endArrow=ERmany;strokeColor=#000000;fontFamily=Helvetica;fontSize=12;" target="inspectionslot" value="1:N">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-
-        <!-- InspectionSlot → InspectionRequest (1:0..1) -->
-        <mxCell id="e-slot-request" value="1:0..1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;startArrow=ERone;endArrow=ERzeroToOne;strokeColor=#000000;fontFamily=Helvetica;fontSize=12;" edge="1" parent="1" source="inspectionslot" target="inspectionrequest">
+        <mxCell id="e-slot-request" edge="1" parent="1" source="inspectionslot" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;startArrow=ERone;endArrow=ERzeroToOne;strokeColor=#000000;fontFamily=Helvetica;fontSize=12;" target="inspectionrequest" value="1:0..1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-
-        <!-- ===== EDGES — clean verticals ===== -->
-
-        <!-- Property → Verification (1:N) — clean vertical at x=570 -->
-        <mxCell id="e-property-verification" value="1:N" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;startArrow=ERone;endArrow=ERmany;strokeColor=#000000;fontFamily=Helvetica;fontSize=12;" edge="1" parent="1" source="property" target="verification">
+        <mxCell id="e-property-verification" edge="1" parent="1" source="property" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;startArrow=ERone;endArrow=ERmany;strokeColor=#000000;fontFamily=Helvetica;fontSize=12;" target="verification" value="1:N">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-
-        <!-- Property → Document (1:N) — clean vertical at x=570 -->
-        <mxCell id="e-property-document" value="1:N" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;startArrow=ERone;endArrow=ERmany;strokeColor=#000000;fontFamily=Helvetica;fontSize=12;" edge="1" parent="1" source="property" target="document">
+        <mxCell id="e-property-document" edge="1" parent="1" source="property" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;startArrow=ERone;endArrow=ERmany;strokeColor=#000000;fontFamily=Helvetica;fontSize=12;" target="document" value="1:N">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-
-        <!-- Listing → Comment (1:N) — clean vertical at x=790 -->
-        <mxCell id="e-listing-comment" value="1:N" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;startArrow=ERone;endArrow=ERmany;strokeColor=#000000;fontFamily=Helvetica;fontSize=12;" edge="1" parent="1" source="listing" target="comment">
+        <mxCell id="e-listing-comment" edge="1" parent="1" source="listing" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;startArrow=ERone;endArrow=ERmany;strokeColor=#000000;fontFamily=Helvetica;fontSize=12;" target="comment" value="1:N">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-
-        <!-- InspectionRequest → OutboxEvent (1:N) — clean vertical at x=1230 -->
-        <mxCell id="e-request-outbox" value="1:N" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;startArrow=ERone;endArrow=ERmany;strokeColor=#000000;fontFamily=Helvetica;fontSize=12;" edge="1" parent="1" source="inspectionrequest" target="outboxevent">
+        <mxCell id="e-request-outbox" edge="1" parent="1" source="inspectionrequest" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;startArrow=ERone;endArrow=ERmany;strokeColor=#000000;fontFamily=Helvetica;fontSize=12;" target="outboxevent" value="1:N">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-
-        <!-- Offer → OutboxEvent (1:N) — direct horizontal in row 3 -->
-        <mxCell id="e-offer-outbox" value="1:N" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;startArrow=ERone;endArrow=ERmany;strokeColor=#000000;fontFamily=Helvetica;fontSize=12;" edge="1" parent="1" source="offer" target="outboxevent">
+        <mxCell id="e-offer-outbox" edge="1" parent="1" source="offer" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;startArrow=ERone;endArrow=ERmany;strokeColor=#000000;fontFamily=Helvetica;fontSize=12;" target="outboxevent" value="1:N">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-
-        <!-- User → Notification (1:N) — clean vertical in col 1 -->
-        <mxCell id="e-user-notification" value="1:N" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.3;exitY=1;exitDx=0;exitDy=0;entryX=0.3;entryY=0;entryDx=0;entryDy=0;startArrow=ERone;endArrow=ERmany;strokeColor=#000000;fontFamily=Helvetica;fontSize=12;" edge="1" parent="1" source="user" target="notification">
+        <mxCell id="e-user-notification" edge="1" parent="1" source="user" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.3;exitY=1;exitDx=0;exitDy=0;entryX=0.3;entryY=0;entryDx=0;entryDy=0;startArrow=ERone;endArrow=ERmany;strokeColor=#000000;fontFamily=Helvetica;fontSize=12;" target="notification" value="1:N">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-
-        <!-- ===== EDGES — User long edges (each on its own corridor, no overlaps) ===== -->
-
-        <!-- User → Verification (1:N) — exit top-right (x=431), bus y=170 -->
-        <mxCell id="e-user-verification" value="1:N" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.95;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;startArrow=ERone;endArrow=ERmany;strokeColor=#000000;fontFamily=Helvetica;fontSize=12;" edge="1" parent="1" source="user" target="verification">
+        <mxCell id="e-user-verification" edge="1" parent="1" source="user" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.95;exitY=0;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;startArrow=ERone;endArrow=ERmany;strokeColor=#000000;fontFamily=Helvetica;fontSize=12;" target="verification" value="1:N">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="431" y="170" />
-              <mxPoint x="570" y="170" />
+              <mxPoint x="431" y="90" />
             </Array>
           </mxGeometry>
         </mxCell>
-
-        <!-- User → AgentListing (1:N) — exit top (x=386), bus y=40 -->
-        <mxCell id="e-user-agentlisting" value="1:N" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.7;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;startArrow=ERone;endArrow=ERmany;strokeColor=#000000;fontFamily=Helvetica;fontSize=12;" edge="1" parent="1" source="user" target="agentlisting">
+        <mxCell id="e-user-agentlisting" edge="1" parent="1" source="user" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.7;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;startArrow=ERone;endArrow=ERmany;strokeColor=#000000;fontFamily=Helvetica;fontSize=12;" target="agentlisting" value="1:N">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="386" y="40" />
@@ -156,9 +94,7 @@
             </Array>
           </mxGeometry>
         </mxCell>
-
-        <!-- User → InspectionRequest (1:N) — exit top (x=350), bus y=20 -->
-        <mxCell id="e-user-request" value="1:N" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;startArrow=ERone;endArrow=ERmany;strokeColor=#000000;fontFamily=Helvetica;fontSize=12;" edge="1" parent="1" source="user" target="inspectionrequest">
+        <mxCell id="e-user-request" edge="1" parent="1" source="user" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;startArrow=ERone;endArrow=ERmany;strokeColor=#000000;fontFamily=Helvetica;fontSize=12;" target="inspectionrequest" value="1:N">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="350" y="20" />
@@ -166,31 +102,24 @@
             </Array>
           </mxGeometry>
         </mxCell>
-
-        <!-- User → Offer (1:N) — exit bottom (x=350), bus y=400 -->
-        <mxCell id="e-user-offer" value="1:N" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;startArrow=ERone;endArrow=ERmany;strokeColor=#000000;fontFamily=Helvetica;fontSize=12;" edge="1" parent="1" source="user" target="offer">
+        <mxCell id="e-user-offer" edge="1" parent="1" source="user" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.7;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;startArrow=ERone;endArrow=ERmany;strokeColor=#000000;fontFamily=Helvetica;fontSize=12;" target="offer" value="1:N">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="350" y="400" />
-              <mxPoint x="1010" y="400" />
+              <mxPoint x="460" y="282" />
+              <mxPoint x="460" y="540" />
+              <mxPoint x="1010" y="540" />
             </Array>
           </mxGeometry>
         </mxCell>
-
-        <!-- User → Comment (1:N) — exit bottom (x=386), bus y=380 -->
-        <mxCell id="e-user-comment" value="1:N" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.7;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;startArrow=ERone;endArrow=ERmany;strokeColor=#000000;fontFamily=Helvetica;fontSize=12;" edge="1" parent="1" source="user" target="comment">
+        <mxCell id="e-user-comment" edge="1" parent="1" source="user" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.7;exitY=1;exitDx=0;exitDy=0;entryX=0.4;entryY=0;entryDx=0;entryDy=0;startArrow=ERone;endArrow=ERmany;strokeColor=#000000;fontFamily=Helvetica;fontSize=12;" target="comment" value="1:N">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="386" y="380" />
-              <mxPoint x="790" y="380" />
+              <mxPoint x="772" y="380" />
             </Array>
           </mxGeometry>
         </mxCell>
-
-        <!-- ===== EDGES — Listing long edges (separate corridors from User edges) ===== -->
-
-        <!-- Listing → AgentListing (1:N) — exit top (x=826), bus y=130, enter AgentListing-bottom -->
-        <mxCell id="e-listing-agentlisting" value="1:N" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.7;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;startArrow=ERone;endArrow=ERmany;strokeColor=#000000;fontFamily=Helvetica;fontSize=12;" edge="1" parent="1" source="listing" target="agentlisting">
+        <mxCell id="e-listing-agentlisting" edge="1" parent="1" source="listing" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.7;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;startArrow=ERone;endArrow=ERmany;strokeColor=#000000;fontFamily=Helvetica;fontSize=12;" target="agentlisting" value="1:N">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="826" y="130" />
@@ -198,9 +127,7 @@
             </Array>
           </mxGeometry>
         </mxCell>
-
-        <!-- Listing → Offer (1:N) — exit bottom (x=826), bus y=390, enter Offer-top at x=1064 -->
-        <mxCell id="e-listing-offer" value="1:N" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.7;exitY=1;exitDx=0;exitDy=0;entryX=0.8;entryY=0;entryDx=0;entryDy=0;startArrow=ERone;endArrow=ERmany;strokeColor=#000000;fontFamily=Helvetica;fontSize=12;" edge="1" parent="1" source="listing" target="offer">
+        <mxCell id="e-listing-offer" edge="1" parent="1" source="listing" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.7;exitY=1;exitDx=0;exitDy=0;entryX=0.8;entryY=0;entryDx=0;entryDy=0;startArrow=ERone;endArrow=ERmany;strokeColor=#000000;fontFamily=Helvetica;fontSize=12;" target="offer" value="1:N">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="826" y="390" />
@@ -208,7 +135,6 @@
             </Array>
           </mxGeometry>
         </mxCell>
-
       </root>
     </mxGraphModel>
   </diagram>
