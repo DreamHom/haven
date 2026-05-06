@@ -1,0 +1,324 @@
+<mxfile host="app.diagrams.net" modified="2026-05-05T00:00:00.000Z" agent="DreamHomes-Capstone" version="24.0.0">
+  <diagram name="ERD" id="dreamhomes-erd">
+    <mxGraphModel dx="2400" dy="1800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2600" pageHeight="2000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- TITLE -->
+        <mxCell id="title" value="DreamHomes — Entity Relationship Diagram (Capstone 2026)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="800" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="legend" value="Notation: Crow's-foot. PK = primary key · FK = foreign key · UQ = unique · ENUM held as VARCHAR + CHECK or PG enum" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="40" y="50" width="900" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- =========== IDENTITY =========== -->
+        <mxCell id="user" value="&lt;b&gt;User&lt;/b&gt;&lt;hr style=&quot;margin:2px 0&quot;/&gt;&lt;b&gt;PK&lt;/b&gt; id : UUID&lt;br/&gt;email : VARCHAR(255) UQ NN&lt;br/&gt;phone : VARCHAR(32)&lt;br/&gt;password_hash : VARCHAR(255) NN&lt;br/&gt;full_name : VARCHAR(120) NN&lt;br/&gt;role : ENUM(OWNER,AGENT,&lt;br/&gt;&amp;nbsp;&amp;nbsp;APPLICANT,ADMIN) NN&lt;br/&gt;status : ENUM(ACTIVE,SUSPENDED,&lt;br/&gt;&amp;nbsp;&amp;nbsp;DEACTIVATED) DEFAULT ACTIVE&lt;br/&gt;identity_verified : BOOLEAN&lt;br/&gt;created_at, updated_at" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=6;spacingBottom=6;" vertex="1" parent="1">
+          <mxGeometry x="40" y="100" width="280" height="240" as="geometry" />
+        </mxCell>
+
+        <mxCell id="agentprofile" value="&lt;b&gt;AgentProfile&lt;/b&gt;&lt;hr style=&quot;margin:2px 0&quot;/&gt;&lt;b&gt;PK,FK&lt;/b&gt; user_id : UUID → User&lt;br/&gt;bio : TEXT&lt;br/&gt;specializations : JSONB&lt;br/&gt;locations_covered : JSONB&lt;br/&gt;languages : JSONB&lt;br/&gt;years_experience : INT&lt;br/&gt;license_number : VARCHAR(120)&lt;br/&gt;cac_registration : VARCHAR(120)&lt;br/&gt;fee_structure : JSONB &lt;i&gt;public&lt;/i&gt;&lt;br/&gt;credential_verified : BOOLEAN&lt;br/&gt;approved_at : TIMESTAMPTZ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=6;spacingBottom=6;" vertex="1" parent="1">
+          <mxGeometry x="40" y="380" width="280" height="240" as="geometry" />
+        </mxCell>
+
+        <!-- =========== PROPERTY / LISTING =========== -->
+        <mxCell id="property" value="&lt;b&gt;Property&lt;/b&gt;&lt;hr style=&quot;margin:2px 0&quot;/&gt;&lt;b&gt;PK&lt;/b&gt; id : UUID&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; owner_user_id : UUID → User&lt;br/&gt;address_line1 : VARCHAR(255) NN&lt;br/&gt;address_line2 : VARCHAR(255)&lt;br/&gt;city : VARCHAR(120) NN&lt;br/&gt;state : VARCHAR(120) NN&lt;br/&gt;country : VARCHAR(64) NN&lt;br/&gt;postcode : VARCHAR(32)&lt;br/&gt;type : ENUM(APARTMENT,HOUSE,&lt;br/&gt;&amp;nbsp;&amp;nbsp;LAND,COMMERCIAL) NN&lt;br/&gt;bedrooms : INT&lt;br/&gt;bathrooms : INT&lt;br/&gt;size_sqm : NUMERIC&lt;br/&gt;description : TEXT&lt;br/&gt;documents_verified : BOOLEAN&lt;br/&gt;created_at" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=6;spacingBottom=6;" vertex="1" parent="1">
+          <mxGeometry x="380" y="100" width="280" height="320" as="geometry" />
+        </mxCell>
+
+        <mxCell id="listing" value="&lt;b&gt;Listing&lt;/b&gt;&lt;hr style=&quot;margin:2px 0&quot;/&gt;&lt;b&gt;PK&lt;/b&gt; id : UUID&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; property_id : UUID → Property&lt;br/&gt;listing_type : ENUM(RENT,SALE) NN&lt;br/&gt;asking_price : NUMERIC NN&lt;br/&gt;price_negotiable : BOOLEAN&lt;br/&gt;caution_fee : NUMERIC&lt;br/&gt;service_charge : NUMERIC&lt;br/&gt;agency_fee : NUMERIC&lt;br/&gt;available_from : DATE&lt;br/&gt;virtual_tour_url : VARCHAR(512)&lt;br/&gt;status : ENUM(DRAFT,PENDING,LIVE,&lt;br/&gt;&amp;nbsp;&amp;nbsp;PAUSED,CLOSED_RENTED,&lt;br/&gt;&amp;nbsp;&amp;nbsp;CLOSED_SOLD,TAKEN_DOWN) NN&lt;br/&gt;view_count : BIGINT DEFAULT 0&lt;br/&gt;version : BIGINT &lt;i&gt;@Version&lt;/i&gt;&lt;br/&gt;created_at, updated_at, closed_at" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=6;spacingBottom=6;" vertex="1" parent="1">
+          <mxGeometry x="720" y="100" width="280" height="320" as="geometry" />
+        </mxCell>
+
+        <mxCell id="listingphoto" value="&lt;b&gt;ListingPhoto&lt;/b&gt;&lt;hr style=&quot;margin:2px 0&quot;/&gt;&lt;b&gt;PK&lt;/b&gt; id : UUID&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; listing_id : UUID → Listing&lt;br/&gt;url : VARCHAR(512) NN &lt;i&gt;metadata only&lt;/i&gt;&lt;br/&gt;display_order : INT NN&lt;br/&gt;caption : VARCHAR(255)&lt;br/&gt;uploaded_at : TIMESTAMPTZ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=6;spacingBottom=6;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="100" width="280" height="160" as="geometry" />
+        </mxCell>
+
+        <!-- =========== ENGAGEMENT =========== -->
+        <mxCell id="listingsave" value="&lt;b&gt;ListingSave&lt;/b&gt;&lt;hr style=&quot;margin:2px 0&quot;/&gt;&lt;b&gt;PK&lt;/b&gt; (user_id, listing_id)&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; user_id : UUID → User&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; listing_id : UUID → Listing&lt;br/&gt;saved_at : TIMESTAMPTZ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=6;spacingBottom=6;" vertex="1" parent="1">
+          <mxGeometry x="1400" y="100" width="260" height="140" as="geometry" />
+        </mxCell>
+
+        <mxCell id="listinglike" value="&lt;b&gt;ListingLike&lt;/b&gt;&lt;hr style=&quot;margin:2px 0&quot;/&gt;&lt;b&gt;PK&lt;/b&gt; (user_id, listing_id)&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; user_id : UUID → User&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; listing_id : UUID → Listing&lt;br/&gt;liked_at : TIMESTAMPTZ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=6;spacingBottom=6;" vertex="1" parent="1">
+          <mxGeometry x="1700" y="100" width="260" height="140" as="geometry" />
+        </mxCell>
+
+        <mxCell id="listingreview" value="&lt;b&gt;ListingReview&lt;/b&gt;&lt;hr style=&quot;margin:2px 0&quot;/&gt;&lt;b&gt;PK&lt;/b&gt; id : UUID&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; listing_id : UUID → Listing&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; reviewer_user_id : UUID → User&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; reviewee_user_id : UUID → User&lt;br/&gt;rating : INT CHECK 1..5&lt;br/&gt;body : TEXT&lt;br/&gt;created_at&lt;br/&gt;&lt;i&gt;UQ(listing,reviewer,reviewee)&lt;/i&gt;&lt;br/&gt;&lt;i&gt;CHECK listing.status IN (CLOSED_*)&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=6;spacingBottom=6;" vertex="1" parent="1">
+          <mxGeometry x="2000" y="100" width="280" height="220" as="geometry" />
+        </mxCell>
+
+        <!-- =========== AGENT MANAGEMENT =========== -->
+        <mxCell id="agentlisting" value="&lt;b&gt;AgentListing&lt;/b&gt;  &lt;i&gt;(junction)&lt;/i&gt;&lt;hr style=&quot;margin:2px 0&quot;/&gt;&lt;b&gt;PK&lt;/b&gt; id : UUID&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; listing_id : UUID → Listing&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; agent_user_id : UUID → User&lt;br/&gt;status : ENUM(REQUESTED,ACCEPTED,&lt;br/&gt;&amp;nbsp;&amp;nbsp;DECLINED,REVOKED)&lt;br/&gt;requested_at, responded_at&lt;br/&gt;revoked_at : TIMESTAMPTZ&lt;br/&gt;&lt;i&gt;Partial UQ(listing_id)&lt;/i&gt;&lt;br/&gt;&lt;i&gt;WHERE status=ACCEPTED&lt;/i&gt;&lt;br/&gt;&lt;i&gt;→ at most one active agent per listing&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=6;spacingBottom=6;" vertex="1" parent="1">
+          <mxGeometry x="380" y="500" width="280" height="240" as="geometry" />
+        </mxCell>
+
+        <!-- =========== INSPECTION =========== -->
+        <mxCell id="inspectionslot" value="&lt;b&gt;InspectionSlot&lt;/b&gt;&lt;hr style=&quot;margin:2px 0&quot;/&gt;&lt;b&gt;PK&lt;/b&gt; id : UUID&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; listing_id : UUID → Listing&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; created_by_user_id : UUID → User&lt;br/&gt;start_at : TIMESTAMPTZ NN&lt;br/&gt;end_at : TIMESTAMPTZ NN&lt;br/&gt;status : ENUM(OPEN,BOOKED,CANCELLED)&lt;br/&gt;&lt;i&gt;EXCLUDE USING GIST&lt;/i&gt;&lt;br/&gt;&lt;i&gt;(listing_id WITH =,&lt;/i&gt;&lt;br/&gt;&lt;i&gt;tstzrange(start_at,end_at) WITH &amp;&amp;)&lt;/i&gt;&lt;br/&gt;&lt;i&gt;→ no overlapping slots per listing&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=6;spacingBottom=6;" vertex="1" parent="1">
+          <mxGeometry x="720" y="500" width="280" height="240" as="geometry" />
+        </mxCell>
+
+        <mxCell id="inspectionrequest" value="&lt;b&gt;InspectionRequest&lt;/b&gt;&lt;hr style=&quot;margin:2px 0&quot;/&gt;&lt;b&gt;PK&lt;/b&gt; id : UUID&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; slot_id : UUID UQ → InspectionSlot&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; applicant_user_id : UUID → User&lt;br/&gt;status : ENUM(REQUESTED,CONFIRMED,&lt;br/&gt;&amp;nbsp;&amp;nbsp;RESCHEDULED,DECLINED,COMPLETED,&lt;br/&gt;&amp;nbsp;&amp;nbsp;NO_SHOW,CANCELLED)&lt;br/&gt;post_inspection_notes : TEXT&lt;br/&gt;no_show : BOOLEAN DEFAULT FALSE&lt;br/&gt;requested_at, confirmed_at, completed_at&lt;br/&gt;&lt;i&gt;UQ(slot_id) → no two requests on same slot&lt;/i&gt;&lt;br/&gt;&lt;i&gt;PRD §6: data-layer conflict prevention&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=6;spacingBottom=6;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="500" width="320" height="240" as="geometry" />
+        </mxCell>
+
+        <!-- =========== OFFER =========== -->
+        <mxCell id="offer" value="&lt;b&gt;Offer&lt;/b&gt;&lt;hr style=&quot;margin:2px 0&quot;/&gt;&lt;b&gt;PK&lt;/b&gt; id : UUID&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; listing_id : UUID → Listing&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; applicant_user_id : UUID → User&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; parent_offer_id : UUID → Offer &lt;i&gt;nullable&lt;/i&gt;&lt;br/&gt;intent : ENUM(RENT,BUY) NN&lt;br/&gt;amount : NUMERIC NN&lt;br/&gt;terms : TEXT&lt;br/&gt;agent_recommendation : TEXT&lt;br/&gt;status : ENUM(SUBMITTED,COUNTERED,&lt;br/&gt;&amp;nbsp;&amp;nbsp;ACCEPTED,REJECTED,&lt;br/&gt;&amp;nbsp;&amp;nbsp;WITHDRAWN,EXPIRED)&lt;br/&gt;version : BIGINT &lt;i&gt;@Version&lt;/i&gt;&lt;br/&gt;submitted_at, decided_at" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=6;spacingBottom=6;" vertex="1" parent="1">
+          <mxGeometry x="1420" y="500" width="280" height="280" as="geometry" />
+        </mxCell>
+
+        <!-- =========== VERIFICATION / COMMENT =========== -->
+        <mxCell id="verification" value="&lt;b&gt;Verification&lt;/b&gt;  &lt;i&gt;(polymorphic)&lt;/i&gt;&lt;hr style=&quot;margin:2px 0&quot;/&gt;&lt;b&gt;PK&lt;/b&gt; id : UUID&lt;br/&gt;type : ENUM(OWNER_IDENTITY,&lt;br/&gt;&amp;nbsp;&amp;nbsp;PROPERTY_DOCS,AGENT_CREDENTIAL,&lt;br/&gt;&amp;nbsp;&amp;nbsp;APPLICANT_ID) NN&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; subject_user_id : UUID → User &lt;i&gt;null&lt;/i&gt;&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; subject_property_id : UUID → Property &lt;i&gt;null&lt;/i&gt;&lt;br/&gt;document_metadata : JSONB&lt;br/&gt;status : ENUM(PENDING,APPROVED,&lt;br/&gt;&amp;nbsp;&amp;nbsp;REJECTED,MORE_INFO_REQUESTED)&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; reviewed_by_admin_id : UUID → User &lt;i&gt;null&lt;/i&gt;&lt;br/&gt;reviewer_notes : TEXT&lt;br/&gt;submitted_at, reviewed_at&lt;br/&gt;&lt;i&gt;CHECK: PROPERTY_DOCS ⇒ property set,&lt;/i&gt;&lt;br/&gt;&lt;i&gt;else user set (XOR)&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=6;spacingBottom=6;" vertex="1" parent="1">
+          <mxGeometry x="380" y="820" width="320" height="320" as="geometry" />
+        </mxCell>
+
+        <mxCell id="comment" value="&lt;b&gt;Comment&lt;/b&gt;&lt;hr style=&quot;margin:2px 0&quot;/&gt;&lt;b&gt;PK&lt;/b&gt; id : UUID&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; listing_id : UUID → Listing&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; author_user_id : UUID → User&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; parent_comment_id : UUID → Comment &lt;i&gt;null&lt;/i&gt;&lt;br/&gt;body : TEXT NN&lt;br/&gt;deleted_at : TIMESTAMPTZ &lt;i&gt;soft delete&lt;/i&gt;&lt;br/&gt;created_at" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=6;spacingBottom=6;" vertex="1" parent="1">
+          <mxGeometry x="740" y="820" width="280" height="200" as="geometry" />
+        </mxCell>
+
+        <!-- =========== COMMUNICATION =========== -->
+        <mxCell id="messagethread" value="&lt;b&gt;MessageThread&lt;/b&gt;&lt;hr style=&quot;margin:2px 0&quot;/&gt;&lt;b&gt;PK&lt;/b&gt; id : UUID&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; listing_id : UUID → Listing&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; participant_a_user_id : UUID → User&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; participant_b_user_id : UUID → User&lt;br/&gt;created_at&lt;br/&gt;&lt;i&gt;UQ(listing_id, LEAST(a,b), GREATEST(a,b))&lt;/i&gt;&lt;br/&gt;&lt;i&gt;→ one thread per pair per listing&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=6;spacingBottom=6;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="820" width="320" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="message" value="&lt;b&gt;Message&lt;/b&gt;&lt;hr style=&quot;margin:2px 0&quot;/&gt;&lt;b&gt;PK&lt;/b&gt; id : UUID&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; thread_id : UUID → MessageThread&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; sender_user_id : UUID → User&lt;br/&gt;body : TEXT NN&lt;br/&gt;sent_at : TIMESTAMPTZ NN&lt;br/&gt;read_at : TIMESTAMPTZ &lt;i&gt;null&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=6;spacingBottom=6;" vertex="1" parent="1">
+          <mxGeometry x="1420" y="820" width="280" height="180" as="geometry" />
+        </mxCell>
+
+        <mxCell id="notification" value="&lt;b&gt;Notification&lt;/b&gt;&lt;hr style=&quot;margin:2px 0&quot;/&gt;&lt;b&gt;PK&lt;/b&gt; id : UUID&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; recipient_user_id : UUID → User&lt;br/&gt;type : ENUM(INSPECTION_REQUESTED,&lt;br/&gt;&amp;nbsp;&amp;nbsp;OFFER_SUBMITTED,LISTING_APPROVED,&lt;br/&gt;&amp;nbsp;&amp;nbsp;VERIFICATION_DECISION,&lt;br/&gt;&amp;nbsp;&amp;nbsp;MESSAGE_RECEIVED,COMMENT_POSTED,&lt;br/&gt;&amp;nbsp;&amp;nbsp;ASSIGNMENT_REQUEST, …)&lt;br/&gt;payload_json : JSONB&lt;br/&gt;ref_entity_type : VARCHAR(64)&lt;br/&gt;ref_entity_id : UUID&lt;br/&gt;source : ENUM(SYNC, ASYNC_KAFKA)&lt;br/&gt;read_at : TIMESTAMPTZ &lt;i&gt;null&lt;/i&gt;&lt;br/&gt;created_at&lt;br/&gt;&lt;i&gt;IDX(recipient,read_at,created_at DESC)&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=6;spacingBottom=6;" vertex="1" parent="1">
+          <mxGeometry x="1740" y="820" width="320" height="280" as="geometry" />
+        </mxCell>
+
+        <!-- =========== OPERATIONS =========== -->
+        <mxCell id="ad" value="&lt;b&gt;Ad&lt;/b&gt;&lt;hr style=&quot;margin:2px 0&quot;/&gt;&lt;b&gt;PK&lt;/b&gt; id : UUID&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; advertiser_user_id : UUID → User&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; listing_id : UUID → Listing &lt;i&gt;null&lt;/i&gt;&lt;br/&gt;&lt;i&gt;(null when type=FEATURED_AGENT)&lt;/i&gt;&lt;br/&gt;type : ENUM(FEATURED_LISTING,&lt;br/&gt;&amp;nbsp;&amp;nbsp;FEATURED_AGENT) NN&lt;br/&gt;starts_at, ends_at : TIMESTAMPTZ&lt;br/&gt;status : ENUM(PENDING_APPROVAL,&lt;br/&gt;&amp;nbsp;&amp;nbsp;APPROVED,ACTIVE,EXPIRED,REJECTED)&lt;br/&gt;spend_amount : NUMERIC&lt;br/&gt;&lt;i&gt;CHECK: type=FEATURED_LISTING ⇒&lt;/i&gt;&lt;br/&gt;&lt;i&gt;listing_id NOT NULL&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=6;spacingBottom=6;" vertex="1" parent="1">
+          <mxGeometry x="380" y="1200" width="320" height="260" as="geometry" />
+        </mxCell>
+
+        <mxCell id="auditlog" value="&lt;b&gt;AuditLog&lt;/b&gt;&lt;hr style=&quot;margin:2px 0&quot;/&gt;&lt;b&gt;PK&lt;/b&gt; id : UUID&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; actor_user_id : UUID → User&lt;br/&gt;action : VARCHAR(64) NN&lt;br/&gt;&lt;i&gt;(VERIFICATION_APPROVED,&lt;/i&gt;&lt;br/&gt;&lt;i&gt;LISTING_TAKEN_DOWN, USER_SUSPENDED…)&lt;/i&gt;&lt;br/&gt;target_entity_type : VARCHAR(64) NN&lt;br/&gt;target_entity_id : UUID NN&lt;br/&gt;before_state : JSONB&lt;br/&gt;after_state : JSONB&lt;br/&gt;request_id : UUID&lt;br/&gt;occurred_at : TIMESTAMPTZ NN&lt;br/&gt;&lt;i&gt;Append-only — no UPDATE/DELETE&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=6;spacingBottom=6;" vertex="1" parent="1">
+          <mxGeometry x="740" y="1200" width="320" height="260" as="geometry" />
+        </mxCell>
+
+        <mxCell id="outbox" value="&lt;b&gt;Outbox&lt;/b&gt;  &lt;i&gt;(transactional)&lt;/i&gt;&lt;hr style=&quot;margin:2px 0&quot;/&gt;&lt;b&gt;PK&lt;/b&gt; id : UUID&lt;br/&gt;aggregate_type : VARCHAR(64) NN&lt;br/&gt;aggregate_id : UUID NN&lt;br/&gt;event_type : VARCHAR(64) NN&lt;br/&gt;&lt;i&gt;(INSPECTION_REQUESTED,&lt;/i&gt;&lt;br/&gt;&lt;i&gt;OFFER_SUBMITTED)&lt;/i&gt;&lt;br/&gt;payload_json : JSONB NN&lt;br/&gt;created_at : TIMESTAMPTZ NN&lt;br/&gt;published_at : TIMESTAMPTZ &lt;i&gt;null = unsent&lt;/i&gt;&lt;br/&gt;&lt;i&gt;IDX(published_at) WHERE published_at IS NULL&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=6;spacingBottom=6;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="1200" width="320" height="260" as="geometry" />
+        </mxCell>
+
+        <!-- =========== NOTES =========== -->
+        <mxCell id="note-roles" value="Domain rules enforced by ENUM + CHECK constraints:&#10;• Property.owner_user_id → User WHERE role=OWNER&#10;• AgentListing.agent_user_id → User WHERE role=AGENT&#10;• Verification.reviewed_by_admin_id → User WHERE role=ADMIN&#10;• Lead temperature (cold/warm/hot) is derived, not stored&#10;• Responsiveness metrics derived as a view on messages + inspection timestamps" style="shape=note;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;verticalAlign=top;fontSize=10;spacingLeft=8;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="1500" y="1200" width="540" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="note-files" value="No raw file storage in DB (PRD §6).&#10;ListingPhoto.url, Verification.document_metadata point at external object storage.&#10;Object-storage layer is out of capstone scope per PRD §9." style="shape=note;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;verticalAlign=top;fontSize=10;spacingLeft=8;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="1500" y="1340" width="540" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- =========== EDGES (Crow's foot) =========== -->
+
+        <!-- User 1 -- 0..1 AgentProfile -->
+        <mxCell id="e-user-agentprofile" style="endArrow=ERzeroToOne;startArrow=ERone;html=1;rounded=0;exitX=0;exitY=1;entryX=0;entryY=0;" edge="1" parent="1" source="user" target="agentprofile">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- User 1 -- 0..* Property (as owner) -->
+        <mxCell id="e-user-property" value="owns" style="endArrow=ERmany;startArrow=ERone;html=1;rounded=0;fontSize=10;" edge="1" parent="1" source="user" target="property">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Property 1 -- 0..* Listing -->
+        <mxCell id="e-property-listing" style="endArrow=ERmany;startArrow=ERone;html=1;rounded=0;fontSize=10;" edge="1" parent="1" source="property" target="listing">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Listing 1 -- 0..* ListingPhoto -->
+        <mxCell id="e-listing-photo" style="endArrow=ERmany;startArrow=ERone;html=1;rounded=0;fontSize=10;" edge="1" parent="1" source="listing" target="listingphoto">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Listing 1 -- 0..* ListingSave -->
+        <mxCell id="e-listing-save" style="endArrow=ERmany;startArrow=ERone;html=1;rounded=0;fontSize=10;" edge="1" parent="1" source="listing" target="listingsave">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- User 1 -- 0..* ListingSave -->
+        <mxCell id="e-user-save" style="endArrow=ERmany;startArrow=ERone;html=1;rounded=0;fontSize=10;" edge="1" parent="1" source="user" target="listingsave">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1530" y="180" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Listing 1 -- 0..* ListingLike -->
+        <mxCell id="e-listing-like" style="endArrow=ERmany;startArrow=ERone;html=1;rounded=0;fontSize=10;" edge="1" parent="1" source="listing" target="listinglike">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- User → ListingLike -->
+        <mxCell id="e-user-like" style="endArrow=ERmany;startArrow=ERone;html=1;rounded=0;fontSize=10;" edge="1" parent="1" source="user" target="listinglike">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1830" y="80" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Listing 1 -- 0..* ListingReview -->
+        <mxCell id="e-listing-review" style="endArrow=ERmany;startArrow=ERone;html=1;rounded=0;fontSize=10;" edge="1" parent="1" source="listing" target="listingreview">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- User -- ListingReview (reviewer + reviewee) -->
+        <mxCell id="e-user-review-reviewer" value="reviewer" style="endArrow=ERmany;startArrow=ERone;html=1;rounded=0;fontSize=9;" edge="1" parent="1" source="user" target="listingreview">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2140" y="80" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-user-review-reviewee" value="reviewee" style="endArrow=ERmany;startArrow=ERone;html=1;rounded=0;fontSize=9;dashed=1;" edge="1" parent="1" source="user" target="listingreview">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2200" y="80" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Listing 1 -- 0..* AgentListing -->
+        <mxCell id="e-listing-agentlisting" style="endArrow=ERmany;startArrow=ERone;html=1;rounded=0;fontSize=10;" edge="1" parent="1" source="listing" target="agentlisting">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- User -- 0..* AgentListing (as agent) -->
+        <mxCell id="e-user-agentlisting" value="agent" style="endArrow=ERmany;startArrow=ERone;html=1;rounded=0;fontSize=10;" edge="1" parent="1" source="user" target="agentlisting">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Listing 1 -- 0..* InspectionSlot -->
+        <mxCell id="e-listing-slot" style="endArrow=ERmany;startArrow=ERone;html=1;rounded=0;fontSize=10;" edge="1" parent="1" source="listing" target="inspectionslot">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- User -- 0..* InspectionSlot (creator) -->
+        <mxCell id="e-user-slot" value="creates" style="endArrow=ERmany;startArrow=ERone;html=1;rounded=0;fontSize=9;dashed=1;" edge="1" parent="1" source="user" target="inspectionslot">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- InspectionSlot 1 -- 0..1 InspectionRequest -->
+        <mxCell id="e-slot-request" value="UQ" style="endArrow=ERzeroToOne;startArrow=ERone;html=1;rounded=0;fontSize=10;strokeColor=#b85450;strokeWidth=2;" edge="1" parent="1" source="inspectionslot" target="inspectionrequest">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- User -- 0..* InspectionRequest (applicant) -->
+        <mxCell id="e-user-request" value="applicant" style="endArrow=ERmany;startArrow=ERone;html=1;rounded=0;fontSize=9;" edge="1" parent="1" source="user" target="inspectionrequest">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Listing -- Offer -->
+        <mxCell id="e-listing-offer" style="endArrow=ERmany;startArrow=ERone;html=1;rounded=0;fontSize=10;" edge="1" parent="1" source="listing" target="offer">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- User -- Offer (applicant) -->
+        <mxCell id="e-user-offer" value="applicant" style="endArrow=ERmany;startArrow=ERone;html=1;rounded=0;fontSize=9;" edge="1" parent="1" source="user" target="offer">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Offer self-reference (counter-offers) -->
+        <mxCell id="e-offer-self" value="counter-offer" style="endArrow=ERmany;startArrow=ERzeroToOne;html=1;rounded=0;fontSize=9;curved=1;" edge="1" parent="1" source="offer" target="offer">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1740" y="540" />
+              <mxPoint x="1740" y="780" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- User -- Verification (subject + reviewer) -->
+        <mxCell id="e-user-verification-subject" value="subject (user)" style="endArrow=ERmany;startArrow=ERone;html=1;rounded=0;fontSize=9;" edge="1" parent="1" source="user" target="verification">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="180" y="900" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-user-verification-reviewer" value="reviewer (admin)" style="endArrow=ERmany;startArrow=ERone;html=1;rounded=0;fontSize=9;dashed=1;" edge="1" parent="1" source="user" target="verification">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="240" y="950" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Property -- Verification (subject) -->
+        <mxCell id="e-property-verification" value="subject (property)" style="endArrow=ERmany;startArrow=ERone;html=1;rounded=0;fontSize=9;" edge="1" parent="1" source="property" target="verification">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Listing -- Comment -->
+        <mxCell id="e-listing-comment" style="endArrow=ERmany;startArrow=ERone;html=1;rounded=0;fontSize=10;" edge="1" parent="1" source="listing" target="comment">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- User -- Comment (author) -->
+        <mxCell id="e-user-comment" value="author" style="endArrow=ERmany;startArrow=ERone;html=1;rounded=0;fontSize=9;" edge="1" parent="1" source="user" target="comment">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Comment self-reference (replies) -->
+        <mxCell id="e-comment-self" value="reply" style="endArrow=ERmany;startArrow=ERzeroToOne;html=1;rounded=0;fontSize=9;curved=1;" edge="1" parent="1" source="comment" target="comment">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1040" y="850" />
+              <mxPoint x="1040" y="1000" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Listing -- MessageThread -->
+        <mxCell id="e-listing-thread" style="endArrow=ERmany;startArrow=ERone;html=1;rounded=0;fontSize=10;" edge="1" parent="1" source="listing" target="messagethread">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- User -- MessageThread (a + b) -->
+        <mxCell id="e-user-thread-a" value="participant_a" style="endArrow=ERmany;startArrow=ERone;html=1;rounded=0;fontSize=9;" edge="1" parent="1" source="user" target="messagethread">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-user-thread-b" value="participant_b" style="endArrow=ERmany;startArrow=ERone;html=1;rounded=0;fontSize=9;dashed=1;" edge="1" parent="1" source="user" target="messagethread">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="320" y="900" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- MessageThread -- Message -->
+        <mxCell id="e-thread-message" style="endArrow=ERmany;startArrow=ERone;html=1;rounded=0;fontSize=10;" edge="1" parent="1" source="messagethread" target="message">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- User -- Message (sender) -->
+        <mxCell id="e-user-message" value="sender" style="endArrow=ERmany;startArrow=ERone;html=1;rounded=0;fontSize=9;" edge="1" parent="1" source="user" target="message">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- User -- Notification (recipient) -->
+        <mxCell id="e-user-notif" value="recipient" style="endArrow=ERmany;startArrow=ERone;html=1;rounded=0;fontSize=9;" edge="1" parent="1" source="user" target="notification">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- User -- Ad (advertiser) / Listing -- Ad -->
+        <mxCell id="e-user-ad" value="advertiser" style="endArrow=ERmany;startArrow=ERone;html=1;rounded=0;fontSize=9;" edge="1" parent="1" source="user" target="ad">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-listing-ad" style="endArrow=ERmany;startArrow=ERzeroToOne;html=1;rounded=0;fontSize=10;" edge="1" parent="1" source="listing" target="ad">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- User -- AuditLog (actor) -->
+        <mxCell id="e-user-audit" value="actor" style="endArrow=ERmany;startArrow=ERone;html=1;rounded=0;fontSize=9;" edge="1" parent="1" source="user" target="auditlog">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
