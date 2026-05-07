@@ -1,6 +1,7 @@
 package com.dreamhomes.haven.notification;
 
 import com.dreamhomes.haven.inspection.events.InspectionRequestedEvent;
+import com.dreamhomes.haven.offer.events.OfferSubmittedEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -9,6 +10,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -51,5 +53,27 @@ class NotificationServiceTest {
                 .contains("\"slotId\":50")
                 .contains("\"listingId\":7")
                 .contains("\"applicantId\":100");
+    }
+
+    @Test
+    void recordsOfferSubmittedNotificationForTheListingOwner() {
+        OfferSubmittedEvent event = new OfferSubmittedEvent(
+                123L, 7L, 99L, 100L,
+                new BigDecimal("75000000.00"), "NGN",
+                Instant.parse("2026-05-15T08:30:00Z"));
+        when(notificationRepository.save(any(Notification.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        service.recordOfferSubmitted(event);
+
+        ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
+        verify(notificationRepository).save(captor.capture());
+        Notification saved = captor.getValue();
+        assertThat(saved.getRecipientId()).isEqualTo(99L);
+        assertThat(saved.getKind()).isEqualTo(NotificationKind.OFFER_SUBMITTED);
+        assertThat(saved.getPayload())
+                .contains("\"offerId\":123")
+                .contains("\"listingId\":7")
+                .contains("\"applicantId\":100")
+                .contains("\"amount\":75000000.00");
     }
 }

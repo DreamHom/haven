@@ -67,15 +67,16 @@ class InspectionFlowEndToEndIT extends AbstractPostgresIT {
     @Autowired InspectionSlotRepository slotRepository;
     @Autowired InspectionRequestRepository requestRepository;
     @Autowired NotificationRepository notificationRepository;
+    @Autowired com.dreamhomes.haven.offer.OfferRepository offerRepository;
 
     @BeforeEach
     @org.junit.jupiter.api.AfterEach
     void clean() {
         // Run before AND after — non-transactional ITs commit rows that would otherwise
         // leak into sibling test classes (e.g., ListingRepositoryIT's findByStatus count).
-        // FK order: notifications + inspection_requests + inspection_slots before
-        // listings/properties/users.
+        // FK order: child rows before parents.
         notificationRepository.deleteAll();
+        offerRepository.deleteAll();
         requestRepository.deleteAll();
         slotRepository.deleteAll();
         listingRepository.deleteAll();
