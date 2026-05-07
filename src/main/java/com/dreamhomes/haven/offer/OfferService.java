@@ -1,17 +1,24 @@
 package com.dreamhomes.haven.offer;
 
+import com.dreamhomes.haven.common.outbox.OutboxEvent;
+import com.dreamhomes.haven.common.outbox.OutboxEventRepository;
+import com.dreamhomes.haven.common.outbox.OutboxRowReadyEvent;
 import com.dreamhomes.haven.listing.Listing;
 import com.dreamhomes.haven.listing.ListingNotFoundException;
 import com.dreamhomes.haven.listing.ListingRepository;
 import com.dreamhomes.haven.listing.ListingStatus;
 import com.dreamhomes.haven.listing.NotPropertyOwnerException;
 import com.dreamhomes.haven.offer.events.OfferSubmittedEvent;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.UUID;
 
 @Service
 @Slf4j
@@ -22,7 +29,9 @@ public class OfferService {
 
     private final OfferRepository offerRepository;
     private final ListingRepository listingRepository;
-    private final OfferEventPublisher eventPublisher;
+    private final OutboxEventRepository outboxRepository;
+    private final ObjectMapper objectMapper;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
     @Transactional
     public Offer submit(Long applicantId, SubmitOfferCommand cmd) {
@@ -45,16 +54,33 @@ public class OfferService {
                 .updatedAt(now)
                 .build());
 
-        eventPublisher.publishOfferSubmitted(new OfferSubmittedEvent(
+        // Outbox + offer commit together. The OutboxRelay ships to Kafka asynchronously.
+        UUID eventId = UUID.randomUUID();
+        OfferSubmittedEvent event = new OfferSubmittedEvent(
+                eventId,
                 saved.getId(),
                 listing.getId(),
                 listing.getOwnerId(),
                 applicantId,
                 saved.getAmount(),
                 saved.getCurrency(),
-                now));
-        log.info("Submitted offerId={} listingId={} applicantId={} amount={}",
-                saved.getId(), listing.getId(), applicantId, saved.getAmount());
+                now);
+        outboxRepository.save(OutboxEvent.builder()
+                .eventId(eventId)
+                .aggregateType("Offer")
+                .aggregateId(saved.getId())
+                .eventType(OfferSubmittedEvent.class.getName())
+                .topic(OfferSubmittedEvent.TOPIC)
+                .partitionKey(String.valueOf(listing.getId()))  // per-listing ordering
+                .payload(serialize(event))
+                .createdAt(now)
+                .build());
+
+        // Drain right after this transaction commits — see InspectionService for rationale.
+        applicationEventPublisher.publishEvent(OutboxRowReadyEvent.INSTANCE);
+
+        log.info("Submitted offerId={} listingId={} applicantId={} amount={} eventId={}",
+                saved.getId(), listing.getId(), applicantId, saved.getAmount(), eventId);
         return saved;
     }
 
@@ -80,5 +106,13 @@ public class OfferService {
     private static boolean isAllowedTransition(OfferStatus from, OfferStatus to) {
         return from == OfferStatus.PENDING
                 && (to == OfferStatus.ACCEPTED || to == OfferStatus.DECLINED);
+    }
+
+    private String serialize(Object event) {
+        try {
+            return objectMapper.writeValueAsString(event);
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("Failed to serialise outbox payload", e);
+        }
     }
 }

@@ -52,4 +52,8 @@ public class AgentProfile {
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
+
+    /** Set when an admin approves an AGENT_CREDENTIALS verification for this profile. */
+    @Column(name = "credential_verified_at")
+    private Instant credentialVerifiedAt;
 }

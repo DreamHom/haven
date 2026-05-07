@@ -1,16 +1,23 @@
 package com.dreamhomes.haven.inspection;
 
+import com.dreamhomes.haven.common.outbox.OutboxEvent;
+import com.dreamhomes.haven.common.outbox.OutboxEventRepository;
+import com.dreamhomes.haven.common.outbox.OutboxRowReadyEvent;
 import com.dreamhomes.haven.inspection.events.InspectionRequestedEvent;
 import com.dreamhomes.haven.listing.Listing;
 import com.dreamhomes.haven.listing.ListingNotFoundException;
 import com.dreamhomes.haven.listing.ListingRepository;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.UUID;
 
 @Service
 @Slf4j
@@ -20,7 +27,9 @@ public class InspectionService {
     private final InspectionSlotRepository slotRepository;
     private final InspectionRequestRepository requestRepository;
     private final ListingRepository listingRepository;
-    private final InspectionEventPublisher eventPublisher;
+    private final OutboxEventRepository outboxRepository;
+    private final ObjectMapper objectMapper;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
     @Transactional
     public InspectionRequest requestSlot(Long applicantId, RequestInspectionCommand cmd) {
@@ -49,7 +58,13 @@ public class InspectionService {
             throw new SlotAlreadyClaimedException();
         }
 
-        eventPublisher.publishInspectionRequested(new InspectionRequestedEvent(
+        // Outbox write is part of the same JPA transaction as the inspection_request
+        // insert above — both commit together or neither does. No chance of an event
+        // for an inspection that didn't land, no chance of an inspection without an
+        // event. The OutboxRelay ships it to Kafka asynchronously after this returns.
+        UUID eventId = UUID.randomUUID();
+        InspectionRequestedEvent event = new InspectionRequestedEvent(
+                eventId,
                 saved.getId(),
                 saved.getSlotId(),
                 listing.getId(),
@@ -57,9 +72,35 @@ public class InspectionService {
                 applicantId,
                 slot.getStartsAt(),
                 slot.getEndsAt(),
-                now));
-        log.info("Created inspectionRequestId={} slotId={} applicantId={}",
-                saved.getId(), saved.getSlotId(), applicantId);
+                now);
+        outboxRepository.save(OutboxEvent.builder()
+                .eventId(eventId)
+                .aggregateType("InspectionRequest")
+                .aggregateId(saved.getId())
+                .eventType(InspectionRequestedEvent.class.getName())
+                .topic(InspectionRequestedEvent.TOPIC)
+                // Per-listing ordering — system-architecture diagram says "key = listingId".
+                // Every event for the same listing lands on the same partition.
+                .partitionKey(String.valueOf(listing.getId()))
+                .payload(serialize(event))
+                .createdAt(now)
+                .build());
+
+        // Nudge the relay to drain right after this transaction commits, instead of
+        // waiting for the next scheduled poll. The scheduled poll is still the safety
+        // net for crashes between commit and listener invocation.
+        applicationEventPublisher.publishEvent(OutboxRowReadyEvent.INSTANCE);
+
+        log.info("Created inspectionRequestId={} slotId={} applicantId={} eventId={}",
+                saved.getId(), saved.getSlotId(), applicantId, eventId);
         return saved;
+    }
+
+    private String serialize(Object event) {
+        try {
+            return objectMapper.writeValueAsString(event);
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("Failed to serialise outbox payload", e);
+        }
     }
 }

@@ -57,4 +57,8 @@ public class Property {
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
+
+    /** Set when an admin approves a PROPERTY_DOCUMENTS verification for this property. */
+    @Column(name = "documents_verified_at")
+    private Instant documentsVerifiedAt;
 }

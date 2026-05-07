@@ -46,6 +46,12 @@ public class AuthService {
             log.warn("Login failed for email='{}'", email);
             throw new InvalidCredentialsException();
         }
+        // Suspended users have valid credentials but can't get a fresh JWT — surface the
+        // same 401 as a bad password so the response shape stays uniform across reasons.
+        if (user.getSuspendedAt() != null) {
+            log.warn("Login rejected for suspended userId={}", user.getId());
+            throw new InvalidCredentialsException();
+        }
         log.info("Login succeeded for userId={} role={}", user.getId(), user.getRole());
         return jwtService.issue(user.getId(), user.getEmail(), user.getRole(), user.getTokenVersion());
     }

@@ -8,6 +8,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -72,4 +73,18 @@ public class Listing {
 
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
+
+    /**
+     * Set when an admin approves the listing — grants the verified-listing badge per
+     * PRD §4.1. Approval is non-blocking: listings go LIVE immediately and are visible
+     * with or without this stamp.
+     */
+    @Column(name = "approved_at")
+    private Instant approvedAt;
+
+    /** Optimistic lock — JPA increments on every save, rejects stale-version writes. */
+    @Version
+    @Column(nullable = false)
+    @Builder.Default
+    private Long version = 0L;
 }

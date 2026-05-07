@@ -15,10 +15,15 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.Instant;
+import java.util.UUID;
 
 /**
- * A notification persisted for one recipient. {@code payload} is JSON text; its shape
- * depends on {@link #kind} — read it in concert with the kind enum.
+ * A notification persisted for one recipient. {@code payload} is JSON text whose
+ * shape depends on {@link #kind} — read it in concert with the kind enum.
+ *
+ * <p>{@code eventId} is the consumer-side dedup key — at-least-once Kafka delivery
+ * means the same event can arrive twice; the UNIQUE constraint on this column
+ * makes the second insert a no-op (we check {@code existsByEventId} in the service).
  */
 @Entity
 @Table(name = "notifications")
@@ -33,12 +38,21 @@ public class Notification {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /** Per-event identifier for idempotent inserts. Null only for sync-source notifications. */
+    @Column(name = "event_id", unique = true)
+    private UUID eventId;
+
     @Column(name = "recipient_id", nullable = false)
     private Long recipientId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 64)
     private NotificationKind kind;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 32)
+    @Builder.Default
+    private NotificationSource source = NotificationSource.ASYNC_KAFKA;
 
     @Column(nullable = false, columnDefinition = "TEXT")
     private String payload;

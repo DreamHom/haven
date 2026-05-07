@@ -1,15 +1,18 @@
 package com.dreamhomes.haven.inspection.events;
 
 import java.time.Instant;
+import java.util.UUID;
 
 /**
- * Cross-service event: an applicant has just requested an inspection. Carries enough
- * context that consumers (Notification Service for now) don't need to look anything up.
+ * Cross-service event: an applicant has just requested an inspection. {@code eventId}
+ * is generated at outbox-write time and travels with the payload so consumers can
+ * dedup duplicate deliveries (Kafka is at-least-once by default).
  *
  * <p>Topic: {@code inspection.requested.v1}. Versioned in the topic name so a future
  * payload change can run alongside the old shape during migration.
  */
 public record InspectionRequestedEvent(
+        UUID eventId,
         Long inspectionRequestId,
         Long slotId,
         Long listingId,

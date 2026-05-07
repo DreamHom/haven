@@ -4,12 +4,12 @@ import com.dreamhomes.haven.offer.events.OfferSubmittedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.stereotype.Component;
 
 /**
- * Bridge between Kafka and {@link NotificationService} for offer events. Same
- * idempotency caveat as the inspection listener — at-least-once delivery means a
- * duplicate event would persist a duplicate notification. Acceptable for MVP.
+ * Bridges Kafka and {@link NotificationService} for offer events. Manual ack — same
+ * insert-then-ack discipline as the inspection listener.
  */
 @Component
 @Slf4j
@@ -19,9 +19,10 @@ public class OfferSubmittedListener {
     private final NotificationService notificationService;
 
     @KafkaListener(topics = OfferSubmittedEvent.TOPIC, groupId = "haven-notifications")
-    public void onOfferSubmitted(OfferSubmittedEvent event) {
-        log.info("Received offer.submitted.v1 offerId={} ownerId={}",
-                event.offerId(), event.ownerId());
+    public void onOfferSubmitted(OfferSubmittedEvent event, Acknowledgment ack) {
+        log.info("Received offer.submitted.v1 eventId={} offerId={} ownerId={}",
+                event.eventId(), event.offerId(), event.ownerId());
         notificationService.recordOfferSubmitted(event);
+        ack.acknowledge();
     }
 }

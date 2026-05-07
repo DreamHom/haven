@@ -2,15 +2,17 @@ package com.dreamhomes.haven.offer.events;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.UUID;
 
 /**
  * Cross-service event: an applicant has submitted a formal offer. Highest-stakes event
- * on the platform — the consumer (Notification Service) MUST receive it for the deal to
- * survive.
+ * on the platform — the consumer (Notification Service) MUST receive it reliably.
+ * {@code eventId} is generated at outbox-write time so duplicate deliveries dedup.
  *
  * <p>Topic: {@code offer.submitted.v1}.
  */
 public record OfferSubmittedEvent(
+        UUID eventId,
         Long offerId,
         Long listingId,
         Long ownerId,

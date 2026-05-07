@@ -56,4 +56,21 @@ public class User {
     @Column(name = "token_version", nullable = false)
     @Builder.Default
     private Integer tokenVersion = 1;
+
+    /**
+     * Set when an admin approves an OWNER_IDENTITY or APPLICANT_IDENTITY verification.
+     * Null means "not yet verified". Stored as the moment of decision (not a boolean)
+     * so the audit story is complete without joining {@code admin_audit_log} on every
+     * profile read.
+     */
+    @Column(name = "identity_verified_at")
+    private Instant identityVerifiedAt;
+
+    /**
+     * Set when an admin suspends the account. Null means "active". The auth filter
+     * rejects requests from suspended users; admins set this in tandem with bumping
+     * {@link #tokenVersion} to invalidate any outstanding JWTs.
+     */
+    @Column(name = "suspended_at")
+    private Instant suspendedAt;
 }

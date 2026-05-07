@@ -10,7 +10,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.Optional;
+import java.util.UUID;
 
+/**
+ * Persists notification rows triggered by Kafka events. Idempotent on {@code eventId} —
+ * Kafka delivers at-least-once, so the same event can arrive twice; the
+ * {@code existsByEventId} check is the service-level half of that guarantee, with the
+ * UNIQUE constraint on the column as belt-and-suspenders for the race window between
+ * check and insert.
+ */
 @Service
 @Slf4j
 @RequiredArgsConstructor
@@ -19,41 +28,39 @@ public class NotificationService {
     private final NotificationRepository notificationRepository;
     private final ObjectMapper objectMapper;
 
-    /**
-     * Records a notification row for the listing owner when an applicant requests an
-     * inspection. The payload JSON carries the event verbatim so a future "my notifications"
-     * UI can render whatever it needs without re-fetching from the inspection module.
-     */
     @Transactional
-    public Notification recordInspectionRequested(InspectionRequestedEvent event) {
-        return record(event.ownerId(), NotificationKind.INSPECTION_REQUESTED, event);
+    public Optional<Notification> recordInspectionRequested(InspectionRequestedEvent event) {
+        return record(event.eventId(), event.ownerId(), NotificationKind.INSPECTION_REQUESTED, event);
     }
 
-    /** Records a notification for the listing owner when an applicant submits a formal offer. */
     @Transactional
-    public Notification recordOfferSubmitted(OfferSubmittedEvent event) {
-        return record(event.ownerId(), NotificationKind.OFFER_SUBMITTED, event);
+    public Optional<Notification> recordOfferSubmitted(OfferSubmittedEvent event) {
+        return record(event.eventId(), event.ownerId(), NotificationKind.OFFER_SUBMITTED, event);
     }
 
-    private Notification record(Long recipientId, NotificationKind kind, Object payload) {
+    private Optional<Notification> record(UUID eventId, Long recipientId, NotificationKind kind, Object payload) {
+        if (notificationRepository.existsByEventId(eventId)) {
+            log.info("Skipping duplicate notification eventId={} kind={}", eventId, kind);
+            return Optional.empty();
+        }
         Notification saved = notificationRepository.save(Notification.builder()
+                .eventId(eventId)
                 .recipientId(recipientId)
                 .kind(kind)
+                .source(NotificationSource.ASYNC_KAFKA)
                 .payload(serialize(payload))
                 .createdAt(Instant.now())
                 .build());
-        log.info("Recorded notificationId={} kind={} recipientId={}",
-                saved.getId(), saved.getKind(), saved.getRecipientId());
-        return saved;
+        log.info("Recorded notificationId={} eventId={} kind={} recipientId={}",
+                saved.getId(), eventId, saved.getKind(), saved.getRecipientId());
+        return Optional.of(saved);
     }
 
     private String serialize(Object event) {
         try {
             return objectMapper.writeValueAsString(event);
         } catch (JsonProcessingException e) {
-            // We control the input — this should never happen in practice. If it does,
-            // surface as runtime so the listener crashes loudly and the message is retried.
-            throw new IllegalStateException("Failed to serialize notification payload", e);
+            throw new IllegalStateException("Failed to serialise notification payload", e);
         }
     }
 }
