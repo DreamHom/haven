@@ -1,11 +1,13 @@
 package com.dreamhomes.haven.auth;
 
-import io.jsonwebtoken.JwtException;
+import com.dreamhomes.haven.user.User;
+import com.dreamhomes.haven.user.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -13,6 +15,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+
+import java.util.Optional;
 
 import java.io.IOException;
 import java.util.List;
@@ -27,12 +31,14 @@ import java.util.List;
  * ({@code anyRequest().authenticated()}) decide whether the request is rejected.
  */
 @Component
+@Slf4j
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private static final String BEARER_PREFIX = "Bearer ";
 
     private final JwtService jwtService;
+    private final UserRepository userRepository;
 
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request,
@@ -43,16 +49,33 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String token = header.substring(BEARER_PREFIX.length());
             try {
                 JwtPrincipal principal = jwtService.parse(token);
-                UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
-                        principal,
-                        null,
-                        List.of(new SimpleGrantedAuthority("ROLE_" + principal.role().name())));
-                auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(auth);
-            } catch (JwtException ignored) {
-                // Invalid token — proceed without auth; protected endpoints will return 401.
+                if (tokenVersionMatchesCurrent(principal)) {
+                    UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
+                            principal,
+                            null,
+                            List.of(new SimpleGrantedAuthority("ROLE_" + principal.role().name())));
+                    auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(auth);
+                } else {
+                    log.warn("Rejecting bearer token for userId={} — tokenVersion mismatch (revoked)", principal.userId());
+                }
+            } catch (RuntimeException badToken) {
+                // Catches JwtException (signature/expiry/format) AND any other RuntimeException
+                // bubbling out of parse — e.g. Role.valueOf throwing IllegalArgumentException
+                // when a token carries a now-unknown role. Either way: skip auth, let the
+                // downstream rules return 401 (or 200 for permitAll endpoints). Never 500.
+                log.warn("Rejecting bearer token: {}", badToken.getMessage());
             }
         }
         chain.doFilter(request, response);
+    }
+
+    /**
+     * One DB roundtrip per authenticated request. Acceptable for our scale; cache with
+     * a short TTL if/when this shows up in profiles.
+     */
+    private boolean tokenVersionMatchesCurrent(JwtPrincipal principal) {
+        Optional<User> user = userRepository.findById(principal.userId());
+        return user.map(u -> u.getTokenVersion() == principal.tokenVersion()).orElse(false);
     }
 }

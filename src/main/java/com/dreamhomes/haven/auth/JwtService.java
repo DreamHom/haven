@@ -17,29 +17,55 @@ import java.util.Date;
 @Service
 public class JwtService {
 
+    /** Substrings that almost certainly indicate a forgotten placeholder, not a real secret. */
+    private static final String[] PLACEHOLDER_MARKERS = {
+            "change-me", "CHANGE-ME", "replace-me", "REPLACE-ME", "DEV_ONLY", "placeholder"
+    };
+
     private final SecretKey signingKey;
     private final Duration ttl;
+    private final String issuer;
+    private final String audience;
 
     @Autowired
     public JwtService(@Value("${jwt.secret}") String secret,
-                      @Value("${jwt.expiration-ms}") long expirationMs) {
-        this(secret, Duration.ofMillis(expirationMs));
+                      @Value("${jwt.expiration-ms}") long expirationMs,
+                      @Value("${jwt.issuer}") String issuer,
+                      @Value("${jwt.audience}") String audience) {
+        this(secret, Duration.ofMillis(expirationMs), issuer, audience);
     }
 
-    JwtService(String secret, Duration ttl) {
+    JwtService(String secret, Duration ttl, String issuer, String audience) {
         if (secret == null || secret.getBytes(StandardCharsets.UTF_8).length < 32) {
             throw new IllegalArgumentException("jwt.secret must be at least 32 bytes");
         }
+        for (String marker : PLACEHOLDER_MARKERS) {
+            if (secret.contains(marker)) {
+                throw new IllegalArgumentException(
+                        "jwt.secret looks like a placeholder ('" + marker + "'); set JWT_SECRET to a real value");
+            }
+        }
+        if (issuer == null || issuer.isBlank()) {
+            throw new IllegalArgumentException("jwt.issuer must be set");
+        }
+        if (audience == null || audience.isBlank()) {
+            throw new IllegalArgumentException("jwt.audience must be set");
+        }
         this.signingKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         this.ttl = ttl;
+        this.issuer = issuer;
+        this.audience = audience;
     }
 
-    public String issue(Long userId, String email, Role role) {
+    public String issue(Long userId, String email, Role role, int tokenVersion) {
         Instant now = Instant.now();
         return Jwts.builder()
+                .issuer(issuer)
+                .audience().add(audience).and()
                 .subject(String.valueOf(userId))
                 .claim("email", email)
                 .claim("role", role.name())
+                .claim("tv", tokenVersion)
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(now.plus(ttl)))
                 .signWith(signingKey)
@@ -51,7 +77,8 @@ public class JwtService {
         return new JwtPrincipal(
                 Long.valueOf(claims.getSubject()),
                 claims.get("email", String.class),
-                Role.valueOf(claims.get("role", String.class)));
+                Role.valueOf(claims.get("role", String.class)),
+                claims.get("tv", Integer.class));
     }
 
     public Instant parseExpiry(String token) {
@@ -61,6 +88,8 @@ public class JwtService {
     private Claims parseClaims(String token) {
         return Jwts.parser()
                 .verifyWith(signingKey)
+                .requireIssuer(issuer)
+                .requireAudience(audience)
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();

@@ -1,26 +1,20 @@
 package com.dreamhomes.haven.common.web;
 
-import com.dreamhomes.haven.auth.EmailAlreadyRegisteredException;
-import com.dreamhomes.haven.auth.InvalidCredentialsException;
-import org.springframework.http.HttpStatus;
+import com.dreamhomes.haven.common.DomainException;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 /**
- * Maps domain exceptions to RFC 7807 problem responses with the right status.
- * Validation errors (400) and authentication errors (401) are handled by Spring's defaults.
+ * Maps {@link DomainException} subclasses to RFC 7807 problem responses with the status
+ * each exception declares. Validation (400) and authentication (401) are handled by
+ * Spring's defaults; this advice only owns domain-specific failures.
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(EmailAlreadyRegisteredException.class)
-    public ProblemDetail handleEmailAlreadyRegistered(EmailAlreadyRegisteredException ex) {
-        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
-    }
-
-    @ExceptionHandler(InvalidCredentialsException.class)
-    public ProblemDetail handleInvalidCredentials(InvalidCredentialsException ex) {
-        return ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, ex.getMessage());
+    @ExceptionHandler(DomainException.class)
+    public ProblemDetail handleDomain(DomainException ex) {
+        return ProblemDetail.forStatusAndDetail(ex.status(), ex.getMessage());
     }
 }

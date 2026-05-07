@@ -1,10 +1,10 @@
 package com.dreamhomes.haven.auth;
 
-import jakarta.validation.constraints.Email;
+import com.dreamhomes.haven.common.validation.StrictEmail;
 import jakarta.validation.constraints.NotBlank;
 
 public record LoginRequest(
-        @NotBlank @Email String email,
+        @NotBlank @StrictEmail String email,
         @NotBlank String password
 ) {
     public LoginCommand toCommand() {
