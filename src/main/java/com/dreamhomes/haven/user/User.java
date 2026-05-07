@@ -47,4 +47,13 @@ public class User {
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
+
+    /**
+     * Bumped every time the user's tokens should be invalidated (logout, suspend, etc.).
+     * Embedded in every JWT; the auth filter rejects tokens whose {@code tv} claim
+     * doesn't match the current value. Defaults to 1 in DB; new entities set it explicitly.
+     */
+    @Column(name = "token_version", nullable = false)
+    @Builder.Default
+    private Integer tokenVersion = 1;
 }
