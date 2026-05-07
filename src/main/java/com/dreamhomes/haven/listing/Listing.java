@@ -82,6 +82,16 @@ public class Listing {
     @Column(name = "approved_at")
     private Instant approvedAt;
 
+    /**
+     * Aggregate counter — bumped atomically by a native UPDATE on every public detail
+     * GET. We don't track per-user views (no row-per-anonymous-visitor explosion); the
+     * atomic SQL increment is lock-free and bypasses Hibernate's optimistic version
+     * check, so a popular listing's @Version doesn't churn on every page view.
+     */
+    @Column(name = "view_count", nullable = false)
+    @Builder.Default
+    private Long viewCount = 0L;
+
     /** Optimistic lock — JPA increments on every save, rejects stale-version writes. */
     @Version
     @Column(nullable = false)

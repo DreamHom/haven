@@ -17,6 +17,8 @@ public record ListingResponse(
         BigDecimal serviceCharge,
         BigDecimal agencyFee,
         ListingStatus status,
+        Instant approvedAt,
+        Long viewCount,
         Instant createdAt,
         Instant updatedAt,
         PropertySummary property
@@ -26,7 +28,9 @@ public record ListingResponse(
                 l.getId(), l.getPropertyId(), l.getOwnerId(), l.getListingType(),
                 l.getAskingPrice(), l.getCurrency(),
                 l.getCautionFee(), l.getServiceCharge(), l.getAgencyFee(),
-                l.getStatus(), l.getCreatedAt(), l.getUpdatedAt(),
+                l.getStatus(), l.getApprovedAt(),
+                l.getViewCount(),
+                l.getCreatedAt(), l.getUpdatedAt(),
                 p == null ? null : PropertySummary.from(p));
     }
 

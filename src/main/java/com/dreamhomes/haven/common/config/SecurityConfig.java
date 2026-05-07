@@ -71,8 +71,24 @@ public class SecurityConfig {
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/register", "/api/auth/login").permitAll()
+                        // Liveness/readiness probes for load balancers + k8s. /actuator/prometheus
+                        // is deliberately NOT in this list — scraping stays auth-gated.
                         .requestMatchers(org.springframework.http.HttpMethod.GET,
-                                "/api/listings", "/api/listings/*", "/api/listings/*/slots").permitAll()
+                                "/actuator/health", "/actuator/health/**",
+                                "/actuator/info").permitAll()
+                        // OpenAPI spec + Swagger UI + Scalar renderer — public read so the
+                        // frontend can discover the surface area without a token.
+                        .requestMatchers(org.springframework.http.HttpMethod.GET,
+                                "/v3/api-docs", "/v3/api-docs/**",
+                                "/swagger-ui.html", "/swagger-ui/**",
+                                "/scalar.html").permitAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.GET,
+                                "/api/listings", "/api/listings/*", "/api/listings/*/slots",
+                                "/api/listings/*/comments",
+                                "/api/listings/*/reviews",
+                                "/api/listings/*/photos",
+                                "/api/users/*/profile",
+                                "/api/users/*/reviews").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(e -> e.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
                 .httpBasic(AbstractHttpConfigurer::disable)

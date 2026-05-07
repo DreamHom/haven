@@ -72,7 +72,14 @@ public class ListingService {
         return listings.map(l -> new ListingWithProperty(l, properties.get(l.getPropertyId())));
     }
 
-    @Transactional(readOnly = true)
+    /**
+     * Public detail. Bumps {@code view_count} via an atomic UPDATE — lock-free, so it
+     * doesn't churn the @Version on every page view, and returns immediately even when
+     * Hibernate's first-level cache holds a stale entity. The response carries the
+     * pre-increment value (close enough; the freshly-bumped count is visible on the
+     * next read).
+     */
+    @Transactional
     public ListingWithProperty findPubliclyVisible(Long listingId) {
         Listing listing = listingRepository.findById(listingId)
                 .orElseThrow(() -> new ListingNotFoundException(listingId));
@@ -83,6 +90,7 @@ public class ListingService {
         }
         Property property = propertyRepository.findById(listing.getPropertyId())
                 .orElseThrow(() -> new PropertyNotFoundException(listing.getPropertyId()));
+        listingRepository.incrementViewCount(listingId);
         return new ListingWithProperty(listing, property);
     }
 
