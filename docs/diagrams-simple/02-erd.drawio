@@ -46,6 +46,9 @@
         <mxCell id="outboxevent" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontFamily=Helvetica;fontSize=14;fontStyle=1;" value="OutboxEvent" vertex="1">
           <mxGeometry height="60" width="180" x="1140" y="420" as="geometry" />
         </mxCell>
+        <mxCell id="adminauditlog" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontFamily=Helvetica;fontSize=14;fontStyle=1;" value="AdminAuditLog" vertex="1">
+          <mxGeometry height="60" width="180" x="40" y="420" as="geometry" />
+        </mxCell>
         <mxCell id="e-agentprofile-user" edge="1" parent="1" source="agentprofile" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;startArrow=ERone;endArrow=ERone;strokeColor=#000000;fontFamily=Helvetica;fontSize=12;" target="user" value="1:1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
@@ -132,6 +135,24 @@
             <Array as="points">
               <mxPoint x="826" y="390" />
               <mxPoint x="1064" y="390" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <!-- Admin (User with role=ADMIN) writes to AdminAuditLog on every moderation action. -->
+        <mxCell id="e-user-adminauditlog" edge="1" parent="1" source="user" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;startArrow=ERone;endArrow=ERmany;strokeColor=#000000;fontFamily=Helvetica;fontSize=12;" target="adminauditlog" value="1:N admin">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="240" y="270" />
+              <mxPoint x="240" y="450" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <!-- OutboxEvent -> Notification: no FK; the consumer creates the Notification row
+             carrying the same event_id, which is UNIQUE for at-least-once dedup. -->
+        <mxCell id="e-outbox-notification" edge="1" parent="1" source="outboxevent" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;startArrow=ERone;endArrow=ERmany;strokeColor=#666666;fontFamily=Helvetica;fontSize=11;" target="notification" value="via Kafka • event_id dedup">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="500" y="500" />
             </Array>
           </mxGeometry>
         </mxCell>

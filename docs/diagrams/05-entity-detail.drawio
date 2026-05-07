@@ -1,0 +1,147 @@
+<mxfile host="app.diagrams.net" modified="2026-05-07T00:00:00.000Z" agent="DreamHomes-Capstone" version="24.0.0">
+  <diagram name="Entity Detail" id="dreamhomes-entity-detail">
+    <mxGraphModel dx="2400" dy="1800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="3000" pageHeight="2400" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- TITLE + LEGEND -->
+        <mxCell id="title" value="DreamHomes Haven — Domain Entity Detail (attributes + methods)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="900" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="legend" value="UML class boxes for every implemented JPA entity. Top compartment = field name : type (annotations / constraints inline). Bottom compartment = exposed methods. Lombok handles getters/setters/builder/equals/hashCode — listed once at the top of each box and not repeated per field. Colors mirror the ERD: identity (blue), property/listing (green), inspection/offer (red), verification (purple), notification/outbox (orange), comment (purple), admin (grey)." style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="40" y="50" width="2900" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- ============================================================================== -->
+        <!-- IDENTITY — User, AgentProfile, Role                                              -->
+        <!-- ============================================================================== -->
+
+        <mxCell id="ent-User" value="&lt;b&gt;«entity» User&lt;/b&gt;  @Table(users)&#xa;@Getter @Setter @Builder @NoArgsConstructor @AllArgsConstructor&#xa;──────────────────────────────────────&#xa;&lt;b&gt;Attributes&lt;/b&gt;&#xa;  - id : Long  «PK · @GeneratedValue(IDENTITY)»&#xa;  - email : String  «UQ · NN · length 255»&#xa;  - passwordHash : String  «NN · length 255»&#xa;  - role : Role  «@Enumerated(STRING) · NN · length 32»&#xa;  - fullName : String  «NN · length 255»&#xa;  - phone : String  «length 32»&#xa;  - tokenVersion : Integer  «NN · default 1»&#xa;  - identityVerifiedAt : Instant  «null = unverified»&#xa;  - suspendedAt : Instant  «null = active»&#xa;  - createdAt : Instant  «NN · updatable=false»&#xa;──────────────────────────────────────&#xa;&lt;b&gt;Methods (Lombok-generated unless noted)&lt;/b&gt;&#xa;  + getId / setId · getEmail / setEmail&#xa;  + getRole / setRole · getTokenVersion / setTokenVersion&#xa;  + getIdentityVerifiedAt / setIdentityVerifiedAt&#xa;  + getSuspendedAt / setSuspendedAt&#xa;  + builder() : UserBuilder" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;spacingBottom=8;" vertex="1" parent="1">
+          <mxGeometry x="60" y="120" width="420" height="490" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ent-AgentProfile" value="&lt;b&gt;«entity» AgentProfile&lt;/b&gt;  @Table(agent_profiles)&#xa;@Getter @Setter @Builder&#xa;──────────────────────────────────────&#xa;&lt;b&gt;Attributes&lt;/b&gt;&#xa;  - userId : Long  «PK + FK→User · shared id»&#xa;  - user : User  «@OneToOne LAZY · insertable=false»&#xa;  - licenseNumber : String  «UQ · NN · length 64»&#xa;  - cacRegistrationNumber : String  «length 64»&#xa;  - bio : String  «TEXT»&#xa;  - credentialVerifiedAt : Instant  «admin-approved»&#xa;  - createdAt : Instant  «NN · updatable=false»&#xa;──────────────────────────────────────&#xa;&lt;b&gt;Methods&lt;/b&gt;&#xa;  + getUserId · getLicenseNumber · getCredentialVerifiedAt&#xa;  + setCredentialVerifiedAt(Instant)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;spacingBottom=8;" vertex="1" parent="1">
+          <mxGeometry x="510" y="120" width="420" height="380" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ent-Role" value="&lt;b&gt;«enum» Role&lt;/b&gt;&#xa;──────────────────────────────────────&#xa;OWNER · AGENT · APPLICANT · ADMIN&#xa;──────────────────────────────────────&#xa;CHECK constraint on users.role mirrors this set" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#eaf3ff;strokeColor=#6c8ebf;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;spacingBottom=8;" vertex="1" parent="1">
+          <mxGeometry x="510" y="520" width="420" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- ============================================================================== -->
+        <!-- PROPERTY / LISTING                                                               -->
+        <!-- ============================================================================== -->
+
+        <mxCell id="ent-Property" value="&lt;b&gt;«entity» Property&lt;/b&gt;  @Table(properties)&#xa;@Getter @Setter @Builder&#xa;──────────────────────────────────────&#xa;&lt;b&gt;Attributes&lt;/b&gt;&#xa;  - id : Long  «PK»&#xa;  - ownerId : Long  «FK→User · NN»&#xa;  - type : PropertyType  «@Enumerated(STRING) · NN»&#xa;  - address : String  «NN · length 500»&#xa;  - bedrooms : Integer · bathrooms : Integer&#xa;  - sizeSqm : BigDecimal  «precision 10, scale 2»&#xa;  - description : String  «TEXT»&#xa;  - documentsVerifiedAt : Instant  «admin-approved badge»&#xa;  - createdAt : Instant  «NN · updatable=false»&#xa;──────────────────────────────────────&#xa;&lt;b&gt;Methods&lt;/b&gt;&#xa;  + getOwnerId · getDocumentsVerifiedAt&#xa;  + setDocumentsVerifiedAt(Instant)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;spacingBottom=8;" vertex="1" parent="1">
+          <mxGeometry x="960" y="120" width="420" height="430" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ent-Listing" value="&lt;b&gt;«entity» Listing&lt;/b&gt;  @Table(listings)&#xa;@Getter @Setter @Builder · @Version&#xa;──────────────────────────────────────&#xa;&lt;b&gt;Attributes&lt;/b&gt;&#xa;  - id : Long  «PK»&#xa;  - propertyId : Long  «FK→Property · NN»&#xa;  - ownerId : Long  «FK→User · denormalised · NN»&#xa;  - listingType : ListingType  «RENT/SALE · NN»&#xa;  - askingPrice : BigDecimal  «NN · precision 12,2 · CHK &gt; 0»&#xa;  - currency : String  «NN · default NGN · length 3»&#xa;  - cautionFee, serviceCharge, agencyFee : BigDecimal&#xa;  - status : ListingStatus  «LIVE/PAUSED/CLOSED · default LIVE»&#xa;  - approvedAt : Instant  «admin verified-listing badge»&#xa;  - createdAt, updatedAt : Instant  «NN»&#xa;  - version : Long  «@Version · default 0»&#xa;──────────────────────────────────────&#xa;&lt;b&gt;Methods&lt;/b&gt;&#xa;  + getStatus · setStatus(ListingStatus)&#xa;  + getApprovedAt · setApprovedAt(Instant)&#xa;  + getVersion  «used by Hibernate optimistic lock»" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;spacingBottom=8;" vertex="1" parent="1">
+          <mxGeometry x="1410" y="120" width="450" height="490" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ent-PropertyType" value="&lt;b&gt;«enum» PropertyType&lt;/b&gt;  APARTMENT · HOUSE · LAND · COMMERCIAL" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e6f0e2;strokeColor=#82b366;align=left;verticalAlign=middle;fontSize=11;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="960" y="570" width="420" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ent-ListingType" value="&lt;b&gt;«enum» ListingType&lt;/b&gt;  RENT · SALE&#xa;&lt;b&gt;«enum» ListingStatus&lt;/b&gt;  LIVE · PAUSED · CLOSED" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e6f0e2;strokeColor=#82b366;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="1410" y="630" width="450" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- ============================================================================== -->
+        <!-- INSPECTION                                                                       -->
+        <!-- ============================================================================== -->
+
+        <mxCell id="ent-InspectionSlot" value="&lt;b&gt;«entity» InspectionSlot&lt;/b&gt;  @Table(inspection_slots)&#xa;@Getter @Setter @Builder&#xa;──────────────────────────────────────&#xa;&lt;b&gt;Attributes&lt;/b&gt;&#xa;  - id : Long  «PK»&#xa;  - listingId : Long  «FK→Listing · NN»&#xa;  - startsAt : Instant  «NN»&#xa;  - endsAt : Instant  «NN · CHK endsAt &gt; startsAt»&#xa;  - createdAt : Instant  «NN · updatable=false»&#xa;──────────────────────────────────────&#xa;&lt;b&gt;Constraints (DB)&lt;/b&gt;&#xa;  EXCLUDE USING gist&#xa;    (listing_id WITH =, tstzrange(starts_at, ends_at, '[)') WITH &amp;&amp;)&#xa;──────────────────────────────────────&#xa;&lt;b&gt;Methods&lt;/b&gt;&#xa;  + getListingId · getStartsAt · getEndsAt" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;spacingBottom=8;" vertex="1" parent="1">
+          <mxGeometry x="60" y="650" width="450" height="370" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ent-InspectionRequest" value="&lt;b&gt;«entity» InspectionRequest&lt;/b&gt;  @Table(inspection_requests)&#xa;@Getter @Setter @Builder&#xa;──────────────────────────────────────&#xa;&lt;b&gt;Attributes&lt;/b&gt;&#xa;  - id : Long  «PK»&#xa;  - slotId : Long  «FK→InspectionSlot · NN»&#xa;  - applicantId : Long  «FK→User · NN»&#xa;  - status : InspectionRequestStatus&#xa;       «PENDING · APPROVED · DECLINED · default PENDING»&#xa;  - notes : String  «TEXT»&#xa;  - createdAt, updatedAt : Instant  «NN»&#xa;──────────────────────────────────────&#xa;&lt;b&gt;Constraints (DB)&lt;/b&gt;&#xa;  Partial UNIQUE INDEX on (slot_id)&#xa;  WHERE status IN ('PENDING','APPROVED')&#xa;  → at most one active request per slot;&#xa;  declined requests free the slot.&#xa;──────────────────────────────────────&#xa;&lt;b&gt;Methods&lt;/b&gt;&#xa;  + getStatus · setStatus(InspectionRequestStatus)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;spacingBottom=8;" vertex="1" parent="1">
+          <mxGeometry x="540" y="650" width="450" height="430" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ent-InspectionStatus" value="&lt;b&gt;«enum» InspectionRequestStatus&lt;/b&gt;  PENDING · APPROVED · DECLINED" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fbe5e3;strokeColor=#b85450;align=left;verticalAlign=middle;fontSize=11;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="1040" width="450" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ============================================================================== -->
+        <!-- OFFER                                                                            -->
+        <!-- ============================================================================== -->
+
+        <mxCell id="ent-Offer" value="&lt;b&gt;«entity» Offer&lt;/b&gt;  @Table(offers)&#xa;@Getter @Setter @Builder · @Version&#xa;──────────────────────────────────────&#xa;&lt;b&gt;Attributes&lt;/b&gt;&#xa;  - id : Long  «PK»&#xa;  - listingId : Long  «FK→Listing · NN»&#xa;  - applicantId : Long  «FK→User · NN»&#xa;  - ownerId : Long  «FK→User · denormalised · NN»&#xa;  - amount : BigDecimal  «NN · precision 12,2 · CHK &gt; 0»&#xa;  - currency : String  «NN · default NGN · length 3»&#xa;  - message : String  «TEXT»&#xa;  - status : OfferStatus  «PENDING · ACCEPTED · DECLINED»&#xa;  - createdAt, updatedAt : Instant  «NN»&#xa;  - version : Long  «@Version · default 0»&#xa;──────────────────────────────────────&#xa;&lt;b&gt;Methods&lt;/b&gt;&#xa;  + getStatus · setStatus(OfferStatus)&#xa;  + getOwnerId · getApplicantId · getAmount" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;spacingBottom=8;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="650" width="450" height="430" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ent-OfferStatus" value="&lt;b&gt;«enum» OfferStatus&lt;/b&gt;  PENDING · ACCEPTED · DECLINED" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fbe5e3;strokeColor=#b85450;align=left;verticalAlign=middle;fontSize=11;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="1100" width="450" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ============================================================================== -->
+        <!-- VERIFICATION                                                                     -->
+        <!-- ============================================================================== -->
+
+        <mxCell id="ent-Verification" value="&lt;b&gt;«entity» Verification&lt;/b&gt;  @Table(verifications)&#xa;@Getter @Setter @Builder · @Version&#xa;──────────────────────────────────────&#xa;&lt;b&gt;Attributes&lt;/b&gt;&#xa;  - id : Long  «PK»&#xa;  - type : VerificationType  «NN · length 32»&#xa;  - submitterUserId : Long  «FK→User · NN»&#xa;  - targetUserId : Long  «FK→User · null for PROPERTY_DOCUMENTS»&#xa;  - targetPropertyId : Long  «FK→Property · only PROPERTY_DOCUMENTS»&#xa;  - status : VerificationStatus  «PENDING/APPROVED/REJECTED · default PENDING»&#xa;  - documentRefs : String  «JSONB · NN · @JdbcTypeCode(JSON)»&#xa;  - submittedAt : Instant  «NN · updatable=false»&#xa;  - decidedAt : Instant  «null until decision»&#xa;  - decidedByAdminId : Long  «FK→User»&#xa;  - decisionReason : String  «TEXT»&#xa;  - version : Long  «@Version · default 0»&#xa;──────────────────────────────────────&#xa;&lt;b&gt;Constraints (DB)&lt;/b&gt;&#xa;  CHECK target consistency (XOR target_user_id / target_property_id)&#xa;  CHECK decision_complete (status non-PENDING ⇒ decidedAt + decidedByAdminId set)&#xa;  Two partial UQ indexes: one pending row per (type, target_user_id)&#xa;  and per (type, target_property_id)&#xa;──────────────────────────────────────&#xa;&lt;b&gt;Methods&lt;/b&gt;&#xa;  + getStatus · setStatus(VerificationStatus)&#xa;  + setDecidedAt(Instant) · setDecidedByAdminId(Long) · setDecisionReason(String)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;spacingBottom=8;" vertex="1" parent="1">
+          <mxGeometry x="1500" y="650" width="660" height="600" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ent-VerificationEnums" value="&lt;b&gt;«enum» VerificationType&lt;/b&gt;  OWNER_IDENTITY · PROPERTY_DOCUMENTS · AGENT_CREDENTIALS · APPLICANT_IDENTITY&#xa;&lt;b&gt;«enum» VerificationStatus&lt;/b&gt;  PENDING · APPROVED · REJECTED  &lt;i&gt;(APPROVED/REJECTED are terminal)&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ede2f0;strokeColor=#9673a6;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="1500" y="1270" width="660" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- ============================================================================== -->
+        <!-- COMMENT                                                                          -->
+        <!-- ============================================================================== -->
+
+        <mxCell id="ent-Comment" value="&lt;b&gt;«entity» Comment&lt;/b&gt;  @Table(comments)&#xa;@Getter @Setter @Builder · soft-delete&#xa;──────────────────────────────────────&#xa;&lt;b&gt;Attributes&lt;/b&gt;&#xa;  - id : Long  «PK»&#xa;  - listingId : Long  «FK→Listing · NN»&#xa;  - authorUserId : Long  «FK→User · NN»&#xa;  - body : String  «TEXT · NN · CHK length 1..4000»&#xa;  - deletedAt : Instant  «null = active»&#xa;  - deletedByUserId : Long  «FK→User · paired with deletedAt»&#xa;  - deletionReason : String  «TEXT»&#xa;  - createdAt : Instant  «NN · updatable=false»&#xa;──────────────────────────────────────&#xa;&lt;b&gt;Constraints (DB)&lt;/b&gt;&#xa;  CHECK delete_complete (deletedAt + deletedByUserId set together)&#xa;  Partial INDEX (listing_id, created_at) WHERE deleted_at IS NULL&#xa;  → public list is index-only-seek, deleted rows excluded&#xa;──────────────────────────────────────&#xa;&lt;b&gt;Methods&lt;/b&gt;&#xa;  + isDeleted() : boolean  &lt;i&gt;custom — true iff deletedAt != null&lt;/i&gt;&#xa;  + getDeletedAt · setDeletedAt(Instant)&#xa;  + getDeletedByUserId · setDeletedByUserId(Long)&#xa;  + getDeletionReason · setDeletionReason(String)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;spacingBottom=8;" vertex="1" parent="1">
+          <mxGeometry x="60" y="1130" width="660" height="500" as="geometry" />
+        </mxCell>
+
+        <!-- ============================================================================== -->
+        <!-- NOTIFICATION / OUTBOX                                                            -->
+        <!-- ============================================================================== -->
+
+        <mxCell id="ent-Notification" value="&lt;b&gt;«entity» Notification&lt;/b&gt;  @Table(notifications)&#xa;@Getter @Setter @Builder&#xa;──────────────────────────────────────&#xa;&lt;b&gt;Attributes&lt;/b&gt;&#xa;  - id : Long  «PK»&#xa;  - eventId : UUID  «UQ · null for SYNC, set for ASYNC_KAFKA»&#xa;  - recipientId : Long  «FK→User · NN»&#xa;  - kind : NotificationKind  «@Enumerated(STRING) · NN · length 64»&#xa;  - source : NotificationSource  «@Enumerated(STRING) · NN · default ASYNC_KAFKA»&#xa;  - payload : String  «TEXT · NN · JSON-shaped»&#xa;  - readAt : Instant  «null = unread»&#xa;  - createdAt : Instant  «NN · updatable=false»&#xa;──────────────────────────────────────&#xa;&lt;b&gt;Constraints (DB)&lt;/b&gt;&#xa;  UNIQUE (event_id) → at-least-once Kafka dedup&#xa;  CHECK source IN ('SYNC', 'ASYNC_KAFKA')&#xa;  INDEX (recipient_id, read_at, created_at DESC) — &quot;my unread, newest first&quot;&#xa;──────────────────────────────────────&#xa;&lt;b&gt;Methods&lt;/b&gt;&#xa;  + getKind · getEventId · getSource · getPayload&#xa;  + getReadAt · setReadAt(Instant)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;spacingBottom=8;" vertex="1" parent="1">
+          <mxGeometry x="750" y="1130" width="660" height="540" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ent-NotifEnums" value="&lt;b&gt;«enum» NotificationKind&lt;/b&gt;  INSPECTION_REQUESTED · OFFER_SUBMITTED · VERIFICATION_APPROVED · VERIFICATION_REJECTED · LISTING_APPROVED · LISTING_TAKEDOWN · COMMENT_POSTED&#xa;&lt;b&gt;«enum» NotificationSource&lt;/b&gt;  SYNC · ASYNC_KAFKA" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2dd;strokeColor=#d79b00;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="750" y="1690" width="660" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ent-OutboxEvent" value="&lt;b&gt;«entity» OutboxEvent&lt;/b&gt;  @Table(outbox)  «transactional outbox»&#xa;@Getter @Setter @Builder&#xa;──────────────────────────────────────&#xa;&lt;b&gt;Attributes&lt;/b&gt;&#xa;  - id : Long  «PK · BIGSERIAL»&#xa;  - eventId : UUID  «UQ · NN — joins back to Notification.event_id»&#xa;  - aggregateType : String  «NN · length 64»&#xa;  - aggregateId : Long  «NN»&#xa;  - eventType : String  «NN · length 255 — FQCN of payload class»&#xa;  - topic : String  «NN · length 128»&#xa;  - partitionKey : String  «NN · length 128 — typically listingId»&#xa;  - payload : String  «TEXT · NN · JSON-shaped»&#xa;  - createdAt : Instant  «NN»&#xa;  - publishedAt : Instant  «null = unsent»&#xa;──────────────────────────────────────&#xa;&lt;b&gt;Constraints (DB)&lt;/b&gt;&#xa;  Partial INDEX (created_at) WHERE published_at IS NULL — relay's claim query&#xa;──────────────────────────────────────&#xa;&lt;b&gt;Methods&lt;/b&gt;&#xa;  + getPublishedAt · setPublishedAt(Instant)&#xa;  + getPayload · getTopic · getPartitionKey · getEventId" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;spacingBottom=8;" vertex="1" parent="1">
+          <mxGeometry x="1440" y="1130" width="700" height="540" as="geometry" />
+        </mxCell>
+
+        <!-- ============================================================================== -->
+        <!-- ADMIN                                                                            -->
+        <!-- ============================================================================== -->
+
+        <mxCell id="ent-AdminAuditLog" value="&lt;b&gt;«entity» AdminAuditLog&lt;/b&gt;  @Table(admin_audit_log)  «append-only»&#xa;@Getter @Setter @Builder&#xa;──────────────────────────────────────&#xa;&lt;b&gt;Attributes&lt;/b&gt;&#xa;  - id : Long  «PK · BIGSERIAL»&#xa;  - adminId : Long  «FK→User · NN — must have role=ADMIN»&#xa;  - action : AdminAction  «@Enumerated(STRING) · NN · length 64»&#xa;  - targetType : AuditTargetType  «@Enumerated(STRING) · NN · length 32»&#xa;  - targetId : Long  «NN»&#xa;  - metadata : String  «JSONB · @JdbcTypeCode(JSON) · nullable»&#xa;  - createdAt : Instant  «NN · updatable=false»&#xa;──────────────────────────────────────&#xa;&lt;b&gt;Constraints (DB)&lt;/b&gt;&#xa;  INDEX (admin_id, created_at DESC) — &quot;what has this admin done lately&quot;&#xa;  INDEX (target_type, target_id, created_at DESC) — &quot;history on this target&quot;&#xa;  No UPDATE / DELETE — append-only by convention&#xa;──────────────────────────────────────&#xa;&lt;b&gt;Methods&lt;/b&gt;&#xa;  + getAdminId · getAction · getTargetType · getTargetId · getMetadata" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;spacingBottom=8;" vertex="1" parent="1">
+          <mxGeometry x="2200" y="60" width="720" height="500" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ent-AdminEnums" value="&lt;b&gt;«enum» AdminAction&lt;/b&gt;&#xa;  VERIFICATION_APPROVED · VERIFICATION_REJECTED&#xa;  LISTING_APPROVED · LISTING_TAKEDOWN&#xa;  USER_SUSPENDED · USER_REACTIVATED&#xa;──────────────────────────────────────&#xa;&lt;b&gt;«enum» AuditTargetType&lt;/b&gt;&#xa;  VERIFICATION · LISTING · USER" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#666666;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;spacingBottom=8;" vertex="1" parent="1">
+          <mxGeometry x="2200" y="580" width="720" height="160" as="geometry" />
+        </mxCell>
+
+        <!-- ============================================================================== -->
+        <!-- NOTES                                                                            -->
+        <!-- ============================================================================== -->
+
+        <mxCell id="note-lombok" value="Lombok stack: @Getter @Setter @Builder @NoArgsConstructor @AllArgsConstructor → all entities expose canonical getters/setters and a builder. Entities don't override equals/hashCode (Hibernate identity equality applies).&#10;&#10;The only entity-level method we wrote ourselves is Comment.isDeleted() — domain-meaningful predicate that beats checking deletedAt != null at every call site.&#10;&#10;Decision-side mutations live in *Service classes (see 04-class-diagram.drawio for the application layer). Entity setters are kept un-narrowed because Lombok generates them; service-layer @Transactional boundaries are where business invariants are enforced." style="shape=note;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="2200" y="780" width="720" height="270" as="geometry" />
+        </mxCell>
+
+        <mxCell id="note-ids" value="ID convention: BIGSERIAL primary keys throughout (BIGINT in JPA, mapped via @GeneratedValue(IDENTITY)). UUID-typed fields are application-level event IDs (Outbox.eventId, Notification.eventId) used for at-least-once Kafka dedup — they're not row PKs.&#10;&#10;Optimistic lock columns (@Version) live on Listing, Offer, and Verification — the three aggregates with legitimate concurrent writers (owner + automation, applicant + retry, two admins racing on a decision)." style="shape=note;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="2200" y="1080" width="720" height="240" as="geometry" />
+        </mxCell>
+
+        <mxCell id="note-jpa" value="JPA mapping conventions across all entities:&#10;  • Enums stored as VARCHAR via @Enumerated(EnumType.STRING) — adding a new value is code-only.&#10;  • Instant fields use @Column(name=&quot;...&quot;) for snake_case mapping; Hibernate handles TIMESTAMPTZ ↔ Instant coercion natively in 6.x.&#10;  • JSONB columns annotated @JdbcTypeCode(SqlTypes.JSON) + columnDefinition=&quot;jsonb&quot;; service serialises via ObjectMapper.&#10;  • createdAt has updatable=false on every entity — set once on insert, never overwritten by Hibernate.&#10;  • FK relationships kept as raw Long IDs (not @ManyToOne) wherever the read paths don't need navigation — keeps queries flat and avoids accidental N+1." style="shape=note;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;verticalAlign=top;fontSize=11;spacingLeft=10;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="2200" y="1340" width="720" height="330" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

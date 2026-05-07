@@ -1,6 +1,6 @@
 <mxfile host="app.diagrams.net" modified="2026-05-05T00:00:00.000Z" agent="DreamHomes-Capstone" version="24.0.0">
   <diagram name="ERD" id="dreamhomes-erd">
-    <mxGraphModel dx="2400" dy="1800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2600" pageHeight="2000" math="0" shadow="0">
+    <mxGraphModel dx="2400" dy="1800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="3000" pageHeight="2200" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -9,8 +9,8 @@
         <mxCell id="title" value="DreamHomes — Entity Relationship Diagram (Capstone 2026)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=18;fontStyle=1;" vertex="1" parent="1">
           <mxGeometry x="40" y="20" width="800" height="30" as="geometry" />
         </mxCell>
-        <mxCell id="legend" value="Notation: Crow's-foot. PK = primary key · FK = foreign key · UQ = unique · ENUM held as VARCHAR + CHECK or PG enum" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;fontStyle=2;" vertex="1" parent="1">
-          <mxGeometry x="40" y="50" width="900" height="20" as="geometry" />
+        <mxCell id="legend" value="Notation: Crow's-foot. PK = primary key · FK = foreign key · UQ = unique · NN = NOT NULL · ENUM held as VARCHAR + CHECK · IDs are BIGSERIAL (not UUID) — UUID-typed fields here are app-level event ids · Dashed edges = no FK, conceptual link only · ★ Phase N = entity actually shipped in that phase; entities without ★ are forward-looking design (not yet in schema)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="40" y="48" width="2200" height="48" as="geometry" />
         </mxCell>
 
         <!-- =========== IDENTITY =========== -->
@@ -27,8 +27,8 @@
           <mxGeometry x="380" y="100" width="280" height="320" as="geometry" />
         </mxCell>
 
-        <mxCell id="listing" value="&lt;b&gt;Listing&lt;/b&gt;&lt;hr style=&quot;margin:2px 0&quot;/&gt;&lt;b&gt;PK&lt;/b&gt; id : UUID&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; property_id : UUID → Property&lt;br/&gt;listing_type : ENUM(RENT,SALE) NN&lt;br/&gt;asking_price : NUMERIC NN&lt;br/&gt;price_negotiable : BOOLEAN&lt;br/&gt;caution_fee : NUMERIC&lt;br/&gt;service_charge : NUMERIC&lt;br/&gt;agency_fee : NUMERIC&lt;br/&gt;available_from : DATE&lt;br/&gt;virtual_tour_url : VARCHAR(512)&lt;br/&gt;status : ENUM(DRAFT,PENDING,LIVE,&lt;br/&gt;&amp;nbsp;&amp;nbsp;PAUSED,CLOSED_RENTED,&lt;br/&gt;&amp;nbsp;&amp;nbsp;CLOSED_SOLD,TAKEN_DOWN) NN&lt;br/&gt;view_count : BIGINT DEFAULT 0&lt;br/&gt;version : BIGINT &lt;i&gt;@Version&lt;/i&gt;&lt;br/&gt;created_at, updated_at, closed_at" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=6;spacingBottom=6;" vertex="1" parent="1">
-          <mxGeometry x="720" y="100" width="280" height="320" as="geometry" />
+        <mxCell id="listing" value="&lt;b&gt;Listing&lt;/b&gt;  @Version&lt;hr style=&quot;margin:2px 0&quot;/&gt;&lt;b&gt;PK&lt;/b&gt; id : BIGSERIAL&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; property_id : BIGINT → Property&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; owner_id : BIGINT → User &lt;i&gt;denorm.&lt;/i&gt;&lt;br/&gt;listing_type : ENUM(RENT, SALE) NN&lt;br/&gt;asking_price : NUMERIC(12,2) NN  &lt;i&gt;CHECK &gt; 0&lt;/i&gt;&lt;br/&gt;currency : VARCHAR(3) NN  &lt;i&gt;default NGN&lt;/i&gt;&lt;br/&gt;caution_fee, service_charge, agency_fee : NUMERIC&lt;br/&gt;status : ENUM(LIVE, PAUSED, CLOSED) NN  &lt;i&gt;default LIVE&lt;/i&gt;&lt;br/&gt;approved_at : TIMESTAMPTZ  &lt;i&gt;admin verified badge ★ Phase 5&lt;/i&gt;&lt;br/&gt;view_count : BIGINT NN  &lt;i&gt;atomic UPDATE ★ Phase 9&lt;/i&gt;&lt;br/&gt;version : BIGINT &lt;i&gt;@Version&lt;/i&gt;&lt;br/&gt;created_at, updated_at : TIMESTAMPTZ&lt;br/&gt;&lt;i&gt;Composite IDX (status, created_at DESC)&lt;/i&gt;&lt;br/&gt;&lt;i&gt;PRD §4.1: LIVE on creation; admin badges only&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=6;spacingBottom=6;" vertex="1" parent="1">
+          <mxGeometry x="720" y="100" width="320" height="340" as="geometry" />
         </mxCell>
 
         <mxCell id="listingphoto" value="&lt;b&gt;ListingPhoto&lt;/b&gt;&lt;hr style=&quot;margin:2px 0&quot;/&gt;&lt;b&gt;PK&lt;/b&gt; id : UUID&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; listing_id : UUID → Listing&lt;br/&gt;url : VARCHAR(512) NN &lt;i&gt;metadata only&lt;/i&gt;&lt;br/&gt;display_order : INT NN&lt;br/&gt;caption : VARCHAR(255)&lt;br/&gt;uploaded_at : TIMESTAMPTZ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=6;spacingBottom=6;" vertex="1" parent="1">
@@ -36,20 +36,20 @@
         </mxCell>
 
         <!-- =========== ENGAGEMENT =========== -->
-        <mxCell id="listingsave" value="&lt;b&gt;ListingSave&lt;/b&gt;&lt;hr style=&quot;margin:2px 0&quot;/&gt;&lt;b&gt;PK&lt;/b&gt; (user_id, listing_id)&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; user_id : UUID → User&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; listing_id : UUID → Listing&lt;br/&gt;saved_at : TIMESTAMPTZ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=6;spacingBottom=6;" vertex="1" parent="1">
-          <mxGeometry x="1400" y="100" width="260" height="140" as="geometry" />
+        <mxCell id="listingsave" value="&lt;b&gt;ListingSave&lt;/b&gt;  ★ Phase 9&lt;hr style=&quot;margin:2px 0&quot;/&gt;&lt;b&gt;PK&lt;/b&gt; (user_id, listing_id)  &lt;i&gt;composite&lt;/i&gt;&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; user_id : BIGINT → User&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; listing_id : BIGINT → Listing&lt;br/&gt;saved_at : TIMESTAMPTZ NN&lt;br/&gt;&lt;i&gt;IDX(user_id, saved_at DESC)&lt;/i&gt;&lt;br/&gt;&lt;i&gt;IDX(listing_id) — saver count&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=6;spacingBottom=6;" vertex="1" parent="1">
+          <mxGeometry x="1400" y="100" width="260" height="180" as="geometry" />
         </mxCell>
 
-        <mxCell id="listinglike" value="&lt;b&gt;ListingLike&lt;/b&gt;&lt;hr style=&quot;margin:2px 0&quot;/&gt;&lt;b&gt;PK&lt;/b&gt; (user_id, listing_id)&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; user_id : UUID → User&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; listing_id : UUID → Listing&lt;br/&gt;liked_at : TIMESTAMPTZ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=6;spacingBottom=6;" vertex="1" parent="1">
-          <mxGeometry x="1700" y="100" width="260" height="140" as="geometry" />
+        <mxCell id="listinglike" value="&lt;b&gt;ListingLike&lt;/b&gt;  &lt;i&gt;deferred&lt;/i&gt;&lt;hr style=&quot;margin:2px 0&quot;/&gt;&lt;b&gt;PK&lt;/b&gt; (user_id, listing_id)&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; user_id : BIGINT → User&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; listing_id : BIGINT → Listing&lt;br/&gt;liked_at : TIMESTAMPTZ&lt;br/&gt;&lt;i&gt;Same shape as ListingSave;&lt;/i&gt;&lt;br/&gt;&lt;i&gt;collapse if both ship.&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=6;spacingBottom=6;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="1700" y="100" width="260" height="180" as="geometry" />
         </mxCell>
 
-        <mxCell id="listingreview" value="&lt;b&gt;ListingReview&lt;/b&gt;&lt;hr style=&quot;margin:2px 0&quot;/&gt;&lt;b&gt;PK&lt;/b&gt; id : UUID&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; listing_id : UUID → Listing&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; reviewer_user_id : UUID → User&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; reviewee_user_id : UUID → User&lt;br/&gt;rating : INT CHECK 1..5&lt;br/&gt;body : TEXT&lt;br/&gt;created_at&lt;br/&gt;&lt;i&gt;UQ(listing,reviewer,reviewee)&lt;/i&gt;&lt;br/&gt;&lt;i&gt;CHECK listing.status IN (CLOSED_*)&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=6;spacingBottom=6;" vertex="1" parent="1">
-          <mxGeometry x="2000" y="100" width="280" height="220" as="geometry" />
+        <mxCell id="listingreview" value="&lt;b&gt;ListingReview&lt;/b&gt;  ★ Phase 10&lt;hr style=&quot;margin:2px 0&quot;/&gt;&lt;b&gt;PK&lt;/b&gt; id : BIGSERIAL&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; listing_id : BIGINT → Listing&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; reviewer_user_id : BIGINT → User&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; reviewee_user_id : BIGINT → User&lt;br/&gt;rating : SMALLINT NN  &lt;i&gt;CHECK 1..5&lt;/i&gt;&lt;br/&gt;body : TEXT NN  &lt;i&gt;CHECK len 1..2000&lt;/i&gt;&lt;br/&gt;created_at : TIMESTAMPTZ NN&lt;br/&gt;&lt;i&gt;UQ(listing, reviewer, reviewee)&lt;/i&gt;&lt;br/&gt;&lt;i&gt;CHECK reviewer ≠ reviewee&lt;/i&gt;&lt;br/&gt;&lt;i&gt;Service gate: listing.status = CLOSED&lt;/i&gt;&lt;br/&gt;&lt;i&gt;+ reviewer = owner OR has ACCEPTED offer&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=6;spacingBottom=6;" vertex="1" parent="1">
+          <mxGeometry x="2000" y="100" width="280" height="280" as="geometry" />
         </mxCell>
 
         <!-- =========== AGENT MANAGEMENT =========== -->
-        <mxCell id="agentlisting" value="&lt;b&gt;AgentListing&lt;/b&gt;  &lt;i&gt;(junction)&lt;/i&gt;&lt;hr style=&quot;margin:2px 0&quot;/&gt;&lt;b&gt;PK&lt;/b&gt; id : UUID&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; listing_id : UUID → Listing&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; agent_user_id : UUID → User&lt;br/&gt;status : ENUM(REQUESTED,ACCEPTED,&lt;br/&gt;&amp;nbsp;&amp;nbsp;DECLINED,REVOKED)&lt;br/&gt;requested_at, responded_at&lt;br/&gt;revoked_at : TIMESTAMPTZ&lt;br/&gt;&lt;i&gt;Partial UQ(listing_id)&lt;/i&gt;&lt;br/&gt;&lt;i&gt;WHERE status=ACCEPTED&lt;/i&gt;&lt;br/&gt;&lt;i&gt;→ at most one active agent per listing&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=6;spacingBottom=6;" vertex="1" parent="1">
+        <mxCell id="agentlisting" value="&lt;b&gt;AgentListing&lt;/b&gt;  ★ Phase 7  @Version&lt;hr style=&quot;margin:2px 0&quot;/&gt;&lt;b&gt;PK&lt;/b&gt; id : BIGSERIAL&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; listing_id : BIGINT → Listing&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; agent_user_id : BIGINT → User&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; requested_by_owner_id : BIGINT → User&lt;br/&gt;status : ENUM(REQUESTED, ACCEPTED,&lt;br/&gt;&amp;nbsp;&amp;nbsp;DECLINED, REVOKED)&lt;br/&gt;decision_reason : TEXT&lt;br/&gt;requested_at, decided_at : TIMESTAMPTZ&lt;br/&gt;version : BIGINT &lt;i&gt;@Version&lt;/i&gt;&lt;br/&gt;&lt;i&gt;CHECK decision_complete&lt;/i&gt;&lt;br/&gt;&lt;i&gt;Partial UQ(listing_id) WHERE status=REQUESTED&lt;/i&gt;&lt;br/&gt;&lt;i&gt;Partial UQ(listing_id) WHERE status=ACCEPTED&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=6;spacingBottom=6;" vertex="1" parent="1">
           <mxGeometry x="380" y="500" width="280" height="240" as="geometry" />
         </mxCell>
 
@@ -72,7 +72,7 @@
           <mxGeometry x="380" y="820" width="320" height="320" as="geometry" />
         </mxCell>
 
-        <mxCell id="comment" value="&lt;b&gt;Comment&lt;/b&gt;&lt;hr style=&quot;margin:2px 0&quot;/&gt;&lt;b&gt;PK&lt;/b&gt; id : UUID&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; listing_id : UUID → Listing&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; author_user_id : UUID → User&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; parent_comment_id : UUID → Comment &lt;i&gt;null&lt;/i&gt;&lt;br/&gt;body : TEXT NN&lt;br/&gt;deleted_at : TIMESTAMPTZ &lt;i&gt;soft delete&lt;/i&gt;&lt;br/&gt;created_at" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=6;spacingBottom=6;" vertex="1" parent="1">
+        <mxCell id="comment" value="&lt;b&gt;Comment&lt;/b&gt;  ★ Phase 6&lt;hr style=&quot;margin:2px 0&quot;/&gt;&lt;b&gt;PK&lt;/b&gt; id : BIGSERIAL&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; listing_id : BIGINT → Listing&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; author_user_id : BIGINT → User&lt;br/&gt;body : TEXT NN  &lt;i&gt;CHECK len 1..4000&lt;/i&gt;&lt;br/&gt;deleted_at : TIMESTAMPTZ  &lt;i&gt;soft delete&lt;/i&gt;&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; deleted_by_user_id : BIGINT → User&lt;br/&gt;deletion_reason : TEXT&lt;br/&gt;created_at : TIMESTAMPTZ NN&lt;br/&gt;&lt;i&gt;CHECK delete_complete (paired)&lt;/i&gt;&lt;br/&gt;&lt;i&gt;Partial IDX (listing, created_at) WHERE deleted_at IS NULL&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=6;spacingBottom=6;" vertex="1" parent="1">
           <mxGeometry x="740" y="820" width="280" height="200" as="geometry" />
         </mxCell>
 
@@ -85,8 +85,8 @@
           <mxGeometry x="1420" y="820" width="280" height="180" as="geometry" />
         </mxCell>
 
-        <mxCell id="notification" value="&lt;b&gt;Notification&lt;/b&gt;&lt;hr style=&quot;margin:2px 0&quot;/&gt;&lt;b&gt;PK&lt;/b&gt; id : UUID&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; recipient_user_id : UUID → User&lt;br/&gt;type : ENUM(INSPECTION_REQUESTED,&lt;br/&gt;&amp;nbsp;&amp;nbsp;OFFER_SUBMITTED,LISTING_APPROVED,&lt;br/&gt;&amp;nbsp;&amp;nbsp;VERIFICATION_DECISION,&lt;br/&gt;&amp;nbsp;&amp;nbsp;MESSAGE_RECEIVED,COMMENT_POSTED,&lt;br/&gt;&amp;nbsp;&amp;nbsp;ASSIGNMENT_REQUEST, …)&lt;br/&gt;payload_json : JSONB&lt;br/&gt;ref_entity_type : VARCHAR(64)&lt;br/&gt;ref_entity_id : UUID&lt;br/&gt;source : ENUM(SYNC, ASYNC_KAFKA)&lt;br/&gt;read_at : TIMESTAMPTZ &lt;i&gt;null&lt;/i&gt;&lt;br/&gt;created_at&lt;br/&gt;&lt;i&gt;IDX(recipient,read_at,created_at DESC)&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=6;spacingBottom=6;" vertex="1" parent="1">
-          <mxGeometry x="1740" y="820" width="320" height="280" as="geometry" />
+        <mxCell id="notification" value="&lt;b&gt;Notification&lt;/b&gt;&lt;hr style=&quot;margin:2px 0&quot;/&gt;&lt;b&gt;PK&lt;/b&gt; id : BIGSERIAL&lt;br/&gt;event_id : UUID UQ &lt;i&gt;null for SYNC&lt;/i&gt;&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; recipient_user_id : UUID → User&lt;br/&gt;kind : ENUM(INSPECTION_REQUESTED,&lt;br/&gt;&amp;nbsp;&amp;nbsp;OFFER_SUBMITTED,LISTING_APPROVED,&lt;br/&gt;&amp;nbsp;&amp;nbsp;LISTING_TAKEDOWN,&lt;br/&gt;&amp;nbsp;&amp;nbsp;VERIFICATION_APPROVED,&lt;br/&gt;&amp;nbsp;&amp;nbsp;VERIFICATION_REJECTED,&lt;br/&gt;&amp;nbsp;&amp;nbsp;COMMENT_POSTED, …)&lt;br/&gt;source : ENUM(SYNC, ASYNC_KAFKA)&lt;br/&gt;payload : TEXT (JSON)&lt;br/&gt;read_at : TIMESTAMPTZ &lt;i&gt;null&lt;/i&gt;&lt;br/&gt;created_at&lt;br/&gt;&lt;i&gt;IDX(recipient,read_at,created_at DESC)&lt;/i&gt;&lt;br/&gt;&lt;i&gt;event_id UQ → at-least-once dedup&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=6;spacingBottom=6;" vertex="1" parent="1">
+          <mxGeometry x="1740" y="820" width="320" height="320" as="geometry" />
         </mxCell>
 
         <!-- =========== OPERATIONS =========== -->
@@ -94,12 +94,12 @@
           <mxGeometry x="380" y="1200" width="320" height="260" as="geometry" />
         </mxCell>
 
-        <mxCell id="auditlog" value="&lt;b&gt;AuditLog&lt;/b&gt;&lt;hr style=&quot;margin:2px 0&quot;/&gt;&lt;b&gt;PK&lt;/b&gt; id : UUID&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; actor_user_id : UUID → User&lt;br/&gt;action : VARCHAR(64) NN&lt;br/&gt;&lt;i&gt;(VERIFICATION_APPROVED,&lt;/i&gt;&lt;br/&gt;&lt;i&gt;LISTING_TAKEN_DOWN, USER_SUSPENDED…)&lt;/i&gt;&lt;br/&gt;target_entity_type : VARCHAR(64) NN&lt;br/&gt;target_entity_id : UUID NN&lt;br/&gt;before_state : JSONB&lt;br/&gt;after_state : JSONB&lt;br/&gt;request_id : UUID&lt;br/&gt;occurred_at : TIMESTAMPTZ NN&lt;br/&gt;&lt;i&gt;Append-only — no UPDATE/DELETE&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=6;spacingBottom=6;" vertex="1" parent="1">
-          <mxGeometry x="740" y="1200" width="320" height="260" as="geometry" />
+        <mxCell id="adminauditlog" value="&lt;b&gt;AdminAuditLog&lt;/b&gt;&lt;hr style=&quot;margin:2px 0&quot;/&gt;&lt;b&gt;PK&lt;/b&gt; id : BIGSERIAL&lt;br/&gt;&lt;b&gt;FK&lt;/b&gt; admin_id : BIGINT → User&lt;br/&gt;&amp;nbsp;&amp;nbsp;&lt;i&gt;CHECK role = ADMIN&lt;/i&gt;&lt;br/&gt;action : ENUM(&lt;br/&gt;&amp;nbsp;&amp;nbsp;VERIFICATION_APPROVED,&lt;br/&gt;&amp;nbsp;&amp;nbsp;VERIFICATION_REJECTED,&lt;br/&gt;&amp;nbsp;&amp;nbsp;LISTING_APPROVED,LISTING_TAKEDOWN,&lt;br/&gt;&amp;nbsp;&amp;nbsp;USER_SUSPENDED,USER_REACTIVATED) NN&lt;br/&gt;target_type : ENUM(&lt;br/&gt;&amp;nbsp;&amp;nbsp;VERIFICATION,LISTING,USER) NN&lt;br/&gt;target_id : BIGINT NN&lt;br/&gt;metadata : JSONB &lt;i&gt;reason, prev state, etc&lt;/i&gt;&lt;br/&gt;created_at : TIMESTAMPTZ NN&lt;br/&gt;&lt;i&gt;IDX(admin_id, created_at DESC)&lt;/i&gt;&lt;br/&gt;&lt;i&gt;IDX(target_type, target_id, created_at DESC)&lt;/i&gt;&lt;br/&gt;&lt;i&gt;Append-only — no UPDATE/DELETE&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=6;spacingBottom=6;" vertex="1" parent="1">
+          <mxGeometry x="740" y="1200" width="320" height="320" as="geometry" />
         </mxCell>
 
-        <mxCell id="outbox" value="&lt;b&gt;Outbox&lt;/b&gt;  &lt;i&gt;(transactional)&lt;/i&gt;&lt;hr style=&quot;margin:2px 0&quot;/&gt;&lt;b&gt;PK&lt;/b&gt; id : UUID&lt;br/&gt;aggregate_type : VARCHAR(64) NN&lt;br/&gt;aggregate_id : UUID NN&lt;br/&gt;event_type : VARCHAR(64) NN&lt;br/&gt;&lt;i&gt;(INSPECTION_REQUESTED,&lt;/i&gt;&lt;br/&gt;&lt;i&gt;OFFER_SUBMITTED)&lt;/i&gt;&lt;br/&gt;payload_json : JSONB NN&lt;br/&gt;created_at : TIMESTAMPTZ NN&lt;br/&gt;published_at : TIMESTAMPTZ &lt;i&gt;null = unsent&lt;/i&gt;&lt;br/&gt;&lt;i&gt;IDX(published_at) WHERE published_at IS NULL&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=6;spacingBottom=6;" vertex="1" parent="1">
-          <mxGeometry x="1100" y="1200" width="320" height="260" as="geometry" />
+        <mxCell id="outbox" value="&lt;b&gt;Outbox&lt;/b&gt;  &lt;i&gt;(transactional)&lt;/i&gt;&lt;hr style=&quot;margin:2px 0&quot;/&gt;&lt;b&gt;PK&lt;/b&gt; id : BIGSERIAL&lt;br/&gt;event_id : UUID UQ NN &lt;i&gt;dedup key&lt;/i&gt;&lt;br/&gt;aggregate_type : VARCHAR(64) NN&lt;br/&gt;aggregate_id : BIGINT NN&lt;br/&gt;event_type : VARCHAR(255) NN&lt;br/&gt;&lt;i&gt;(INSPECTION_REQUESTED,&lt;/i&gt;&lt;br/&gt;&lt;i&gt;OFFER_SUBMITTED)&lt;/i&gt;&lt;br/&gt;topic, partition_key : VARCHAR&lt;br/&gt;payload : TEXT NN&lt;br/&gt;created_at : TIMESTAMPTZ NN&lt;br/&gt;published_at : TIMESTAMPTZ &lt;i&gt;null = unsent&lt;/i&gt;&lt;br/&gt;&lt;i&gt;IDX(created_at) WHERE published_at IS NULL&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=6;spacingBottom=6;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="1200" width="320" height="280" as="geometry" />
         </mxCell>
 
         <!-- =========== NOTES =========== -->
@@ -197,9 +197,16 @@
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
 
-        <!-- User -- 0..* InspectionSlot (creator) -->
-        <mxCell id="e-user-slot" value="creates" style="endArrow=ERmany;startArrow=ERone;html=1;rounded=0;fontSize=9;dashed=1;" edge="1" parent="1" source="user" target="inspectionslot">
-          <mxGeometry relative="1" as="geometry" />
+        <!-- User -- 0..* InspectionSlot (creator). Routed via the corridor between
+             row 1 (ends y=420) and row 2 (starts y=500) to avoid cutting through
+             Property and Listing. -->
+        <mxCell id="e-user-slot" value="creates" style="edgeStyle=orthogonalEdgeStyle;endArrow=ERmany;startArrow=ERone;html=1;rounded=0;fontSize=9;dashed=1;exitX=1;exitY=0.95;exitDx=0;exitDy=0;entryX=0;entryY=0.05;entryDx=0;entryDy=0;" edge="1" parent="1" source="user" target="inspectionslot">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="350" y="470" />
+              <mxPoint x="700" y="470" />
+            </Array>
+          </mxGeometry>
         </mxCell>
 
         <!-- InspectionSlot 1 -- 0..1 InspectionRequest -->
@@ -207,9 +214,14 @@
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
 
-        <!-- User -- 0..* InspectionRequest (applicant) -->
-        <mxCell id="e-user-request" value="applicant" style="endArrow=ERmany;startArrow=ERone;html=1;rounded=0;fontSize=9;" edge="1" parent="1" source="user" target="inspectionrequest">
-          <mxGeometry relative="1" as="geometry" />
+        <!-- User -- 0..* InspectionRequest (applicant). Same corridor as User→Slot, slightly lower y. -->
+        <mxCell id="e-user-request" value="applicant" style="edgeStyle=orthogonalEdgeStyle;endArrow=ERmany;startArrow=ERone;html=1;rounded=0;fontSize=9;exitX=1;exitY=0.99;exitDx=0;exitDy=0;entryX=0;entryY=0.1;entryDx=0;entryDy=0;" edge="1" parent="1" source="user" target="inspectionrequest">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="360" y="490" />
+              <mxPoint x="1040" y="490" />
+            </Array>
+          </mxGeometry>
         </mxCell>
 
         <!-- Listing -- Offer -->
@@ -217,9 +229,15 @@
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
 
-        <!-- User -- Offer (applicant) -->
-        <mxCell id="e-user-offer" value="applicant" style="endArrow=ERmany;startArrow=ERone;html=1;rounded=0;fontSize=9;" edge="1" parent="1" source="user" target="offer">
-          <mxGeometry relative="1" as="geometry" />
+        <!-- User -- Offer (applicant). Route via the corridor above row 2 so the line
+             doesn't cut diagonally through Property / Listing / ListingPhoto. -->
+        <mxCell id="e-user-offer" value="applicant" style="edgeStyle=orthogonalEdgeStyle;endArrow=ERmany;startArrow=ERone;html=1;rounded=0;fontSize=9;exitX=1;exitY=0.85;exitDx=0;exitDy=0;entryX=0;entryY=0.15;entryDx=0;entryDy=0;" edge="1" parent="1" source="user" target="offer">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="350" y="450" />
+              <mxPoint x="1390" y="450" />
+            </Array>
+          </mxGeometry>
         </mxCell>
 
         <!-- Offer self-reference (counter-offers) -->
@@ -232,35 +250,60 @@
           </mxGeometry>
         </mxCell>
 
-        <!-- User -- Verification (subject + reviewer) -->
-        <mxCell id="e-user-verification-subject" value="subject (user)" style="endArrow=ERmany;startArrow=ERone;html=1;rounded=0;fontSize=9;" edge="1" parent="1" source="user" target="verification">
+        <!-- User → Verification (subject + reviewer). Routed down the corridor at x=350,
+             between AgentProfile (ends x=320) and AgentListing (starts x=380), then right
+             into Verification's top-left. Two parallel lines staggered by 30px. -->
+        <mxCell id="e-user-verification-subject" value="subject (user)" style="edgeStyle=orthogonalEdgeStyle;endArrow=ERmany;startArrow=ERone;html=1;rounded=0;fontSize=9;exitX=1;exitY=0.65;exitDx=0;exitDy=0;entryX=0.1;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="user" target="verification">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="180" y="900" />
+              <mxPoint x="350" y="256" />
+              <mxPoint x="350" y="800" />
+              <mxPoint x="412" y="800" />
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="e-user-verification-reviewer" value="reviewer (admin)" style="endArrow=ERmany;startArrow=ERone;html=1;rounded=0;fontSize=9;dashed=1;" edge="1" parent="1" source="user" target="verification">
+        <mxCell id="e-user-verification-reviewer" value="reviewer (admin)" style="edgeStyle=orthogonalEdgeStyle;endArrow=ERmany;startArrow=ERone;html=1;rounded=0;fontSize=9;dashed=1;exitX=1;exitY=0.75;exitDx=0;exitDy=0;entryX=0.3;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="user" target="verification">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="240" y="950" />
+              <mxPoint x="370" y="280" />
+              <mxPoint x="370" y="810" />
+              <mxPoint x="476" y="810" />
             </Array>
           </mxGeometry>
         </mxCell>
 
-        <!-- Property -- Verification (subject) -->
-        <mxCell id="e-property-verification" value="subject (property)" style="endArrow=ERmany;startArrow=ERone;html=1;rounded=0;fontSize=9;" edge="1" parent="1" source="property" target="verification">
-          <mxGeometry relative="1" as="geometry" />
+        <!-- Property -- Verification (subject). Routed via x=370 corridor (left of Property,
+             past AgentListing's right edge) so it doesn't cut through AgentListing. -->
+        <mxCell id="e-property-verification" value="subject (property)" style="edgeStyle=orthogonalEdgeStyle;endArrow=ERmany;startArrow=ERone;html=1;rounded=0;fontSize=9;exitX=0;exitY=0.95;exitDx=0;exitDy=0;entryX=0.05;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="property" target="verification">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="370" y="780" />
+            </Array>
+          </mxGeometry>
         </mxCell>
 
-        <!-- Listing -- Comment -->
-        <mxCell id="e-listing-comment" style="endArrow=ERmany;startArrow=ERone;html=1;rounded=0;fontSize=10;" edge="1" parent="1" source="listing" target="comment">
-          <mxGeometry relative="1" as="geometry" />
+        <!-- Listing → Comment. Drops straight from Listing's bottom-right into Comment's top
+             at x=1000 corridor (left of ListingPhoto and to right of Comment's right edge,
+             entering Comment near its right side to keep the line short). -->
+        <mxCell id="e-listing-comment" style="edgeStyle=orthogonalEdgeStyle;endArrow=ERmany;startArrow=ERone;html=1;rounded=0;fontSize=10;exitX=0.05;exitY=1;exitDx=0;exitDy=0;entryX=0.9;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="listing" target="comment">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="734" y="790" />
+              <mxPoint x="992" y="790" />
+            </Array>
+          </mxGeometry>
         </mxCell>
 
-        <!-- User -- Comment (author) -->
-        <mxCell id="e-user-comment" value="author" style="endArrow=ERmany;startArrow=ERone;html=1;rounded=0;fontSize=9;" edge="1" parent="1" source="user" target="comment">
-          <mxGeometry relative="1" as="geometry" />
+        <!-- User → Comment (author). Corridor at x=700 (between AgentListing ends 660 and
+             InspectionSlot starts 720). -->
+        <mxCell id="e-user-comment" value="author" style="edgeStyle=orthogonalEdgeStyle;endArrow=ERmany;startArrow=ERone;html=1;rounded=0;fontSize=9;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.1;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="user" target="comment">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="700" y="220" />
+              <mxPoint x="700" y="800" />
+              <mxPoint x="768" y="800" />
+            </Array>
+          </mxGeometry>
         </mxCell>
 
         <!-- Comment self-reference (replies) -->
@@ -278,14 +321,23 @@
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
 
-        <!-- User -- MessageThread (a + b) -->
-        <mxCell id="e-user-thread-a" value="participant_a" style="endArrow=ERmany;startArrow=ERone;html=1;rounded=0;fontSize=9;" edge="1" parent="1" source="user" target="messagethread">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="e-user-thread-b" value="participant_b" style="endArrow=ERmany;startArrow=ERone;html=1;rounded=0;fontSize=9;dashed=1;" edge="1" parent="1" source="user" target="messagethread">
+        <!-- User → MessageThread (a + b). Routed down the right-edge rail at x=2120 (past
+             ListingReview, into the right margin), then left into MessageThread. -->
+        <mxCell id="e-user-thread-a" value="participant_a" style="edgeStyle=orthogonalEdgeStyle;endArrow=ERmany;startArrow=ERone;html=1;rounded=0;fontSize=9;exitX=1;exitY=0.4;exitDx=0;exitDy=0;entryX=1;entryY=0.4;entryDx=0;entryDy=0;" edge="1" parent="1" source="user" target="messagethread">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="320" y="900" />
+              <mxPoint x="2350" y="200" />
+              <mxPoint x="2350" y="900" />
+              <mxPoint x="1410" y="900" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-user-thread-b" value="participant_b" style="edgeStyle=orthogonalEdgeStyle;endArrow=ERmany;startArrow=ERone;html=1;rounded=0;fontSize=9;dashed=1;exitX=1;exitY=0.55;exitDx=0;exitDy=0;entryX=1;entryY=0.6;entryDx=0;entryDy=0;" edge="1" parent="1" source="user" target="messagethread">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2380" y="230" />
+              <mxPoint x="2380" y="940" />
+              <mxPoint x="1410" y="940" />
             </Array>
           </mxGeometry>
         </mxCell>
@@ -295,27 +347,67 @@
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
 
-        <!-- User -- Message (sender) -->
-        <mxCell id="e-user-message" value="sender" style="endArrow=ERmany;startArrow=ERone;html=1;rounded=0;fontSize=9;" edge="1" parent="1" source="user" target="message">
-          <mxGeometry relative="1" as="geometry" />
+        <!-- User → Message (sender). Right-edge rail x=2410. -->
+        <mxCell id="e-user-message" value="sender" style="edgeStyle=orthogonalEdgeStyle;endArrow=ERmany;startArrow=ERone;html=1;rounded=0;fontSize=9;exitX=1;exitY=0.7;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="user" target="message">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2410" y="270" />
+              <mxPoint x="2410" y="910" />
+              <mxPoint x="1710" y="910" />
+            </Array>
+          </mxGeometry>
         </mxCell>
 
-        <!-- User -- Notification (recipient) -->
-        <mxCell id="e-user-notif" value="recipient" style="endArrow=ERmany;startArrow=ERone;html=1;rounded=0;fontSize=9;" edge="1" parent="1" source="user" target="notification">
-          <mxGeometry relative="1" as="geometry" />
+        <!-- User → Notification (recipient). Right-edge rail x=2440 → into Notification top. -->
+        <mxCell id="e-user-notif" value="recipient" style="edgeStyle=orthogonalEdgeStyle;endArrow=ERmany;startArrow=ERone;html=1;rounded=0;fontSize=9;exitX=1;exitY=0.85;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="user" target="notification">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2440" y="304" />
+              <mxPoint x="2440" y="800" />
+              <mxPoint x="1900" y="800" />
+            </Array>
+          </mxGeometry>
         </mxCell>
 
-        <!-- User -- Ad (advertiser) / Listing -- Ad -->
-        <mxCell id="e-user-ad" value="advertiser" style="endArrow=ERmany;startArrow=ERone;html=1;rounded=0;fontSize=9;" edge="1" parent="1" source="user" target="ad">
-          <mxGeometry relative="1" as="geometry" />
+        <!-- User → Ad (advertiser). Routed down User's left rail at x=20, around to Ad's top-left. -->
+        <mxCell id="e-user-ad" value="advertiser" style="edgeStyle=orthogonalEdgeStyle;endArrow=ERmany;startArrow=ERone;html=1;rounded=0;fontSize=9;exitX=0;exitY=0.9;exitDx=0;exitDy=0;entryX=0.05;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="user" target="ad">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="20" y="316" />
+              <mxPoint x="20" y="1180" />
+              <mxPoint x="396" y="1180" />
+            </Array>
+          </mxGeometry>
         </mxCell>
-        <mxCell id="e-listing-ad" style="endArrow=ERmany;startArrow=ERzeroToOne;html=1;rounded=0;fontSize=10;" edge="1" parent="1" source="listing" target="ad">
-          <mxGeometry relative="1" as="geometry" />
+        <!-- Listing → Ad (featured). Routed down Listing's right side. -->
+        <mxCell id="e-listing-ad" style="edgeStyle=orthogonalEdgeStyle;endArrow=ERmany;startArrow=ERzeroToOne;html=1;rounded=0;fontSize=10;exitX=0.05;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="listing" target="ad">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="734" y="1180" />
+            </Array>
+          </mxGeometry>
         </mxCell>
 
-        <!-- User -- AuditLog (actor) -->
-        <mxCell id="e-user-audit" value="actor" style="endArrow=ERmany;startArrow=ERone;html=1;rounded=0;fontSize=9;" edge="1" parent="1" source="user" target="auditlog">
-          <mxGeometry relative="1" as="geometry" />
+        <!-- User (admin) → AdminAuditLog. Routed down User's left rail at x=10 to bottom of page. -->
+        <mxCell id="e-user-audit" value="admin" style="edgeStyle=orthogonalEdgeStyle;endArrow=ERmany;startArrow=ERone;html=1;rounded=0;fontSize=9;exitX=0;exitY=0.95;exitDx=0;exitDy=0;entryX=0.05;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="user" target="adminauditlog">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="10" y="328" />
+              <mxPoint x="10" y="1175" />
+              <mxPoint x="756" y="1175" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Outbox → Notification (conceptual link via Kafka). No FK — the relay publishes
+             to Kafka and the consumer creates the Notification row carrying the same
+             event_id, which the UNIQUE constraint uses for at-least-once dedup. -->
+        <mxCell id="e-outbox-notification" value="via Kafka • event_id dedup" style="endArrow=ERmany;startArrow=ERone;dashed=1;html=1;rounded=0;fontSize=9;edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.2;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="outbox" target="notification">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1900" y="1220" />
+            </Array>
+          </mxGeometry>
         </mxCell>
 
       </root>

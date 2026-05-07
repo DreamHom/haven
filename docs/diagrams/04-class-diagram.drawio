@@ -1,0 +1,449 @@
+<mxfile host="app.diagrams.net" modified="2026-05-07T00:00:00.000Z" agent="DreamHomes-Capstone" version="24.0.0">
+  <diagram name="Class Diagram" id="dreamhomes-classes">
+    <mxGraphModel dx="2400" dy="1800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="3000" pageHeight="2400" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- TITLE + LEGEND -->
+        <mxCell id="title" value="DreamHomes Haven — Application-Layer Class Diagram (Phase 0–5)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="900" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="legend" value="Layered: Controller → Service → Repository → Entity. Stereotypes shown as «service», «controller», «repository», «entity», «exception», «filter», «config». Solid arrows = composition / dependency. Dashed = inheritance ▷ or implements. Colors mirror the ERD: identity (blue), property/listing (green), inspection/offer (red), verification (purple), notification/outbox (orange), admin (grey)." style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="40" y="50" width="2900" height="36" as="geometry" />
+        </mxCell>
+
+        <!-- =========================================================== -->
+        <!-- PACKAGE: auth                                                 -->
+        <!-- =========================================================== -->
+        <mxCell id="pkg-auth" value="package: auth" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#6c8ebf;dashed=1;fontSize=12;fontStyle=2;align=left;verticalAlign=top;spacingLeft=8;spacingTop=4;" vertex="1" parent="1">
+          <mxGeometry x="40" y="100" width="640" height="540" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-AuthController" value="«controller»&#xa;&lt;b&gt;AuthController&lt;/b&gt;&#xa;@RestController @RequestMapping(&quot;/api/auth&quot;)&#xa;──────────────────────&#xa;+ register(req): UserResponse&#xa;+ login(req): LoginResponse" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=4;spacingBottom=4;" vertex="1" parent="1">
+          <mxGeometry x="60" y="130" width="280" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-AuthService" value="«service»&#xa;&lt;b&gt;AuthService&lt;/b&gt;&#xa;──────────────────────&#xa;+ register(cmd): User&#xa;+ login(cmd): String  «JWT»&#xa;+ logout(userId): void  «bumps tokenVersion»" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=4;spacingBottom=4;" vertex="1" parent="1">
+          <mxGeometry x="60" y="250" width="280" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-JwtService" value="«service»&#xa;&lt;b&gt;JwtService&lt;/b&gt;&#xa;──────────────────────&#xa;+ issue(uid,email,role,tv): String&#xa;+ parse(token): JwtPrincipal&#xa;HS256 · iss/aud/tv claims" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=4;spacingBottom=4;" vertex="1" parent="1">
+          <mxGeometry x="360" y="130" width="300" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-JwtFilter" value="«filter»&#xa;&lt;b&gt;JwtAuthenticationFilter&lt;/b&gt; extends OncePerRequestFilter&#xa;──────────────────────&#xa;Reads Bearer; validates via JwtService;&#xa;DB lookup confirms tokenVersion match;&#xa;rejects suspended + revoked tokens." style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=4;spacingBottom=4;" vertex="1" parent="1">
+          <mxGeometry x="360" y="270" width="300" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-JwtPrincipal" value="«record»&#xa;&lt;b&gt;JwtPrincipal&lt;/b&gt;&#xa;──────────────────────&#xa;Long userId · String email · Role role · int tokenVersion" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#eaf3ff;strokeColor=#6c8ebf;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=4;spacingBottom=4;" vertex="1" parent="1">
+          <mxGeometry x="360" y="410" width="300" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-AuthExceptions" value="«exception»&#xa;EmailAlreadyRegisteredException → 409&#xa;InvalidCredentialsException → 401" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5d0c5;strokeColor=#b85450;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=4;spacingBottom=4;" vertex="1" parent="1">
+          <mxGeometry x="60" y="510" width="280" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- =========================================================== -->
+        <!-- PACKAGE: user                                                 -->
+        <!-- =========================================================== -->
+        <mxCell id="pkg-user" value="package: user" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#6c8ebf;dashed=1;fontSize=12;fontStyle=2;align=left;verticalAlign=top;spacingLeft=8;spacingTop=4;" vertex="1" parent="1">
+          <mxGeometry x="700" y="100" width="380" height="540" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-User" value="«entity»&#xa;&lt;b&gt;User&lt;/b&gt; @Table(users)&#xa;──────────────────────&#xa;Long id  Role role  String email&#xa;String passwordHash · fullName · phone&#xa;Integer tokenVersion&#xa;Instant identityVerifiedAt&#xa;Instant suspendedAt&#xa;Instant createdAt" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=4;spacingBottom=4;" vertex="1" parent="1">
+          <mxGeometry x="720" y="130" width="340" height="170" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-AgentProfile" value="«entity»&#xa;&lt;b&gt;AgentProfile&lt;/b&gt; @Table(agent_profiles)&#xa;──────────────────────&#xa;Long userId  «PK shared with User»&#xa;String licenseNumber UQ · cacRegistrationNumber · bio&#xa;Instant credentialVerifiedAt&#xa;Instant createdAt" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=4;spacingBottom=4;" vertex="1" parent="1">
+          <mxGeometry x="720" y="320" width="340" height="140" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-UserRepo" value="«repository»&#xa;&lt;b&gt;UserRepository&lt;/b&gt; extends JpaRepository&lt;User,Long&gt;&#xa;──────────────────────&#xa;findByEmail(email): Optional&lt;User&gt;&#xa;existsByEmail(email): boolean" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#eaf3ff;strokeColor=#6c8ebf;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=4;spacingBottom=4;" vertex="1" parent="1">
+          <mxGeometry x="720" y="480" width="340" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-Role" value="«enum» Role { OWNER · AGENT · APPLICANT · ADMIN }" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#eaf3ff;strokeColor=#6c8ebf;align=left;verticalAlign=middle;fontSize=11;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="720" y="595" width="340" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- =========================================================== -->
+        <!-- PACKAGE: property                                             -->
+        <!-- =========================================================== -->
+        <mxCell id="pkg-property" value="package: property" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#82b366;dashed=1;fontSize=12;fontStyle=2;align=left;verticalAlign=top;spacingLeft=8;spacingTop=4;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="100" width="380" height="540" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-PropertyController" value="«controller»&#xa;&lt;b&gt;PropertyController&lt;/b&gt;  /api/properties&#xa;──────────────────────&#xa;+ create(req)  @PreAuthorize OWNER&#xa;+ getMine(): list" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=4;spacingBottom=4;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="130" width="340" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-PropertyService" value="«service»&#xa;&lt;b&gt;PropertyService&lt;/b&gt;&#xa;──────────────────────&#xa;+ create(ownerId, cmd): Property&#xa;+ findByOwner(ownerId): List&lt;Property&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=4;spacingBottom=4;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="250" width="340" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-Property" value="«entity»&#xa;&lt;b&gt;Property&lt;/b&gt; @Table(properties)&#xa;──────────────────────&#xa;Long id · Long ownerId · PropertyType type&#xa;String address · Integer bedrooms · bathrooms&#xa;BigDecimal sizeSqm · String description&#xa;Instant documentsVerifiedAt&#xa;Instant createdAt" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=4;spacingBottom=4;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="370" width="340" height="160" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-PropertyRepo" value="«repository»&#xa;PropertyRepository extends JpaRepository" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e6f0e2;strokeColor=#82b366;align=left;verticalAlign=middle;fontSize=11;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="540" width="340" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-PropertyExc" value="«exception»  PropertyNotFoundException → 404 · InvalidPropertyForTypeException → 400" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5d0c5;strokeColor=#b85450;align=left;verticalAlign=middle;fontSize=11;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="595" width="340" height="35" as="geometry" />
+        </mxCell>
+
+        <!-- =========================================================== -->
+        <!-- PACKAGE: listing                                              -->
+        <!-- =========================================================== -->
+        <mxCell id="pkg-listing" value="package: listing" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#82b366;dashed=1;fontSize=12;fontStyle=2;align=left;verticalAlign=top;spacingLeft=8;spacingTop=4;" vertex="1" parent="1">
+          <mxGeometry x="1500" y="100" width="380" height="540" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-ListingController" value="«controller»&#xa;&lt;b&gt;ListingController&lt;/b&gt;  /api/listings&#xa;──────────────────────&#xa;GET (public, cached)  · POST (OWNER)&#xa;PUT, PATCH (OWNER)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=4;spacingBottom=4;" vertex="1" parent="1">
+          <mxGeometry x="1520" y="130" width="340" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-ListingService" value="«service»&#xa;&lt;b&gt;ListingService&lt;/b&gt;&#xa;──────────────────────&#xa;+ create(ownerId, cmd): Listing&#xa;+ update(ownerId, id, cmd): Listing&#xa;+ findPubliclyVisible(pageable): Page&#xa;+ findById(id): ListingWithProperty" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=4;spacingBottom=4;" vertex="1" parent="1">
+          <mxGeometry x="1520" y="250" width="340" height="130" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-Listing" value="«entity»&#xa;&lt;b&gt;Listing&lt;/b&gt; @Table(listings) · @Version&#xa;──────────────────────&#xa;Long id · propertyId · ownerId&#xa;ListingType · BigDecimal askingPrice · currency&#xa;ListingStatus  «LIVE/PAUSED/CLOSED»&#xa;Instant approvedAt   «admin badge»&#xa;Long version · createdAt · updatedAt" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=4;spacingBottom=4;" vertex="1" parent="1">
+          <mxGeometry x="1520" y="400" width="340" height="170" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-ListingExc" value="«exception»  ListingNotFoundException · NotPropertyOwnerException · InvalidListingTransitionException" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5d0c5;strokeColor=#b85450;align=left;verticalAlign=middle;fontSize=11;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="1520" y="585" width="340" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- =========================================================== -->
+        <!-- PACKAGE: inspection                                           -->
+        <!-- =========================================================== -->
+        <mxCell id="pkg-inspection" value="package: inspection" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#b85450;dashed=1;fontSize=12;fontStyle=2;align=left;verticalAlign=top;spacingLeft=8;spacingTop=4;" vertex="1" parent="1">
+          <mxGeometry x="40" y="680" width="640" height="500" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-InspectionSlotController" value="«controller»  InspectionSlotController  /api/listings/*/slots&#xa;──────────────────────&#xa;POST (OWNER)  ·  GET (public, cached)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=4;spacingBottom=4;" vertex="1" parent="1">
+          <mxGeometry x="60" y="710" width="300" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-InspectionController" value="«controller»  InspectionController  /api/inspections&#xa;──────────────────────&#xa;POST (APPLICANT)  ·  GET /mine" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=4;spacingBottom=4;" vertex="1" parent="1">
+          <mxGeometry x="380" y="710" width="280" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-InspectionSlotService" value="«service»  InspectionSlotService&#xa;──────────────────────&#xa;+ createSlot(ownerId, listingId, cmd): InspectionSlot&#xa;catches DataIntegrityViolation → SlotOverlapException" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=4;spacingBottom=4;" vertex="1" parent="1">
+          <mxGeometry x="60" y="810" width="300" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-InspectionService" value="«service»  InspectionService&#xa;──────────────────────&#xa;+ requestInspection(applicantId, cmd): InspectionRequest&#xa;writes Outbox + fires OutboxRowReadyEvent&#xa;catches → SlotAlreadyClaimedException" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=4;spacingBottom=4;" vertex="1" parent="1">
+          <mxGeometry x="380" y="810" width="280" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-InspectionSlot" value="«entity» InspectionSlot&#xa;Long id · listingId · Instant startsAt · endsAt&#xa;CHK (endsAt &gt; startsAt) · GiST EXCLUDE no overlap" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=4;spacingBottom=4;" vertex="1" parent="1">
+          <mxGeometry x="60" y="940" width="300" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-InspectionRequest" value="«entity» InspectionRequest&#xa;Long id · slotId · applicantId · status · notes&#xa;Partial UQ on slotId WHERE status IN (PENDING,APPROVED)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=4;spacingBottom=4;" vertex="1" parent="1">
+          <mxGeometry x="380" y="940" width="280" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-InspectionRepos" value="«repository»  InspectionSlotRepository  ·  InspectionRequestRepository" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fbe5e3;strokeColor=#b85450;align=left;verticalAlign=middle;fontSize=11;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="60" y="1030" width="600" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-InspectionEvent" value="«event»  events.InspectionRequestedEvent (Kafka topic: inspection.requested.v1)&#xa;eventId UUID · requestId · slotId · listingId · ownerId · applicantId · scheduledAt" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fbe5e3;strokeColor=#b85450;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=4;spacingBottom=4;" vertex="1" parent="1">
+          <mxGeometry x="60" y="1080" width="600" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-InspectionExc" value="«exception» SlotNotFoundException · SlotOverlapException · SlotAlreadyClaimedException · InvalidSlotWindowException" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5d0c5;strokeColor=#b85450;align=left;verticalAlign=middle;fontSize=11;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="60" y="1140" width="600" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- =========================================================== -->
+        <!-- PACKAGE: offer                                                -->
+        <!-- =========================================================== -->
+        <mxCell id="pkg-offer" value="package: offer" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#b85450;dashed=1;fontSize=12;fontStyle=2;align=left;verticalAlign=top;spacingLeft=8;spacingTop=4;" vertex="1" parent="1">
+          <mxGeometry x="700" y="680" width="380" height="500" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-OfferController" value="«controller»  OfferController  /api/offers&#xa;──────────────────────&#xa;POST (APPLICANT)  ·  PATCH /{id} (OWNER)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=4;spacingBottom=4;" vertex="1" parent="1">
+          <mxGeometry x="720" y="710" width="340" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-OfferService" value="«service»  OfferService&#xa;──────────────────────&#xa;+ submit(applicantId, cmd): Offer&#xa;+ respond(callerId, offerId, newStatus): Offer&#xa;writes Outbox + fires OutboxRowReadyEvent" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=4;spacingBottom=4;" vertex="1" parent="1">
+          <mxGeometry x="720" y="810" width="340" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-Offer" value="«entity» Offer @Version&#xa;Long id · listingId · applicantId · ownerId&#xa;BigDecimal amount · currency · status&#xa;CHK (amount &gt; 0) · @Version" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=4;spacingBottom=4;" vertex="1" parent="1">
+          <mxGeometry x="720" y="940" width="340" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-OfferEvent" value="«event» events.OfferSubmittedEvent (Kafka topic: offer.submitted.v1)&#xa;eventId · offerId · listingId · ownerId · applicantId · amount · currency · submittedAt" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fbe5e3;strokeColor=#b85450;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=4;spacingBottom=4;" vertex="1" parent="1">
+          <mxGeometry x="720" y="1050" width="340" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-OfferExc" value="«exception» OfferNotFoundException · ListingNotOpenForOffersException · InvalidOfferTransitionException" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5d0c5;strokeColor=#b85450;align=left;verticalAlign=middle;fontSize=11;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="720" y="1120" width="340" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- =========================================================== -->
+        <!-- PACKAGE: verification                                         -->
+        <!-- =========================================================== -->
+        <mxCell id="pkg-verification" value="package: verification" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#9673a6;dashed=1;fontSize=12;fontStyle=2;align=left;verticalAlign=top;spacingLeft=8;spacingTop=4;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="680" width="380" height="500" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-VerifController" value="«controller»  VerificationController  /api/verifications&#xa;──────────────────────&#xa;POST  @PreAuthorize OWNER · AGENT · APPLICANT&#xa;(ADMIN cannot self-submit)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=4;spacingBottom=4;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="710" width="340" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-VerifService" value="«service»  VerificationService&#xa;──────────────────────&#xa;+ submit(submitterId, cmd): Verification&#xa;Role↔track gate · property-ownership gate&#xa;Duplicate-pending pre-check (DB partial UQ is the safety net)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=4;spacingBottom=4;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="830" width="340" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-Verification" value="«entity»  Verification @Version&#xa;type ENUM · submitterUserId · targetUserId · targetPropertyId&#xa;status PENDING/APPROVED/REJECTED · documentRefs JSONB&#xa;decidedAt · decidedByAdminId · decisionReason&#xa;CHK target consistency · CHK decision-complete" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=4;spacingBottom=4;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="965" width="340" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-VerifRepo" value="«repository» VerificationRepository&#xa;findByTypeAndStatusOrderBySubmittedAtAsc · existsByTypeAndTarget*AndStatus" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ede2f0;strokeColor=#9673a6;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=4;spacingBottom=4;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="1095" width="340" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-VerifExc" value="«exception» VerificationNotFoundException · DuplicatePendingVerificationException · VerificationRoleMismatchException · VerificationAlreadyDecidedException" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5d0c5;strokeColor=#b85450;align=left;verticalAlign=middle;fontSize=11;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="1150" width="340" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- =========================================================== -->
+        <!-- PACKAGE: notification                                         -->
+        <!-- =========================================================== -->
+        <mxCell id="pkg-notification" value="package: notification" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#d79b00;dashed=1;fontSize=12;fontStyle=2;align=left;verticalAlign=top;spacingLeft=8;spacingTop=4;" vertex="1" parent="1">
+          <mxGeometry x="1500" y="680" width="380" height="500" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-NotifService" value="«service»  NotificationService&#xa;──────────────────────&#xa;+ recordInspectionRequested(event): Optional&#xa;+ recordOfferSubmitted(event): Optional&#xa;Idempotent on eventId (existsByEventId check)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=4;spacingBottom=4;" vertex="1" parent="1">
+          <mxGeometry x="1520" y="710" width="340" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-InspListener" value="«listener»  InspectionRequestedListener&#xa;@KafkaListener · MANUAL_IMMEDIATE ack" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=4;spacingBottom=4;" vertex="1" parent="1">
+          <mxGeometry x="1520" y="840" width="160" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-OfferListener" value="«listener»  OfferSubmittedListener&#xa;@KafkaListener · MANUAL_IMMEDIATE ack" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=4;spacingBottom=4;" vertex="1" parent="1">
+          <mxGeometry x="1700" y="840" width="160" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-Notification" value="«entity»  Notification&#xa;Long id · UUID eventId UQ (null for SYNC)&#xa;recipientId · NotificationKind · NotificationSource&#xa;String payload · readAt · createdAt&#xa;IDX(recipient, readAt, createdAt DESC)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=4;spacingBottom=4;" vertex="1" parent="1">
+          <mxGeometry x="1520" y="910" width="340" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-NotifRepo" value="«repository»  NotificationRepository · findByRecipientId* · existsByEventId" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2dd;strokeColor=#d79b00;align=left;verticalAlign=middle;fontSize=11;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="1520" y="1040" width="340" height="35" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-NotifKinds" value="«enum» NotificationKind  INSPECTION_REQUESTED · OFFER_SUBMITTED · VERIFICATION_APPROVED · VERIFICATION_REJECTED · LISTING_APPROVED · LISTING_TAKEDOWN&#xa;«enum» NotificationSource  SYNC · ASYNC_KAFKA" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2dd;strokeColor=#d79b00;align=left;verticalAlign=top;fontSize=10;spacingLeft=8;spacingTop=4;spacingBottom=4;" vertex="1" parent="1">
+          <mxGeometry x="1520" y="1085" width="340" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- =========================================================== -->
+        <!-- PACKAGE: admin                                                -->
+        <!-- =========================================================== -->
+        <mxCell id="pkg-admin" value="package: admin   (Phase 5)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#666666;dashed=1;fontSize=12;fontStyle=2;align=left;verticalAlign=top;spacingLeft=8;spacingTop=4;" vertex="1" parent="1">
+          <mxGeometry x="1900" y="100" width="1060" height="1080" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-AdminVerifController" value="«controller»  AdminVerificationController  /api/admin/verifications&#xa;@PreAuthorize hasRole('ADMIN')&#xa;──────────────────────&#xa;GET ?type=…&amp;page&amp;size  ·  POST /{id}/approve  ·  POST /{id}/reject" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=4;spacingBottom=4;" vertex="1" parent="1">
+          <mxGeometry x="1920" y="130" width="500" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-AdminListingController" value="«controller»  AdminListingController  /api/admin/listings&#xa;──────────────────────&#xa;POST /{id}/approve  ·  POST /{id}/takedown" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=4;spacingBottom=4;" vertex="1" parent="1">
+          <mxGeometry x="2440" y="130" width="500" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-AdminUserController" value="«controller»  AdminUserController  /api/admin/users&#xa;──────────────────────&#xa;POST /{id}/suspend  ·  POST /{id}/reactivate" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=4;spacingBottom=4;" vertex="1" parent="1">
+          <mxGeometry x="1920" y="250" width="500" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-AdminVerifService" value="«service»  AdminVerificationService&#xa;──────────────────────&#xa;+ listPending(type, pageable): Page&lt;Verification&gt;&#xa;+ approve(adminId, vId, reason): Verification&#xa;+ reject(adminId, vId, reason): Verification&#xa;flips badge per type · audit log · sync notification · metric" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=4;spacingBottom=4;" vertex="1" parent="1">
+          <mxGeometry x="1920" y="370" width="500" height="140" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-AdminListingService" value="«service»  AdminListingService&#xa;──────────────────────&#xa;+ approve(adminId, lId): Listing  «sets approvedAt»&#xa;+ takedown(adminId, lId, reason): Listing  «→ CLOSED»&#xa;audit log · sync notification · metric" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=4;spacingBottom=4;" vertex="1" parent="1">
+          <mxGeometry x="2440" y="370" width="500" height="140" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-AdminUserService" value="«service»  AdminUserService&#xa;──────────────────────&#xa;+ suspend(adminId, uId, reason): User  «bumps tokenVersion»&#xa;+ reactivate(adminId, uId): User&#xa;Self-moderation blocked  ·  audit log · metric" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=4;spacingBottom=4;" vertex="1" parent="1">
+          <mxGeometry x="1920" y="530" width="500" height="140" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-AdminAuditLog" value="«entity»  AdminAuditLog   (append-only)&#xa;──────────────────────&#xa;Long id · adminId · AdminAction action&#xa;AuditTargetType targetType · targetId&#xa;String metadata JSONB · createdAt&#xa;IDX(adminId, createdAt DESC) · IDX(targetType, targetId, createdAt DESC)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=4;spacingBottom=4;" vertex="1" parent="1">
+          <mxGeometry x="2440" y="530" width="500" height="160" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-AdminMetrics" value="«component»  AdminMetrics&#xa;──────────────────────&#xa;recordVerificationDecision(type, approved)&#xa;recordListingAction(action) · recordUserModeration(action)&#xa;Micrometer counters · bounded cardinality" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=4;spacingBottom=4;" vertex="1" parent="1">
+          <mxGeometry x="1920" y="690" width="500" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-AdminEnums" value="«enum» AdminAction  VERIFICATION_APPROVED · VERIFICATION_REJECTED · LISTING_APPROVED · LISTING_TAKEDOWN · USER_SUSPENDED · USER_REACTIVATED&#xa;«enum» AuditTargetType  VERIFICATION · LISTING · USER" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;align=left;verticalAlign=top;fontSize=10;spacingLeft=8;spacingTop=4;spacingBottom=4;" vertex="1" parent="1">
+          <mxGeometry x="2440" y="710" width="500" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-AdminAuditRepo" value="«repository»  AdminAuditLogRepository extends JpaRepository&lt;AdminAuditLog, Long&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#666666;align=left;verticalAlign=middle;fontSize=11;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="1920" y="830" width="1020" height="35" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-AdminExc" value="«exception» (admin domain)&#xa;ListingAlreadyApprovedException → 409  ·  ListingAlreadyClosedException → 409&#xa;UserNotFoundException → 404  ·  UserAlreadySuspendedException → 409  ·  UserNotSuspendedException → 409&#xa;CannotModerateSelfException → 403" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5d0c5;strokeColor=#b85450;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=4;spacingBottom=4;" vertex="1" parent="1">
+          <mxGeometry x="1920" y="885" width="1020" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-AdminCollab" value="AdminVerificationService collaborates across packages:&#10;• verification.VerificationRepository (load + save the row)&#10;• user.UserRepository, user.AgentProfileRepository (flip badge for OWNER/APPLICANT/AGENT tracks)&#10;• property.PropertyRepository (flip badge for PROPERTY_DOCUMENTS track)&#10;• notification.NotificationRepository (sync notification to submitter)&#10;• admin.AdminAuditLogRepository · admin.AdminMetrics" style="shape=note;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;verticalAlign=top;fontSize=10;spacingLeft=8;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="1920" y="1000" width="1020" height="160" as="geometry" />
+        </mxCell>
+
+        <!-- =========================================================== -->
+        <!-- PACKAGE: common                                               -->
+        <!-- =========================================================== -->
+        <mxCell id="pkg-common" value="package: common  (cross-cutting)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#666666;dashed=1;fontSize=12;fontStyle=2;align=left;verticalAlign=top;spacingLeft=8;spacingTop=4;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1220" width="2920" height="540" as="geometry" />
+        </mxCell>
+
+        <!-- DomainException tree -->
+        <mxCell id="cls-DomainException" value="«abstract»&#xa;&lt;b&gt;DomainException&lt;/b&gt; extends RuntimeException&#xa;──────────────────────&#xa;# DomainException(HttpStatus, String safeMessage)&#xa;+ status(): HttpStatus&#xa;Mapped by GlobalExceptionHandler → RFC 7807" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5d0c5;strokeColor=#b85450;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=4;spacingBottom=4;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="60" y="1260" width="380" height="130" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-GlobalEx" value="«advice»  GlobalExceptionHandler&#xa;──────────────────────&#xa;handle(DomainException) → ProblemDetail with declared status&#xa;handle(ObjectOptimisticLockingFailure) → 409" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=4;spacingBottom=4;" vertex="1" parent="1">
+          <mxGeometry x="60" y="1410" width="380" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-SecurityConfig" value="«config»  SecurityConfig&#xa;──────────────────────&#xa;Stateless · CSRF off · CORS · deny-by-default&#xa;permitAll: register, login, public listing GETs&#xa;Filter chain: JwtAuthenticationFilter before UPF&#xa;@EnableMethodSecurity → @PreAuthorize" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=4;spacingBottom=4;" vertex="1" parent="1">
+          <mxGeometry x="460" y="1260" width="400" height="140" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-WebConfig" value="«config»  WebConfig&#xa;──────────────────────&#xa;@EnableSpringDataWebSupport(VIA_DTO)&#xa;Registers PublicCacheHeadersInterceptor on&#xa;/api/listings, /api/listings/*, /api/listings/*/slots" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=4;spacingBottom=4;" vertex="1" parent="1">
+          <mxGeometry x="460" y="1410" width="400" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-KafkaErr" value="«config»  KafkaErrorHandlerConfig&#xa;──────────────────────&#xa;DefaultErrorHandler + DeadLetterPublishingRecoverer&#xa;Exponential backoff 500 ms → 5 s · 30 s cap&#xa;DLT topic: &lt;original&gt;.DLT, same partition" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=4;spacingBottom=4;" vertex="1" parent="1">
+          <mxGeometry x="880" y="1260" width="400" height="120" as="geometry" />
+        </mxCell>
+
+        <!-- Outbox cluster -->
+        <mxCell id="cls-OutboxEvent" value="«entity»  OutboxEvent  (transactional outbox)&#xa;──────────────────────&#xa;Long id · UUID eventId UQ&#xa;aggregateType · aggregateId · eventType · topic · partitionKey&#xa;String payload · createdAt · publishedAt   «null = unsent»" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=4;spacingBottom=4;" vertex="1" parent="1">
+          <mxGeometry x="1300" y="1260" width="500" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-OutboxRelay" value="«component»  OutboxRelay&#xa;──────────────────────&#xa;@Scheduled(1s) drain  ·  @TransactionalEventListener AFTER_COMMIT&#xa;FOR UPDATE SKIP LOCKED claim · publishes via KafkaTemplate · marks publishedAt" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=4;spacingBottom=4;" vertex="1" parent="1">
+          <mxGeometry x="1300" y="1395" width="500" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-OutboxRowReady" value="«event»  OutboxRowReadyEvent (singleton, internal)&#xa;Fired after-commit by services that wrote a new outbox row" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=4;spacingBottom=4;" vertex="1" parent="1">
+          <mxGeometry x="1300" y="1510" width="500" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-OutboxRepo" value="«repository»  OutboxEventRepository · claimBatchForPublishing(limit) FOR UPDATE SKIP LOCKED · countByPublishedAtIsNull" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2dd;strokeColor=#d79b00;align=left;verticalAlign=middle;fontSize=11;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="1300" y="1580" width="500" height="35" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-OutboxMetrics" value="«component»  OutboxMetrics  ·  haven.outbox.unpublished gauge" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2dd;strokeColor=#d79b00;align=left;verticalAlign=middle;fontSize=11;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="1300" y="1625" width="500" height="35" as="geometry" />
+        </mxCell>
+
+        <!-- Validation + rate-limit + cache headers -->
+        <mxCell id="cls-Validators" value="«validator»  StrictEmail · NotCommonPassword&#xa;«interceptor»  PublicCacheHeadersInterceptor → Cache-Control on public reads&#xa;«filter»  RateLimitFilter (bucket4j) → /api/auth/* · per-IP" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=4;spacingBottom=4;" vertex="1" parent="1">
+          <mxGeometry x="1820" y="1260" width="540" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-FlywayMigs" value="«migration»  Flyway V1 → V11&#xa;V1 users · V2 token_version + agent_profiles · V3 properties + listings&#xa;V4 inspections + notifications · V5 offers · V6 outbox + notif idempotency&#xa;V7 @Version · V8 GiST EXCLUDE · V9 listings browse index&#xa;V10 verifications + admin_audit_log + badge cols · V11 seed admin" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;align=left;verticalAlign=top;fontSize=10;spacingLeft=8;spacingTop=4;spacingBottom=4;" vertex="1" parent="1">
+          <mxGeometry x="1820" y="1395" width="540" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-AbstractIT" value="«test infra»  AbstractPostgresIT&#xa;Singleton Testcontainer Postgres (postgres:16-alpine)&#xa;@EmbeddedKafka  ·  @ServiceConnection&#xa;Provides jwt.secret/issuer/audience for ITs" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=4;spacingBottom=4;" vertex="1" parent="1">
+          <mxGeometry x="2380" y="1260" width="560" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-JwtTestSupport" value="«test infra»  JwtTestSupport (component-scanned)&#xa;persistUser(role) · tokenFor / bearerFor — for protected-endpoint ITs" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;align=left;verticalAlign=top;fontSize=11;spacingLeft=8;spacingTop=4;spacingBottom=4;" vertex="1" parent="1">
+          <mxGeometry x="2380" y="1380" width="560" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cls-Stack" value="Stack: Java 21 · Spring Boot 3.3.5 · Spring Security · Spring Data JPA · Hibernate 6 · Spring Kafka · JJWT 0.12.6 · Flyway · Lombok · Micrometer · bucket4j · Testcontainers · @EmbeddedKafka&#10;Test totals (Phase 5 audit): 169 unit + 57 IT = 226 tests, 0 failures." style="shape=note;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;verticalAlign=top;fontSize=10;spacingLeft=8;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="2380" y="1455" width="560" height="120" as="geometry" />
+        </mxCell>
+
+        <!-- =========================================================== -->
+        <!-- RELATIONSHIPS                                                 -->
+        <!-- =========================================================== -->
+
+        <!-- Layered: Controller → Service for each feature -->
+        <mxCell id="r-auth-c-s" style="endArrow=open;dashed=0;html=1;rounded=0;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="cls-AuthController" target="cls-AuthService"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r-prop-c-s" style="endArrow=open;dashed=0;html=1;rounded=0;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="cls-PropertyController" target="cls-PropertyService"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r-list-c-s" style="endArrow=open;dashed=0;html=1;rounded=0;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="cls-ListingController" target="cls-ListingService"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r-slot-c-s" style="endArrow=open;dashed=0;html=1;rounded=0;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="cls-InspectionSlotController" target="cls-InspectionSlotService"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r-insp-c-s" style="endArrow=open;dashed=0;html=1;rounded=0;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="cls-InspectionController" target="cls-InspectionService"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r-offer-c-s" style="endArrow=open;dashed=0;html=1;rounded=0;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="cls-OfferController" target="cls-OfferService"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r-verif-c-s" style="endArrow=open;dashed=0;html=1;rounded=0;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="cls-VerifController" target="cls-VerifService"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r-adminVerif-c-s" style="endArrow=open;dashed=0;html=1;rounded=0;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="cls-AdminVerifController" target="cls-AdminVerifService"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r-adminListing-c-s" style="endArrow=open;dashed=0;html=1;rounded=0;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="cls-AdminListingController" target="cls-AdminListingService"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r-adminUser-c-s" style="endArrow=open;dashed=0;html=1;rounded=0;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="cls-AdminUserController" target="cls-AdminUserService"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- Auth depends on UserRepo + JwtService -->
+        <mxCell id="r-authsvc-jwt" style="endArrow=open;dashed=0;html=1;rounded=0;" edge="1" parent="1" source="cls-AuthService" target="cls-JwtService"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r-authsvc-user" style="endArrow=open;dashed=0;html=1;rounded=0;" edge="1" parent="1" source="cls-AuthService" target="cls-UserRepo"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r-jwtfilter-jwt" style="endArrow=open;dashed=0;html=1;rounded=0;" edge="1" parent="1" source="cls-JwtFilter" target="cls-JwtService"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r-jwtfilter-user" style="endArrow=open;dashed=0;html=1;rounded=0;" edge="1" parent="1" source="cls-JwtFilter" target="cls-UserRepo"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r-jwt-principal" style="endArrow=open;dashed=0;html=1;rounded=0;" edge="1" parent="1" source="cls-JwtService" target="cls-JwtPrincipal"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- DomainException inheritance — all exceptions extend it -->
+        <mxCell id="r-inh-auth" style="endArrow=block;endFill=0;dashed=1;html=1;rounded=0;" edge="1" parent="1" source="cls-AuthExceptions" target="cls-DomainException"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r-inh-prop" style="endArrow=block;endFill=0;dashed=1;html=1;rounded=0;" edge="1" parent="1" source="cls-PropertyExc" target="cls-DomainException"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r-inh-listing" style="endArrow=block;endFill=0;dashed=1;html=1;rounded=0;" edge="1" parent="1" source="cls-ListingExc" target="cls-DomainException"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r-inh-insp" style="endArrow=block;endFill=0;dashed=1;html=1;rounded=0;" edge="1" parent="1" source="cls-InspectionExc" target="cls-DomainException"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r-inh-offer" style="endArrow=block;endFill=0;dashed=1;html=1;rounded=0;" edge="1" parent="1" source="cls-OfferExc" target="cls-DomainException"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r-inh-verif" style="endArrow=block;endFill=0;dashed=1;html=1;rounded=0;" edge="1" parent="1" source="cls-VerifExc" target="cls-DomainException"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r-inh-admin" style="endArrow=block;endFill=0;dashed=1;html=1;rounded=0;" edge="1" parent="1" source="cls-AdminExc" target="cls-DomainException"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- GlobalExceptionHandler handles DomainException -->
+        <mxCell id="r-globex-domex" value="@ExceptionHandler" style="endArrow=open;dashed=0;html=1;rounded=0;fontSize=9;" edge="1" parent="1" source="cls-GlobalEx" target="cls-DomainException"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- Verification submission: service uses repos in user/property -->
+        <mxCell id="r-verifsvc-user" style="endArrow=open;dashed=1;html=1;rounded=0;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="cls-VerifService" target="cls-UserRepo"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r-verifsvc-prop" style="endArrow=open;dashed=1;html=1;rounded=0;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="cls-VerifService" target="cls-PropertyRepo"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r-verifsvc-repo" style="endArrow=open;dashed=0;html=1;rounded=0;" edge="1" parent="1" source="cls-VerifService" target="cls-VerifRepo"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- Outbox / event flow -->
+        <mxCell id="r-offersvc-outbox" value="writes" style="endArrow=open;dashed=0;html=1;rounded=0;edgeStyle=orthogonalEdgeStyle;fontSize=9;" edge="1" parent="1" source="cls-OfferService" target="cls-OutboxEvent"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r-inspsvc-outbox" value="writes" style="endArrow=open;dashed=0;html=1;rounded=0;edgeStyle=orthogonalEdgeStyle;fontSize=9;" edge="1" parent="1" source="cls-InspectionService" target="cls-OutboxEvent"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r-offersvc-evt" value="fires after-commit" style="endArrow=open;dashed=1;html=1;rounded=0;edgeStyle=orthogonalEdgeStyle;fontSize=9;" edge="1" parent="1" source="cls-OfferService" target="cls-OutboxRowReady"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r-inspsvc-evt" value="fires after-commit" style="endArrow=open;dashed=1;html=1;rounded=0;edgeStyle=orthogonalEdgeStyle;fontSize=9;" edge="1" parent="1" source="cls-InspectionService" target="cls-OutboxRowReady"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r-relay-evt" value="@TransactionalEventListener AFTER_COMMIT" style="endArrow=open;dashed=1;html=1;rounded=0;fontSize=9;" edge="1" parent="1" source="cls-OutboxRelay" target="cls-OutboxRowReady"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r-relay-outbox" value="claims + publishes" style="endArrow=open;dashed=0;html=1;rounded=0;fontSize=9;" edge="1" parent="1" source="cls-OutboxRelay" target="cls-OutboxEvent"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- Kafka listeners → NotificationService → Notification -->
+        <mxCell id="r-insp-listener-svc" style="endArrow=open;dashed=0;html=1;rounded=0;" edge="1" parent="1" source="cls-InspListener" target="cls-NotifService"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r-offer-listener-svc" style="endArrow=open;dashed=0;html=1;rounded=0;" edge="1" parent="1" source="cls-OfferListener" target="cls-NotifService"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r-notifsvc-repo" style="endArrow=open;dashed=0;html=1;rounded=0;" edge="1" parent="1" source="cls-NotifService" target="cls-NotifRepo"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r-notifrepo-notif" style="endArrow=open;dashed=0;html=1;rounded=0;" edge="1" parent="1" source="cls-NotifRepo" target="cls-Notification"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- Listing service → Listing -->
+        <mxCell id="r-listsvc-listing" style="endArrow=open;dashed=0;html=1;rounded=0;" edge="1" parent="1" source="cls-ListingService" target="cls-Listing"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r-listsvc-prop" value="bulk-fetches" style="endArrow=open;dashed=1;html=1;rounded=0;fontSize=9;" edge="1" parent="1" source="cls-ListingService" target="cls-Property"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- Admin services → cross-package collaborations (single representative arrow each, the note details the rest) -->
+        <mxCell id="r-adminVerif-VR" value="reads / writes" style="endArrow=open;dashed=0;html=1;rounded=0;edgeStyle=orthogonalEdgeStyle;fontSize=9;" edge="1" parent="1" source="cls-AdminVerifService" target="cls-VerifRepo"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r-adminVerif-Audit" value="audits" style="endArrow=open;dashed=0;html=1;rounded=0;fontSize=9;" edge="1" parent="1" source="cls-AdminVerifService" target="cls-AdminAuditRepo"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r-adminVerif-Notif" value="sync notify" style="endArrow=open;dashed=1;html=1;rounded=0;edgeStyle=orthogonalEdgeStyle;fontSize=9;" edge="1" parent="1" source="cls-AdminVerifService" target="cls-NotifRepo"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r-adminVerif-Metrics" value="meters" style="endArrow=open;dashed=1;html=1;rounded=0;fontSize=9;" edge="1" parent="1" source="cls-AdminVerifService" target="cls-AdminMetrics"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="r-adminListing-Listing" value="approves / takes down" style="endArrow=open;dashed=0;html=1;rounded=0;edgeStyle=orthogonalEdgeStyle;fontSize=9;" edge="1" parent="1" source="cls-AdminListingService" target="cls-Listing"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r-adminListing-Audit" style="endArrow=open;dashed=0;html=1;rounded=0;" edge="1" parent="1" source="cls-AdminListingService" target="cls-AdminAuditRepo"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="r-adminUser-User" value="suspend / reactivate" style="endArrow=open;dashed=0;html=1;rounded=0;edgeStyle=orthogonalEdgeStyle;fontSize=9;" edge="1" parent="1" source="cls-AdminUserService" target="cls-User"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r-adminUser-Audit" style="endArrow=open;dashed=0;html=1;rounded=0;" edge="1" parent="1" source="cls-AdminUserService" target="cls-AdminAuditRepo"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- AgentProfile shares PK with User -->
+        <mxCell id="r-user-agentprofile" value="1 — 0..1" style="endArrow=ERzeroToOne;startArrow=ERone;dashed=0;html=1;rounded=0;fontSize=9;" edge="1" parent="1" source="cls-User" target="cls-AgentProfile"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

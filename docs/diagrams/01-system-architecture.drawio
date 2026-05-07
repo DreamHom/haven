@@ -1,6 +1,6 @@
 <mxfile host="app.diagrams.net" modified="2026-05-05T00:00:00.000Z" agent="DreamHomes-Capstone" version="24.0.0">
   <diagram name="System Architecture" id="dreamhomes-arch">
-    <mxGraphModel dx="2000" dy="1600" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1900" pageHeight="1500" math="0" shadow="0">
+    <mxGraphModel dx="2000" dy="1700" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1900" pageHeight="1620" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -103,7 +103,7 @@
         <mxCell id="svc-listing-mgmt" value="Listing Mgmt&#10;(create / edit / pause / close)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="1020" y="560" width="180" height="40" as="geometry" />
         </mxCell>
-        <mxCell id="svc-agent-listing" value="Agent–Listing&#10;(handshake / assignment)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+        <mxCell id="svc-agent-listing" value="Agent–Listing  ★ Phase 7&#10;REQUESTED→ACCEPTED→REVOKED" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=10;align=center;" vertex="1" parent="1">
           <mxGeometry x="1220" y="560" width="180" height="40" as="geometry" />
         </mxCell>
         <mxCell id="svc-inspection" value="⚡ Inspection Service&#10;(slots + requests)&#10;Kafka producer" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;fontStyle=1;" vertex="1" parent="1">
@@ -115,22 +115,22 @@
         <mxCell id="svc-verification" value="Verification&#10;(owner / property / agent / applicant)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="620" y="640" width="180" height="50" as="geometry" />
         </mxCell>
-        <mxCell id="svc-comment-write" value="Comment Write&#10;(post / reply / moderate)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+        <mxCell id="svc-comment-write" value="Comment Write  ★ Phase 6&#10;(post · soft-delete · author/owner/admin gate)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=10;align=center;" vertex="1" parent="1">
           <mxGeometry x="820" y="640" width="180" height="50" as="geometry" />
         </mxCell>
         <mxCell id="svc-messaging" value="Messaging&#10;(in-app, on-platform only)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="1020" y="640" width="180" height="50" as="geometry" />
         </mxCell>
-        <mxCell id="svc-saves" value="Saves / Likes / Reviews" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+        <mxCell id="svc-saves" value="Saves + Reviews  ★ Phase 9–10&#10;idempotent · view_count atomic ·&#10;post-deal reviews + profile aggregate" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=10;align=center;" vertex="1" parent="1">
           <mxGeometry x="1220" y="640" width="180" height="50" as="geometry" />
         </mxCell>
         <mxCell id="svc-ads" value="Ads&#10;(featured listings / agents)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="1420" y="640" width="200" height="50" as="geometry" />
         </mxCell>
-        <mxCell id="svc-admin" value="Admin&#10;(verification queues, override,&#10;moderation, audit-logged)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+        <mxCell id="svc-admin" value="Admin Moderation  ★ Phase 5&#10;@PreAuthorize ADMIN · audit-logged · metered" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=10;align=center;" vertex="1" parent="1">
           <mxGeometry x="1640" y="640" width="200" height="50" as="geometry" />
         </mxCell>
-        <mxCell id="svc-notif-sync" value="Notification Service (sync writes — listing approvals, verification updates per PRD §7)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+        <mxCell id="svc-notif-sync" value="Notification Service  ★ Phase 9 (read-side: /mine, /unread-count, /mark-read)&#10;Sync writes from verification · listing approval · comment · agent assignment · review (PRD §7)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=10;align=center;" vertex="1" parent="1">
           <mxGeometry x="620" y="710" width="780" height="40" as="geometry" />
         </mxCell>
         <mxCell id="svc-leads" value="Leads / Pipeline&#10;(temp: cold→warm→hot)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
@@ -154,8 +154,13 @@
         </mxCell>
 
         <!-- Notes inside Haven -->
-        <mxCell id="haven-note" value="All admin and verification mutations write an audit_log row in the same transaction (PRD §4.10, §6)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontStyle=2;" vertex="1" parent="1">
+        <mxCell id="haven-note" value="All admin moderation mutations write an admin_audit_log row in the same transaction (PRD §4.10, §6). Suspend bumps tokenVersion for instant JWT revocation." style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontStyle=2;" vertex="1" parent="1">
           <mxGeometry x="80" y="980" width="1760" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- Admin route map note (Phase 5 expansion) -->
+        <mxCell id="note-admin-routes" value="Phase 5 admin routes:&#10;• POST /api/verifications  (OWNER · AGENT · APPLICANT submit; PROPERTY_DOCUMENTS scoped to property owner)&#10;• GET  /api/admin/verifications?type=…  (paginated queue, oldest first)&#10;• POST /api/admin/verifications/{id}/approve  → flips badge per track + sync notification&#10;• POST /api/admin/verifications/{id}/reject  (reason required) → sync notification with reason&#10;• POST /api/admin/listings/{id}/approve  → stamps listings.approved_at (verified-listing badge, status unchanged per PRD §4.1)&#10;• POST /api/admin/listings/{id}/takedown  (reason required) → status = CLOSED&#10;• POST /api/admin/users/{id}/suspend  (reason required) → suspendedAt + tokenVersion bump (immediate revocation)&#10;• POST /api/admin/users/{id}/reactivate  → clears suspendedAt&#10;Self-moderation blocked. Counters: haven.verification.decisions{type,decision} · haven.listing.admin_actions{action} · haven.user.moderations{action}" style="shape=note;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;align=left;spacingLeft=8;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1360" width="1820" height="190" as="geometry" />
         </mxCell>
 
         <!-- =========== KAFKA TIER =========== -->
@@ -176,14 +181,14 @@
         <mxCell id="postgres" value="postgres  —  database: dreamhomes_haven" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;fontStyle=1;verticalAlign=top;spacingTop=6;" vertex="1" parent="1">
           <mxGeometry x="980" y="1040" width="880" height="200" as="geometry" />
         </mxCell>
-        <mxCell id="pg-tables" value="users · properties · listings · agent_listings · inspection_slots · inspection_requests (UNIQUE(slot_id))&#10;offers · verifications · comments · saves · likes · messages · reviews · notifications · ads · audit_log · outbox" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=10;align=left;spacingLeft=8;spacingTop=4;" vertex="1" parent="1">
-          <mxGeometry x="1010" y="1090" width="820" height="60" as="geometry" />
+        <mxCell id="pg-tables" value="users · agent_profiles · properties · listings (+ approved_at, view_count) · inspection_slots · inspection_requests (partial UQ on slot_id)&#10;offers · verifications · notifications · outbox · admin_audit_log · agent_listings · comments · listing_saves · listing_reviews&#10;Flyway: V1–V15 · Future: listing_likes · messages · ads · listing_photos" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=10;align=left;spacingLeft=8;spacingTop=4;" vertex="1" parent="1">
+          <mxGeometry x="1010" y="1090" width="820" height="80" as="geometry" />
         </mxCell>
         <mxCell id="pg-note" value="Verification documents stored as metadata only — no raw files in DB (PRD §6)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontStyle=2;" vertex="1" parent="1">
-          <mxGeometry x="1010" y="1160" width="820" height="20" as="geometry" />
+          <mxGeometry x="1010" y="1180" width="820" height="20" as="geometry" />
         </mxCell>
         <mxCell id="pg-note2" value="Single PG instance acceptable for capstone scope; managed PG + read replicas in production" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontStyle=2;" vertex="1" parent="1">
-          <mxGeometry x="1010" y="1185" width="820" height="20" as="geometry" />
+          <mxGeometry x="1010" y="1205" width="820" height="20" as="geometry" />
         </mxCell>
 
         <!-- =========== SIDE NOTES =========== -->
