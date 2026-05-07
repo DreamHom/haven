@@ -8,5 +8,7 @@ package com.dreamhomes.haven.admin;
 public enum AuditTargetType {
     VERIFICATION,
     LISTING,
-    USER
+    USER,
+    /** Phase 12: review takedowns. */
+    REVIEW
 }

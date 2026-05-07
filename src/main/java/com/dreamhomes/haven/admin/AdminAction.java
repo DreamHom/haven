@@ -10,5 +10,7 @@ public enum AdminAction {
     LISTING_APPROVED,
     LISTING_TAKEDOWN,
     USER_SUSPENDED,
-    USER_REACTIVATED
+    USER_REACTIVATED,
+    /** Phase 12: admin took down a review for moderation. Author self-deletes don't write audit. */
+    REVIEW_TAKEDOWN
 }

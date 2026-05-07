@@ -143,6 +143,33 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
+
+        <!-- Phase 8: Prometheus scrape endpoint at /actuator/prometheus.
+             Pairs with the existing Micrometer counters/gauges so Grafana / Prometheus
+             can chart haven.outbox.unpublished, haven.verification.decisions{type,decision},
+             haven.listing.admin_actions, haven.user.moderations without extra glue. -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+        </dependency>
+
+        <!-- Phase 8: OpenAPI 3 spec auto-generated from controller signatures. Makes the
+             API self-documenting for the frontend (vista) and surfaces a Swagger UI for
+             manual exploration during demos. -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>2.6.0</version>
+        </dependency>
+
+        <!-- Phase 8: structured JSON log encoder for production. logback-spring.xml
+             flips between human-readable (dev) and JSON (prod) based on the active
+             profile so log aggregators ingest cleanly without log-line scraping. -->
+        <dependency>
+            <groupId>net.logstash.logback</groupId>
+            <artifactId>logstash-logback-encoder</artifactId>
+            <version>8.0</version>
+        </dependency>
     </dependencies>
 
     <build>
