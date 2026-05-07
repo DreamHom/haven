@@ -7,7 +7,9 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
-      - "5432:5432"
+      # Host port 5433 (5432 is taken by another local project).
+      # Inside the container Postgres still listens on 5432.
+      - "5433:5432"
     volumes:
       - haven-postgres-data:/var/lib/postgresql/data
     healthcheck:

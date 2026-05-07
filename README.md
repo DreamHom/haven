@@ -32,8 +32,10 @@ Requires Java 21 and Docker (Docker Desktop on macOS).
 # 1. Start local infra (Postgres + Kafka, persistent volumes)
 docker compose up -d
 
-# 2. Configure environment (defaults match docker-compose.yml)
-export JWT_SECRET=replace-with-a-secret-of-at-least-32-bytes
+# 2. Configure environment (defaults match docker-compose.yml).
+#    JWT_SECRET is required (no fallback) and must be >= 32 bytes. The app refuses
+#    to start if it looks like a placeholder ("change-me", "DEV_ONLY", etc.).
+export JWT_SECRET="$(openssl rand -hex 32)"
 
 # 3. Run the app
 mvn spring-boot:run
