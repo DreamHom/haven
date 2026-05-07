@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DreamHomes Haven — API Reference</title>
+  <style>
+    body { margin: 0; }
+  </style>
+</head>
+<body>
+  <!--
+    Scalar API Reference renderer. Pulls the OpenAPI 3 spec from springdoc-openapi
+    at /v3/api-docs (auto-generated from controller signatures + jakarta.validation
+    annotations). Pair / alternative to Swagger UI at /swagger-ui.html.
+
+    The data-url is relative so the same HTML works against whatever host this is
+    served from (localhost in dev, the deployed origin in prod).
+  -->
+  <script id="api-reference" data-url="/v3/api-docs"></script>
+  <script>
+    // Optional config — light theme, sidebar layout, hide the dark-mode toggle.
+    document.getElementById('api-reference').dataset.configuration = JSON.stringify({
+      theme: 'default',
+      layout: 'modern',
+      hideDownloadButton: false,
+      defaultHttpClient: { targetKey: 'shell', clientKey: 'curl' }
+    });
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
+</body>
+</html>
