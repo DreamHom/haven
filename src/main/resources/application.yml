@@ -25,7 +25,7 @@ spring:
       properties:
         # Allow JsonDeserializer to instantiate event classes from this package only —
         # no class-loading from arbitrary payloads.
-        spring.json.trusted.packages: com.dreamhomes.haven.inspection.events
+        spring.json.trusted.packages: com.dreamhomes.haven.inspection.events,com.dreamhomes.haven.offer.events
         # Type info travels in headers (set by the producer's JsonSerializer); this is
         # the fallback class when a header is missing.
         spring.json.value.default.type: com.dreamhomes.haven.inspection.events.InspectionRequestedEvent

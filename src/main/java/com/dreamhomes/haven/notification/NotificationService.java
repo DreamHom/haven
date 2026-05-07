@@ -1,6 +1,7 @@
 package com.dreamhomes.haven.notification;
 
 import com.dreamhomes.haven.inspection.events.InspectionRequestedEvent;
+import com.dreamhomes.haven.offer.events.OfferSubmittedEvent;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -25,10 +26,20 @@ public class NotificationService {
      */
     @Transactional
     public Notification recordInspectionRequested(InspectionRequestedEvent event) {
+        return record(event.ownerId(), NotificationKind.INSPECTION_REQUESTED, event);
+    }
+
+    /** Records a notification for the listing owner when an applicant submits a formal offer. */
+    @Transactional
+    public Notification recordOfferSubmitted(OfferSubmittedEvent event) {
+        return record(event.ownerId(), NotificationKind.OFFER_SUBMITTED, event);
+    }
+
+    private Notification record(Long recipientId, NotificationKind kind, Object payload) {
         Notification saved = notificationRepository.save(Notification.builder()
-                .recipientId(event.ownerId())
-                .kind(NotificationKind.INSPECTION_REQUESTED)
-                .payload(serialize(event))
+                .recipientId(recipientId)
+                .kind(kind)
+                .payload(serialize(payload))
                 .createdAt(Instant.now())
                 .build());
         log.info("Recorded notificationId={} kind={} recipientId={}",
