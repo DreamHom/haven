@@ -2,6 +2,8 @@ package com.dreamhomes.haven.common;
 
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.TestPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
 
@@ -27,5 +29,18 @@ public abstract class AbstractPostgresIT {
 
     static {
         POSTGRES.start();
+    }
+
+    /**
+     * Production removes the placeholder default for {@code jwt.secret}, so ITs must
+     * provide one explicitly. This value satisfies both the 32-byte minimum and the
+     * placeholder check in {@code JwtService}.
+     */
+    @DynamicPropertySource
+    static void registerJwtAndCorsProperties(DynamicPropertyRegistry registry) {
+        registry.add("jwt.secret", () -> "test-secret-for-haven-integration-tests-32+bytes");
+        registry.add("jwt.issuer", () -> "dreamhomes-haven-test");
+        registry.add("jwt.audience", () -> "dreamhomes-test");
+        registry.add("cors.allowed-origins", () -> "http://localhost:3000");
     }
 }

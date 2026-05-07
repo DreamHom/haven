@@ -7,19 +7,31 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+/**
+ * Login is a thinner controller than register: success returns a token, the only
+ * domain failure (invalid credentials) maps to 401. Per-validator behavior lives in
+ * the validator unit tests; one smoke test for @Valid wiring is enough.
+ */
 @WebMvcTest(AuthController.class)
 @Import(SecurityConfig.class)
+@TestPropertySource(properties = {
+        "haven.rate-limit.enabled=false",
+        "cors.allowed-origins=http://localhost:3000",
+        "jwt.secret=test-secret-not-a-placeholder-and-32-bytes-or-more",
+        "jwt.expiration-ms=3600000",
+        "jwt.issuer=test-issuer",
+        "jwt.audience=test-audience"
+})
 class AuthControllerLoginTest {
 
     @Autowired
@@ -31,54 +43,50 @@ class AuthControllerLoginTest {
     @MockBean
     JwtService jwtService;
 
-    @Test
-    void validCredentialsReturn200WithToken() throws Exception {
-        when(authService.login(any())).thenReturn("jwt-token-value");
+    @MockBean
+    com.dreamhomes.haven.user.UserRepository userRepository;
 
-        String body = """
-                {
-                  "email": "ada@example.com",
-                  "password": "secret-password"
-                }
-                """;
+    @Test
+    void successfulLoginReturns200WithTokenInBody() throws Exception {
+        when(authService.login(any())).thenReturn("jwt-token-value");
 
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(body))
+                        .content("""
+                                {
+                                  "email": "ada@example.com",
+                                  "password": "secret-password"
+                                }
+                                """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.token", is("jwt-token-value")));
     }
 
     @Test
-    void invalidCredentialsReturn401() throws Exception {
+    void invalidCredentialsExceptionMapsTo401() throws Exception {
         when(authService.login(any())).thenThrow(new InvalidCredentialsException());
-
-        String body = """
-                {
-                  "email": "ada@example.com",
-                  "password": "wrong"
-                }
-                """;
 
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(body))
+                        .content("""
+                                {
+                                  "email": "ada@example.com",
+                                  "password": "wrong"
+                                }
+                                """))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
-    void missingEmailReturns400AndDoesNotCallService() throws Exception {
-        String body = """
-                {
-                  "password": "secret-password"
-                }
-                """;
-
+    void invalidRequestBodyReturns400() throws Exception {
+        // Smoke test that @Valid is wired on the login method.
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(body))
+                        .content("""
+                                {
+                                  "password": "secret-password"
+                                }
+                                """))
                 .andExpect(status().isBadRequest());
-
-        verify(authService, never()).login(any());
     }
 }

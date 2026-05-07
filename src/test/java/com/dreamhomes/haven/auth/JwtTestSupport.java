@@ -52,12 +52,13 @@ public class JwtTestSupport {
                 .passwordHash(passwordEncoder.encode(DEFAULT_PASSWORD))
                 .role(role)
                 .fullName("Test " + role.name())
+                .tokenVersion(1)
                 .createdAt(Instant.now())
                 .build());
     }
 
     public String tokenFor(User user) {
-        return jwtService.issue(user.getId(), user.getEmail(), user.getRole());
+        return jwtService.issue(user.getId(), user.getEmail(), user.getRole(), user.getTokenVersion());
     }
 
     public String bearerFor(User user) {

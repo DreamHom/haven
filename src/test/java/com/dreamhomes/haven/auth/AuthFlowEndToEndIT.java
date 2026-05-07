@@ -1,9 +1,13 @@
 package com.dreamhomes.haven.auth;
 
 import com.dreamhomes.haven.common.AbstractPostgresIT;
+import com.dreamhomes.haven.user.AgentProfile;
+import com.dreamhomes.haven.user.AgentProfileRepository;
 import com.dreamhomes.haven.user.Role;
 import com.dreamhomes.haven.user.User;
 import com.dreamhomes.haven.user.UserRepository;
+
+import java.util.Optional;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -48,10 +52,14 @@ class AuthFlowEndToEndIT extends AbstractPostgresIT {
     UserRepository userRepository;
 
     @Autowired
+    AgentProfileRepository agentProfileRepository;
+
+    @Autowired
     JwtTestSupport jwtTestSupport;
 
     @BeforeEach
     void cleanUsers() {
+        agentProfileRepository.deleteAll();
         userRepository.deleteAll();
     }
 
@@ -118,5 +126,47 @@ class AuthFlowEndToEndIT extends AbstractPostgresIT {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.email").value(agent.getEmail()))
                 .andExpect(jsonPath("$.role").value("AGENT"));
+    }
+
+    @Test
+    void registeringAsAgentPersistsAgentProfile() throws Exception {
+        String body = """
+                {
+                  "email": "agent-e2e@example.com",
+                  "password": "secret-password",
+                  "fullName": "End-to-End Agent",
+                  "role": "AGENT",
+                  "licenseNumber": "LIC-E2E-001"
+                }
+                """;
+
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isCreated());
+
+        Optional<AgentProfile> profile = agentProfileRepository.findByLicenseNumber("LIC-E2E-001");
+        assertThat(profile).isPresent();
+        Optional<User> user = userRepository.findByEmail("agent-e2e@example.com");
+        assertThat(user).isPresent();
+        assertThat(profile.get().getUserId()).isEqualTo(user.get().getId());
+    }
+
+    @Test
+    void logoutInvalidatesPreviouslyIssuedToken() throws Exception {
+        User user = jwtTestSupport.persistUser(Role.OWNER);
+        String bearer = jwtTestSupport.bearerFor(user);
+
+        // Bearer works pre-logout
+        mockMvc.perform(get("/api/me").header("Authorization", bearer))
+                .andExpect(status().isOk());
+
+        // Logout
+        mockMvc.perform(post("/api/auth/logout").header("Authorization", bearer))
+                .andExpect(status().isNoContent());
+
+        // Same bearer is now rejected — token version was bumped
+        mockMvc.perform(get("/api/me").header("Authorization", bearer))
+                .andExpect(status().isUnauthorized());
     }
 }
