@@ -30,7 +30,8 @@ public class ListingController {
     @PreAuthorize("hasRole('OWNER')")
     public ListingResponse create(@AuthenticationPrincipal JwtPrincipal principal,
                                   @Valid @RequestBody CreateListingRequest request) {
-        return ListingResponse.from(listingService.create(principal.userId(), request.toCommand()));
+        return ListingResponse.fromWithoutProperty(
+                listingService.create(principal.userId(), request.toCommand()));
     }
 
     @GetMapping
@@ -48,6 +49,7 @@ public class ListingController {
     public ListingResponse update(@AuthenticationPrincipal JwtPrincipal principal,
                                   @PathVariable Long id,
                                   @Valid @RequestBody UpdateListingRequest request) {
-        return ListingResponse.from(listingService.update(principal.userId(), id, request.toCommand()));
+        return ListingResponse.fromWithoutProperty(
+                listingService.update(principal.userId(), id, request.toCommand()));
     }
 }

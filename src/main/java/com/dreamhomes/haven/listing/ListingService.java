@@ -11,6 +11,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -49,13 +53,27 @@ public class ListingService {
         return saved;
     }
 
+    /**
+     * Returns LIVE listings paired with their parent property. Two queries total
+     * (listings page + bulk property fetch by id), not N+1 — small enough for the
+     * default page size; switch to a JOIN-based query when listings exceed ~10k.
+     */
     @Transactional(readOnly = true)
-    public Page<Listing> browsePublic(Pageable pageable) {
-        return listingRepository.findByStatus(ListingStatus.LIVE, pageable);
+    public Page<ListingWithProperty> browsePublic(Pageable pageable) {
+        Page<Listing> listings = listingRepository.findByStatus(ListingStatus.LIVE, pageable);
+        if (listings.isEmpty()) {
+            return listings.map(l -> new ListingWithProperty(l, null));
+        }
+        Set<Long> propertyIds = listings.stream()
+                .map(Listing::getPropertyId)
+                .collect(Collectors.toSet());
+        Map<Long, Property> properties = propertyRepository.findAllById(propertyIds).stream()
+                .collect(Collectors.toMap(Property::getId, Function.identity()));
+        return listings.map(l -> new ListingWithProperty(l, properties.get(l.getPropertyId())));
     }
 
     @Transactional(readOnly = true)
-    public Listing findPubliclyVisible(Long listingId) {
+    public ListingWithProperty findPubliclyVisible(Long listingId) {
         Listing listing = listingRepository.findById(listingId)
                 .orElseThrow(() -> new ListingNotFoundException(listingId));
         // Only LIVE listings are reachable to anonymous callers — paused/closed look 404
@@ -63,7 +81,9 @@ public class ListingService {
         if (listing.getStatus() != ListingStatus.LIVE) {
             throw new ListingNotFoundException(listingId);
         }
-        return listing;
+        Property property = propertyRepository.findById(listing.getPropertyId())
+                .orElseThrow(() -> new PropertyNotFoundException(listing.getPropertyId()));
+        return new ListingWithProperty(listing, property);
     }
 
     @Transactional

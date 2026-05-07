@@ -71,7 +71,8 @@ public class SecurityConfig {
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/register", "/api/auth/login").permitAll()
-                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/listings", "/api/listings/*").permitAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.GET,
+                                "/api/listings", "/api/listings/*", "/api/listings/*/slots").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(e -> e.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
                 .httpBasic(AbstractHttpConfigurer::disable)
