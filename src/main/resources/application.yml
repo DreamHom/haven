@@ -13,22 +13,47 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
+  flyway:
+    # V11 seeds the platform admin (PRD §4.10: "Seeded admin account — no
+    # self-registration"). Defaults are dev-only — prod environments MUST set
+    # ADMIN_EMAIL + ADMIN_PASSWORD_HASH (bcrypt strength=10). The dev hash below
+    # is for password "ChangeMeNow!" — rotate immediately on any non-dev deploy.
+    placeholders:
+      admin_email: ${ADMIN_EMAIL:admin@dreamhomes.local}
+      admin_full_name: ${ADMIN_FULL_NAME:Platform Admin}
+      admin_password_hash: ${ADMIN_PASSWORD_HASH:$2a$10$0DWKxqZlDpa8XPM9zh4oVeobo1/wGsLxey1nnTC/BBuC.n/ilb9F.}
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      # Wait for all in-sync replicas before counting a send as successful — durability
+      # over throughput, because every event we ship matters per PRD §7.
+      acks: all
+      compression-type: lz4
+      properties:
+        # Idempotent producer: same logical send won't produce duplicate broker writes
+        # even if the ack response is lost. Combined with consumer-side event_id dedup,
+        # delivery is effectively exactly-once at the application layer.
+        enable.idempotence: true
+        # Bounded retries with backoff before the producer surfaces failure to the relay.
+        retries: 5
+        retry.backoff.ms: 100
+        # Stop request stalls from blocking the relay forever.
+        delivery.timeout.ms: 30000
     consumer:
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       auto-offset-reset: earliest
+      # Manual offset commits — only acknowledge after the listener's DB insert succeeds.
+      # Crash between consume and write → Kafka redelivers (at-least-once); consumer-side
+      # dedup by event_id keeps the insert idempotent.
+      enable-auto-commit: false
       properties:
-        # Allow JsonDeserializer to instantiate event classes from this package only —
-        # no class-loading from arbitrary payloads.
         spring.json.trusted.packages: com.dreamhomes.haven.inspection.events,com.dreamhomes.haven.offer.events
-        # Type info travels in headers (set by the producer's JsonSerializer); this is
-        # the fallback class when a header is missing.
         spring.json.value.default.type: com.dreamhomes.haven.inspection.events.InspectionRequestedEvent
+    listener:
+      ack-mode: MANUAL_IMMEDIATE
 
 server:
   port: 8080
