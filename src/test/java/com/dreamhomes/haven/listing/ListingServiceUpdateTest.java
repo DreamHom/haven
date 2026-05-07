@@ -1,5 +1,6 @@
 package com.dreamhomes.haven.listing;
 
+import com.dreamhomes.haven.property.PropertyRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,11 +24,16 @@ class ListingServiceUpdateTest {
     @Mock
     ListingRepository listingRepository;
 
+    @Mock
+    PropertyRepository propertyRepository;
+
     ListingService listingService;
 
     @BeforeEach
     void setUp() {
-        listingService = new ListingService(listingRepository, /* unused */ null);
+        // propertyRepository is unused by update() — passing a mock instead of null so
+        // the dependency injection looks honest and a future call would surface, not NPE.
+        listingService = new ListingService(listingRepository, propertyRepository);
     }
 
     @Test

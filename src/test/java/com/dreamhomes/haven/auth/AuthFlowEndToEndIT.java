@@ -58,7 +58,9 @@ class AuthFlowEndToEndIT extends AbstractPostgresIT {
     JwtTestSupport jwtTestSupport;
 
     @BeforeEach
+    @org.junit.jupiter.api.AfterEach
     void cleanUsers() {
+        // Run before AND after — non-transactional ITs commit rows that leak otherwise.
         agentProfileRepository.deleteAll();
         userRepository.deleteAll();
     }

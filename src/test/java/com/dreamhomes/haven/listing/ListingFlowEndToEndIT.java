@@ -56,8 +56,24 @@ class ListingFlowEndToEndIT extends AbstractPostgresIT {
     @Autowired
     JwtTestSupport jwtTestSupport;
 
+    @Autowired
+    com.dreamhomes.haven.notification.NotificationRepository notificationRepository;
+
+    @Autowired
+    com.dreamhomes.haven.inspection.InspectionRequestRepository inspectionRequestRepository;
+
+    @Autowired
+    com.dreamhomes.haven.inspection.InspectionSlotRepository inspectionSlotRepository;
+
     @BeforeEach
+    @org.junit.jupiter.api.AfterEach
     void clean() {
+        // Run before AND after each test so we never leak state to a sibling IT
+        // that uses @DataJpaTest-style transactional rollback (those tests still
+        // see committed rows from other tests' transactions).
+        notificationRepository.deleteAll();
+        inspectionRequestRepository.deleteAll();
+        inspectionSlotRepository.deleteAll();
         listingRepository.deleteAll();
         propertyRepository.deleteAll();
         agentProfileRepository.deleteAll();
@@ -102,10 +118,13 @@ class ListingFlowEndToEndIT extends AbstractPostgresIT {
                 .andReturn();
         Long listingId = readId(listingResult);
 
-        // 3. Public can browse it (no auth header).
+        // 3. Public can browse it (no auth header), and the response embeds the property
+        // summary so the frontend can render a card without an extra round trip.
         mockMvc.perform(get("/api/listings"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content[0].id").value(listingId.intValue()));
+                .andExpect(jsonPath("$.content[0].id").value(listingId.intValue()))
+                .andExpect(jsonPath("$.content[0].property.address").value("12 Lekki Phase 1, Lagos"))
+                .andExpect(jsonPath("$.content[0].property.bedrooms").value(3));
 
         // 4. Owner pauses it.
         mockMvc.perform(patch("/api/listings/" + listingId)

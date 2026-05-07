@@ -2,26 +2,30 @@ package com.dreamhomes.haven.common;
 
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.springframework.kafka.test.context.EmbeddedKafka;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.springframework.test.context.TestPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
 
 /**
- * Base class for integration tests that need a real Postgres database.
+ * Base for integration tests that need a real Postgres database (and now Kafka).
  *
- * <p>The container starts once per JVM (static initializer) and is shared across all
- * subclasses for fast test runs. Spring's {@code @ServiceConnection} wires the container
- * directly to the application datasource, so no manual property plumbing is needed.
+ * <ul>
+ *   <li>Postgres container starts once per JVM (static initializer) and is shared across
+ *       every subclass; Spring's {@code @ServiceConnection} wires the datasource for free.</li>
+ *   <li>Embedded Kafka starts once per JVM, exposing its bootstrap servers via the
+ *       {@code spring.kafka.bootstrap-servers} property — so any production
+ *       {@code @KafkaListener} or {@code KafkaTemplate} bean works against this in tests.</li>
+ * </ul>
  *
- * <p>Kafka autoconfig is excluded here so integration tests don't try to reach a broker.
- * When a feature genuinely needs Kafka in tests, override the exclusion or layer in
- * spring-kafka-test's embedded broker.
+ * <p>If a future test genuinely doesn't want Kafka along for the ride, exclude the autoconfig
+ * locally with {@code @TestPropertySource}. Default for ITs is "everything wired."
  */
 @SpringBootTest
-@TestPropertySource(properties = {
-        "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration"
-})
+@EmbeddedKafka(
+        partitions = 1,
+        bootstrapServersProperty = "spring.kafka.bootstrap-servers"
+)
 public abstract class AbstractPostgresIT {
 
     @ServiceConnection

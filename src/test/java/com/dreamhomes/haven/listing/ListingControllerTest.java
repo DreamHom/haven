@@ -3,6 +3,8 @@ package com.dreamhomes.haven.listing;
 import com.dreamhomes.haven.auth.JwtPrincipal;
 import com.dreamhomes.haven.auth.JwtService;
 import com.dreamhomes.haven.common.config.SecurityConfig;
+import com.dreamhomes.haven.property.Property;
+import com.dreamhomes.haven.property.PropertyType;
 import com.dreamhomes.haven.user.Role;
 import com.dreamhomes.haven.user.UserRepository;
 import org.junit.jupiter.api.Test;
@@ -122,23 +124,27 @@ class ListingControllerTest {
     }
 
     @Test
-    void publicBrowseReturnsLiveListingsWithoutAuth() throws Exception {
+    void publicBrowseReturnsLiveListingsWithEmbeddedPropertySummary() throws Exception {
         when(listingService.browsePublic(any())).thenReturn(
-                new PageImpl<>(List.of(stubListing(1L, 99L, ListingStatus.LIVE))));
+                new PageImpl<>(List.of(stubListingWithProperty(1L, 99L, ListingStatus.LIVE))));
 
         mockMvc.perform(get("/api/listings"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content[0].status", is("LIVE")));
+                .andExpect(jsonPath("$.content[0].status", is("LIVE")))
+                .andExpect(jsonPath("$.content[0].property.address", is("12 Lekki Phase 1, Lagos")))
+                .andExpect(jsonPath("$.content[0].property.bedrooms", is(3)));
     }
 
     @Test
-    void publicGetByIdReturnsListing() throws Exception {
+    void publicGetByIdReturnsListingWithEmbeddedPropertySummary() throws Exception {
         when(listingService.findPubliclyVisible(1L))
-                .thenReturn(stubListing(1L, 99L, ListingStatus.LIVE));
+                .thenReturn(stubListingWithProperty(1L, 99L, ListingStatus.LIVE));
 
         mockMvc.perform(get("/api/listings/1"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id", is(1)));
+                .andExpect(jsonPath("$.id", is(1)))
+                .andExpect(jsonPath("$.property.id").exists())
+                .andExpect(jsonPath("$.property.address", is("12 Lekki Phase 1, Lagos")));
     }
 
     @Test
@@ -188,6 +194,14 @@ class ListingControllerTest {
                 .status(status)
                 .createdAt(now).updatedAt(now)
                 .build();
+    }
+
+    private static ListingWithProperty stubListingWithProperty(Long id, Long ownerId, ListingStatus status) {
+        Property property = Property.builder()
+                .id(7L).ownerId(ownerId).type(PropertyType.APARTMENT)
+                .address("12 Lekki Phase 1, Lagos").bedrooms(3).bathrooms(2)
+                .createdAt(Instant.now()).build();
+        return new ListingWithProperty(stubListing(id, ownerId, status), property);
     }
 
     private static RequestPostProcessor asPrincipal(Long userId, Role role) {
