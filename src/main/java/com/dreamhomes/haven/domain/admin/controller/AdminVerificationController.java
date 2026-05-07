@@ -1,0 +1,29 @@
+package com.dreamhomes.haven.domain.admin.controller;
+
+import com.dreamhomes.haven.domain.verification.dto.ReviewVerificationRequest;
+import com.dreamhomes.haven.domain.verification.dto.VerificationResponse;
+import com.dreamhomes.haven.domain.verification.service.VerificationService;
+import jakarta.validation.Valid;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/admin/verifications")
+public class AdminVerificationController {
+
+    private final VerificationService verificationService;
+
+    public AdminVerificationController(VerificationService verificationService) {
+        this.verificationService = verificationService;
+    }
+
+    @PutMapping("/{id}/review")
+    public VerificationResponse review(@PathVariable Long id, @Valid @RequestBody ReviewVerificationRequest req) {
+        var v = verificationService.review(id, req);
+        return new VerificationResponse(v.getId(), v.getSubjectUserId(), v.getPropertyId(), v.getType(), v.getStatus(), v.getDocumentUrl(), v.getCreatedAt());
+    }
+}
+
