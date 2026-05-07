@@ -98,6 +98,18 @@ class AuthServiceLoginTest {
     }
 
     @Test
+    void suspendedUserCannotLoginEvenWithCorrectPassword() {
+        existingUser.setSuspendedAt(Instant.now());
+        when(userRepository.findByEmail("ada@example.com")).thenReturn(Optional.of(existingUser));
+        when(passwordEncoder.matches("plaintext-pw", "$2a$10$hashed")).thenReturn(true);
+
+        assertThatThrownBy(() -> authService.login(new LoginCommand("ada@example.com", "plaintext-pw")))
+                .isInstanceOf(InvalidCredentialsException.class);
+
+        verify(jwtService, never()).issue(any(), any(), any(), org.mockito.ArgumentMatchers.anyInt());
+    }
+
+    @Test
     void runsPasswordHashEvenWhenUserMissingToBlockTimingBasedEnumeration() {
         // If we returned early on missing user, an attacker could distinguish "user exists
         // but wrong password" from "user does not exist" by response timing. Always run

@@ -40,7 +40,7 @@ class InspectionSlotServiceTest {
     @Test
     void persistsSlotWhenCallerOwnsTheListing() {
         when(listingRepository.findById(7L)).thenReturn(Optional.of(listingOwnedBy(99L)));
-        when(slotRepository.save(any(InspectionSlot.class))).thenAnswer(inv -> {
+        when(slotRepository.saveAndFlush(any(InspectionSlot.class))).thenAnswer(inv -> {
             InspectionSlot s = inv.getArgument(0);
             s.setId(123L);
             return s;
@@ -51,7 +51,7 @@ class InspectionSlotServiceTest {
                 Instant.parse("2026-06-01T11:00:00Z")));
 
         ArgumentCaptor<InspectionSlot> captor = ArgumentCaptor.forClass(InspectionSlot.class);
-        verify(slotRepository).save(captor.capture());
+        verify(slotRepository).saveAndFlush(captor.capture());
         assertThat(captor.getValue().getListingId()).isEqualTo(7L);
         assertThat(captor.getValue().getCreatedAt()).isNotNull();
         assertThat(result.getId()).isEqualTo(123L);
@@ -89,6 +89,20 @@ class InspectionSlotServiceTest {
 
         verify(slotRepository, never()).save(any());
         verify(listingRepository, never()).findById(any());
+    }
+
+    @Test
+    void translatesGistExcludeViolationToSlotOverlapException() {
+        // Owner publishes two slots that overlap. The DB rejects the second; we surface
+        // the violation as a clean 409 instead of leaking a DataIntegrityViolation.
+        when(listingRepository.findById(7L)).thenReturn(Optional.of(listingOwnedBy(99L)));
+        when(slotRepository.saveAndFlush(any(InspectionSlot.class)))
+                .thenThrow(new org.springframework.dao.DataIntegrityViolationException("overlap"));
+
+        assertThatThrownBy(() -> service.create(99L, 7L, new CreateSlotCommand(
+                Instant.parse("2026-06-01T10:00:00Z"),
+                Instant.parse("2026-06-01T11:00:00Z"))))
+                .isInstanceOf(SlotOverlapException.class);
     }
 
     @Test

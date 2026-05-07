@@ -49,6 +49,31 @@ class InspectionSlotRepositoryIT extends AbstractPostgresIT {
     }
 
     @Test
+    void rejectsTwoOverlappingSlotsForTheSameListing() {
+        // PRD §6: data-layer conflict prevention. Without the GiST EXCLUDE constraint,
+        // an owner could publish overlapping slots and let two applicants book the
+        // same physical viewing window through different slot ids.
+        Long listingId = newLiveListing().getId();
+        slotRepository.saveAndFlush(slot(listingId, "2026-06-01T10:00:00Z", "2026-06-01T11:00:00Z"));
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() ->
+                slotRepository.saveAndFlush(slot(listingId, "2026-06-01T10:30:00Z", "2026-06-01T11:30:00Z")))
+                .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
+    }
+
+    @Test
+    void allowsSameTimeWindowOnDifferentListings() {
+        // The constraint is scoped per-listing; two different listings can offer slots
+        // at the same wall-clock time.
+        Long listingA = newLiveListing().getId();
+        Long listingB = newLiveListing().getId();
+
+        slotRepository.saveAndFlush(slot(listingA, "2026-06-01T10:00:00Z", "2026-06-01T11:00:00Z"));
+        slotRepository.saveAndFlush(slot(listingB, "2026-06-01T10:00:00Z", "2026-06-01T11:00:00Z"));
+        // No exception — both saved cleanly.
+    }
+
+    @Test
     void findAvailableForListingHidesSlotsThatHaveAnActiveRequest() {
         Long listingId = newLiveListing().getId();
         Long applicantId = newApplicant().getId();

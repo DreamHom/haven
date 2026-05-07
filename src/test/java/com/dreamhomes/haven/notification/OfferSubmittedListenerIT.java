@@ -44,11 +44,12 @@ class OfferSubmittedListenerIT extends AbstractPostgresIT {
                 .tokenVersion(1).createdAt(Instant.now()).build());
 
         OfferSubmittedEvent event = new OfferSubmittedEvent(
+                java.util.UUID.randomUUID(),
                 999L, 7L, owner.getId(), 100L,
                 new BigDecimal("75000000.00"), "NGN",
                 Instant.now());
 
-        kafkaTemplate.send(OfferSubmittedEvent.TOPIC, String.valueOf(event.offerId()), event);
+        kafkaTemplate.send(OfferSubmittedEvent.TOPIC, String.valueOf(event.listingId()), event);
 
         Awaitility.await().atMost(Duration.ofSeconds(10)).untilAsserted(() -> {
             List<Notification> notifs = notificationRepository

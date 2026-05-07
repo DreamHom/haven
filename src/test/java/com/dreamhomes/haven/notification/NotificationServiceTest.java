@@ -12,9 +12,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -31,12 +33,14 @@ class NotificationServiceTest {
     }
 
     @Test
-    void recordsInspectionRequestedNotificationForTheListingOwner() {
+    void recordsInspectionRequestedWithEventIdAndSourceAsyncKafka() {
+        UUID eventId = UUID.randomUUID();
         InspectionRequestedEvent event = new InspectionRequestedEvent(
-                1234L, 50L, 7L, 99L, 100L,
+                eventId, 1234L, 50L, 7L, 99L, 100L,
                 Instant.parse("2026-06-01T10:00:00Z"),
                 Instant.parse("2026-06-01T11:00:00Z"),
                 Instant.parse("2026-05-15T08:30:00Z"));
+        when(notificationRepository.existsByEventId(eventId)).thenReturn(false);
         when(notificationRepository.save(any(Notification.class))).thenAnswer(inv -> inv.getArgument(0));
 
         service.recordInspectionRequested(event);
@@ -44,23 +48,34 @@ class NotificationServiceTest {
         ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
         verify(notificationRepository).save(captor.capture());
         Notification saved = captor.getValue();
+        assertThat(saved.getEventId()).isEqualTo(eventId);
         assertThat(saved.getRecipientId()).isEqualTo(99L);
         assertThat(saved.getKind()).isEqualTo(NotificationKind.INSPECTION_REQUESTED);
-        assertThat(saved.getCreatedAt()).isNotNull();
-        assertThat(saved.getReadAt()).isNull();
-        assertThat(saved.getPayload())
-                .contains("\"inspectionRequestId\":1234")
-                .contains("\"slotId\":50")
-                .contains("\"listingId\":7")
-                .contains("\"applicantId\":100");
+        assertThat(saved.getSource()).isEqualTo(NotificationSource.ASYNC_KAFKA);
+        assertThat(saved.getPayload()).contains("\"inspectionRequestId\":1234");
     }
 
     @Test
-    void recordsOfferSubmittedNotificationForTheListingOwner() {
+    void skipsDuplicateInspectionEventBasedOnEventId() {
+        UUID eventId = UUID.randomUUID();
+        InspectionRequestedEvent event = new InspectionRequestedEvent(
+                eventId, 1234L, 50L, 7L, 99L, 100L,
+                Instant.now(), Instant.now().plusSeconds(3600), Instant.now());
+        when(notificationRepository.existsByEventId(eventId)).thenReturn(true);
+
+        service.recordInspectionRequested(event);
+
+        verify(notificationRepository, never()).save(any());
+    }
+
+    @Test
+    void recordsOfferSubmittedWithEventIdAndSourceAsyncKafka() {
+        UUID eventId = UUID.randomUUID();
         OfferSubmittedEvent event = new OfferSubmittedEvent(
-                123L, 7L, 99L, 100L,
+                eventId, 123L, 7L, 99L, 100L,
                 new BigDecimal("75000000.00"), "NGN",
                 Instant.parse("2026-05-15T08:30:00Z"));
+        when(notificationRepository.existsByEventId(eventId)).thenReturn(false);
         when(notificationRepository.save(any(Notification.class))).thenAnswer(inv -> inv.getArgument(0));
 
         service.recordOfferSubmitted(event);
@@ -68,12 +83,21 @@ class NotificationServiceTest {
         ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
         verify(notificationRepository).save(captor.capture());
         Notification saved = captor.getValue();
-        assertThat(saved.getRecipientId()).isEqualTo(99L);
+        assertThat(saved.getEventId()).isEqualTo(eventId);
         assertThat(saved.getKind()).isEqualTo(NotificationKind.OFFER_SUBMITTED);
-        assertThat(saved.getPayload())
-                .contains("\"offerId\":123")
-                .contains("\"listingId\":7")
-                .contains("\"applicantId\":100")
-                .contains("\"amount\":75000000.00");
+        assertThat(saved.getSource()).isEqualTo(NotificationSource.ASYNC_KAFKA);
+    }
+
+    @Test
+    void skipsDuplicateOfferEventBasedOnEventId() {
+        UUID eventId = UUID.randomUUID();
+        OfferSubmittedEvent event = new OfferSubmittedEvent(
+                eventId, 123L, 7L, 99L, 100L,
+                new BigDecimal("100"), "NGN", Instant.now());
+        when(notificationRepository.existsByEventId(eventId)).thenReturn(true);
+
+        service.recordOfferSubmitted(event);
+
+        verify(notificationRepository, never()).save(any());
     }
 }

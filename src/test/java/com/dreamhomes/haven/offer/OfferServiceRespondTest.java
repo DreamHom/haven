@@ -27,7 +27,9 @@ class OfferServiceRespondTest {
 
     @BeforeEach
     void setUp() {
-        service = new OfferService(offerRepository, /* unused */ null, /* unused */ null);
+        // submit() dependencies (listingRepository, outbox, objectMapper, eventPublisher)
+        // are unused here — pass nulls; respond() never touches them.
+        service = new OfferService(offerRepository, null, null, null, null);
     }
 
     @Test

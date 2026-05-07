@@ -13,6 +13,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -45,12 +46,13 @@ class InspectionRequestedListenerIT extends AbstractPostgresIT {
                 .tokenVersion(1).createdAt(Instant.now()).build());
 
         InspectionRequestedEvent event = new InspectionRequestedEvent(
+                UUID.randomUUID(),
                 999L, 50L, 7L, owner.getId(), 100L,
                 Instant.parse("2026-06-01T10:00:00Z"),
                 Instant.parse("2026-06-01T11:00:00Z"),
                 Instant.now());
 
-        kafkaTemplate.send(InspectionRequestedEvent.TOPIC, String.valueOf(event.slotId()), event);
+        kafkaTemplate.send(InspectionRequestedEvent.TOPIC, String.valueOf(event.listingId()), event);
 
         // Listener processes asynchronously — poll until the row appears, fail after 10s.
         Awaitility.await().atMost(Duration.ofSeconds(10)).untilAsserted(() -> {

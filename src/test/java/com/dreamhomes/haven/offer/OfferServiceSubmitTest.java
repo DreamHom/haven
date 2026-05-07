@@ -1,17 +1,22 @@
 package com.dreamhomes.haven.offer;
 
+import com.dreamhomes.haven.common.outbox.OutboxEvent;
+import com.dreamhomes.haven.common.outbox.OutboxEventRepository;
+import com.dreamhomes.haven.common.outbox.OutboxRowReadyEvent;
 import com.dreamhomes.haven.listing.Listing;
 import com.dreamhomes.haven.listing.ListingNotFoundException;
 import com.dreamhomes.haven.listing.ListingRepository;
 import com.dreamhomes.haven.listing.ListingStatus;
 import com.dreamhomes.haven.listing.ListingType;
 import com.dreamhomes.haven.offer.events.OfferSubmittedEvent;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -29,17 +34,20 @@ class OfferServiceSubmitTest {
 
     @Mock OfferRepository offerRepository;
     @Mock ListingRepository listingRepository;
-    @Mock OfferEventPublisher eventPublisher;
+    @Mock OutboxEventRepository outboxRepository;
+    @Mock ApplicationEventPublisher applicationEventPublisher;
 
     OfferService service;
 
     @BeforeEach
     void setUp() {
-        service = new OfferService(offerRepository, listingRepository, eventPublisher);
+        service = new OfferService(offerRepository, listingRepository,
+                outboxRepository, new ObjectMapper().findAndRegisterModules(),
+                applicationEventPublisher);
     }
 
     @Test
-    void persistsPendingOfferAndPublishesEvent() {
+    void persistsPendingOfferAndWritesOutboxRowInSameTransaction() throws Exception {
         when(listingRepository.findById(7L)).thenReturn(Optional.of(liveListing(7L, 99L)));
         when(offerRepository.save(any(Offer.class))).thenAnswer(inv -> {
             Offer o = inv.getArgument(0);
@@ -47,28 +55,59 @@ class OfferServiceSubmitTest {
             return o;
         });
 
-        Offer result = service.submit(100L, new SubmitOfferCommand(
+        service.submit(100L, new SubmitOfferCommand(
                 7L, new BigDecimal("75000000.00"), "NGN", "I love it"));
 
-        ArgumentCaptor<Offer> captor = ArgumentCaptor.forClass(Offer.class);
-        verify(offerRepository).save(captor.capture());
-        Offer saved = captor.getValue();
-        assertThat(saved.getListingId()).isEqualTo(7L);
-        assertThat(saved.getApplicantId()).isEqualTo(100L);
-        assertThat(saved.getOwnerId()).isEqualTo(99L);
-        assertThat(saved.getStatus()).isEqualTo(OfferStatus.PENDING);
-        assertThat(saved.getCurrency()).isEqualTo("NGN");
+        ArgumentCaptor<Offer> offerCap = ArgumentCaptor.forClass(Offer.class);
+        verify(offerRepository).save(offerCap.capture());
+        assertThat(offerCap.getValue().getStatus()).isEqualTo(OfferStatus.PENDING);
+        assertThat(offerCap.getValue().getOwnerId()).isEqualTo(99L);
 
-        ArgumentCaptor<OfferSubmittedEvent> eventCaptor = ArgumentCaptor.forClass(OfferSubmittedEvent.class);
-        verify(eventPublisher).publishOfferSubmitted(eventCaptor.capture());
-        OfferSubmittedEvent event = eventCaptor.getValue();
-        assertThat(event.offerId()).isEqualTo(123L);
-        assertThat(event.listingId()).isEqualTo(7L);
-        assertThat(event.ownerId()).isEqualTo(99L);
-        assertThat(event.applicantId()).isEqualTo(100L);
-        assertThat(event.amount()).isEqualByComparingTo("75000000.00");
+        ArgumentCaptor<OutboxEvent> outboxCap = ArgumentCaptor.forClass(OutboxEvent.class);
+        verify(outboxRepository).save(outboxCap.capture());
+        OutboxEvent saved = outboxCap.getValue();
+        assertThat(saved.getEventId()).isNotNull();
+        assertThat(saved.getAggregateType()).isEqualTo("Offer");
+        assertThat(saved.getAggregateId()).isEqualTo(123L);
+        assertThat(saved.getEventType()).isEqualTo(OfferSubmittedEvent.class.getName());
+        assertThat(saved.getTopic()).isEqualTo(OfferSubmittedEvent.TOPIC);
+        assertThat(saved.getPartitionKey()).isEqualTo("7");  // listingId
+        assertThat(saved.getPublishedAt()).isNull();
 
-        assertThat(result.getId()).isEqualTo(123L);
+        OfferSubmittedEvent payload = new ObjectMapper().findAndRegisterModules()
+                .readValue(saved.getPayload(), OfferSubmittedEvent.class);
+        assertThat(payload.eventId()).isEqualTo(saved.getEventId());
+        assertThat(payload.offerId()).isEqualTo(123L);
+        assertThat(payload.listingId()).isEqualTo(7L);
+        assertThat(payload.ownerId()).isEqualTo(99L);
+        assertThat(payload.applicantId()).isEqualTo(100L);
+        assertThat(payload.amount()).isEqualByComparingTo("75000000.00");
+    }
+
+    @Test
+    void firesOutboxRowReadyEventSoTheRelayCanShipImmediatelyOnCommit() {
+        when(listingRepository.findById(7L)).thenReturn(Optional.of(liveListing(7L, 99L)));
+        when(offerRepository.save(any(Offer.class))).thenAnswer(inv -> {
+            Offer o = inv.getArgument(0);
+            o.setId(123L);
+            return o;
+        });
+
+        service.submit(100L, new SubmitOfferCommand(7L, new BigDecimal("100"), "NGN", null));
+
+        verify(applicationEventPublisher).publishEvent(OutboxRowReadyEvent.INSTANCE);
+    }
+
+    @Test
+    void doesNotFireOutboxRowReadyEventWhenSubmitFails() {
+        when(listingRepository.findById(7L)).thenReturn(Optional.of(
+                listing(7L, 99L, ListingStatus.PAUSED)));
+
+        assertThatThrownBy(() -> service.submit(100L, new SubmitOfferCommand(
+                7L, new BigDecimal("100"), null, null)))
+                .isInstanceOf(ListingNotOpenForOffersException.class);
+
+        verify(applicationEventPublisher, never()).publishEvent(any());
     }
 
     @Test
@@ -83,7 +122,7 @@ class OfferServiceSubmitTest {
     }
 
     @Test
-    void throwsWhenListingDoesNotExistAndDoesNotPublish() {
+    void throwsWhenListingDoesNotExistAndDoesNotWriteOutbox() {
         when(listingRepository.findById(404L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.submit(100L, new SubmitOfferCommand(
@@ -91,11 +130,11 @@ class OfferServiceSubmitTest {
                 .isInstanceOf(ListingNotFoundException.class);
 
         verify(offerRepository, never()).save(any());
-        verify(eventPublisher, never()).publishOfferSubmitted(any());
+        verify(outboxRepository, never()).save(any());
     }
 
     @Test
-    void rejectsOfferOnPausedListingAndDoesNotPublish() {
+    void rejectsOfferOnPausedListingAndDoesNotWriteOutbox() {
         when(listingRepository.findById(7L)).thenReturn(Optional.of(
                 listing(7L, 99L, ListingStatus.PAUSED)));
 
@@ -104,11 +143,11 @@ class OfferServiceSubmitTest {
                 .isInstanceOf(ListingNotOpenForOffersException.class);
 
         verify(offerRepository, never()).save(any());
-        verify(eventPublisher, never()).publishOfferSubmitted(any());
+        verify(outboxRepository, never()).save(any());
     }
 
     @Test
-    void rejectsOfferOnClosedListingAndDoesNotPublish() {
+    void rejectsOfferOnClosedListing() {
         when(listingRepository.findById(7L)).thenReturn(Optional.of(
                 listing(7L, 99L, ListingStatus.CLOSED)));
 
