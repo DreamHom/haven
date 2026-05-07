@@ -12,6 +12,8 @@ public record OfferResponse(
         String currency,
         String message,
         OfferStatus status,
+        Long parentOfferId,
+        Long proposedByUserId,
         Instant createdAt,
         Instant updatedAt
 ) {
@@ -19,6 +21,7 @@ public record OfferResponse(
         return new OfferResponse(
                 o.getId(), o.getListingId(), o.getApplicantId(), o.getOwnerId(),
                 o.getAmount(), o.getCurrency(), o.getMessage(),
-                o.getStatus(), o.getCreatedAt(), o.getUpdatedAt());
+                o.getStatus(), o.getParentOfferId(), o.getProposedByUserId(),
+                o.getCreatedAt(), o.getUpdatedAt());
     }
 }

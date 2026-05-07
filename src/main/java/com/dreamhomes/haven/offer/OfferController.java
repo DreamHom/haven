@@ -29,11 +29,30 @@ public class OfferController {
         return OfferResponse.from(offerService.submit(principal.userId(), request.toCommand()));
     }
 
+    /**
+     * Phase 13: respond is now also reachable to applicants (when responding to an
+     * owner's counter). Authorisation lives in the service: caller must be a participant
+     * AND not the proposer of the row being acted on.
+     */
     @PatchMapping("/{id}")
-    @PreAuthorize("hasRole('OWNER')")
+    @PreAuthorize("hasAnyRole('OWNER', 'APPLICANT')")
     public OfferResponse respond(@AuthenticationPrincipal JwtPrincipal principal,
                                  @PathVariable Long id,
                                  @Valid @RequestBody RespondToOfferRequest request) {
         return OfferResponse.from(offerService.respond(principal.userId(), id, request.status()));
+    }
+
+    /**
+     * Phase 13: counter-offer. Caller can be either the owner (countering applicant's
+     * pending) or the applicant (countering owner's pending counter). Service does the
+     * "must not be proposer" check.
+     */
+    @org.springframework.web.bind.annotation.PostMapping("/{id}/counter")
+    @PreAuthorize("hasAnyRole('OWNER', 'APPLICANT')")
+    public OfferResponse counter(@AuthenticationPrincipal JwtPrincipal principal,
+                                 @PathVariable Long id,
+                                 @Valid @RequestBody CounterOfferRequest request) {
+        return OfferResponse.from(offerService.counter(
+                principal.userId(), id, request.amount(), request.message()));
     }
 }

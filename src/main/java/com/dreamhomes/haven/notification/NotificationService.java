@@ -6,6 +6,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -54,6 +56,43 @@ public class NotificationService {
         log.info("Recorded notificationId={} eventId={} kind={} recipientId={}",
                 saved.getId(), eventId, saved.getKind(), saved.getRecipientId());
         return Optional.of(saved);
+    }
+
+    /**
+     * Read-side: paginated inbox for the authenticated user. {@code unreadOnly=true}
+     * picks up the partial composite index from V6 for an index-only seek.
+     */
+    @Transactional(readOnly = true)
+    public Page<Notification> listMine(Long callerId, boolean unreadOnly, Pageable pageable) {
+        if (unreadOnly) {
+            return notificationRepository
+                    .findByRecipientIdAndReadAtIsNullOrderByCreatedAtDesc(callerId, pageable);
+        }
+        return notificationRepository.findByRecipientIdOrderByCreatedAtDesc(callerId, pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public long countUnread(Long callerId) {
+        return notificationRepository.countByRecipientIdAndReadAtIsNull(callerId);
+    }
+
+    /**
+     * Stamps {@code readAt} on a single notification. Idempotent: a second mark-read on
+     * an already-read notification is a no-op (preserves the original "first read at"
+     * timestamp).
+     */
+    @Transactional
+    public Notification markRead(Long callerId, Long notificationId) {
+        Notification notification = notificationRepository.findById(notificationId)
+                .orElseThrow(() -> new NotificationNotFoundException(notificationId));
+        if (!notification.getRecipientId().equals(callerId)) {
+            throw new NotMyNotificationException();
+        }
+        if (notification.getReadAt() == null) {
+            notification.setReadAt(Instant.now());
+            notificationRepository.save(notification);
+        }
+        return notification;
     }
 
     private String serialize(Object event) {

@@ -3,16 +3,17 @@ package com.dreamhomes.haven.offer;
 /**
  * Lifecycle of an offer.
  * <ul>
- *   <li>{@link #PENDING} — applicant submitted, owner hasn't acted.</li>
- *   <li>{@link #ACCEPTED} — owner accepted. Terminal.</li>
- *   <li>{@link #DECLINED} — owner declined. Terminal.</li>
+ *   <li>{@link #PENDING} — proposer submitted, the OTHER party hasn't acted yet.</li>
+ *   <li>{@link #ACCEPTED} — terminal; the deal is on (closes the chain).</li>
+ *   <li>{@link #DECLINED} — terminal; the chain ends without a deal.</li>
+ *   <li>{@link #COUNTERED} — terminal-for-this-row but tracked; replaced by a child
+ *       offer with {@code parent_offer_id} pointing back. The chain continues on the
+ *       child until someone hits ACCEPTED or DECLINED. Phase 13.</li>
  * </ul>
- *
- * <p>Counter-offer is out of scope for now — accepting or declining is a one-shot
- * decision that closes the offer.
  */
 public enum OfferStatus {
     PENDING,
     ACCEPTED,
-    DECLINED
+    DECLINED,
+    COUNTERED
 }
