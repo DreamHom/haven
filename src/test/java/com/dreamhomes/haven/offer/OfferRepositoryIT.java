@@ -38,6 +38,7 @@ class OfferRepositoryIT extends AbstractPostgresIT {
                 .listingId(listing.getId())
                 .applicantId(applicant.getId())
                 .ownerId(owner.getId())
+                .proposedByUserId(applicant.getId())
                 .amount(new BigDecimal("75000000.00"))
                 .currency("NGN")
                 .message("Cash buyer, can close in 30 days")

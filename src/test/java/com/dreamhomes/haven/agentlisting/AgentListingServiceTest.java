@@ -1,0 +1,321 @@
+package com.dreamhomes.haven.agentlisting;
+
+import com.dreamhomes.haven.listing.Listing;
+import com.dreamhomes.haven.listing.ListingNotFoundException;
+import com.dreamhomes.haven.listing.ListingRepository;
+import com.dreamhomes.haven.listing.ListingStatus;
+import com.dreamhomes.haven.listing.ListingType;
+import com.dreamhomes.haven.listing.NotPropertyOwnerException;
+import com.dreamhomes.haven.notification.Notification;
+import com.dreamhomes.haven.notification.NotificationKind;
+import com.dreamhomes.haven.notification.NotificationRepository;
+import com.dreamhomes.haven.notification.NotificationSource;
+import com.dreamhomes.haven.user.Role;
+import com.dreamhomes.haven.user.User;
+import com.dreamhomes.haven.user.UserRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+@ExtendWith(MockitoExtension.class)
+class AgentListingServiceTest {
+
+    @Mock AgentListingRepository agentListingRepository;
+    @Mock ListingRepository listingRepository;
+    @Mock UserRepository userRepository;
+    @Mock NotificationRepository notificationRepository;
+
+    AgentListingService service;
+
+    @BeforeEach
+    void setUp() {
+        service = new AgentListingService(agentListingRepository, listingRepository,
+                userRepository, notificationRepository, new ObjectMapper());
+    }
+
+    // ============================ request ============================
+
+    @Test
+    void ownerInvitingAgentPersistsRequestedRowAndNotifiesAgent() {
+        when(listingRepository.findById(7L)).thenReturn(Optional.of(listing(7L, /*ownerId=*/50L)));
+        when(userRepository.findById(60L)).thenReturn(Optional.of(user(60L, Role.AGENT)));
+        when(agentListingRepository.save(any(AgentListing.class))).thenAnswer(inv -> {
+            AgentListing al = inv.getArgument(0);
+            al.setId(123L);
+            return al;
+        });
+
+        AgentListing requested = service.request(/*ownerId=*/50L, 7L, 60L);
+
+        ArgumentCaptor<AgentListing> alCap = ArgumentCaptor.forClass(AgentListing.class);
+        verify(agentListingRepository).save(alCap.capture());
+        AgentListing saved = alCap.getValue();
+        assertThat(saved.getListingId()).isEqualTo(7L);
+        assertThat(saved.getAgentUserId()).isEqualTo(60L);
+        assertThat(saved.getRequestedByOwnerId()).isEqualTo(50L);
+        assertThat(saved.getStatus()).isEqualTo(AgentListingStatus.REQUESTED);
+        assertThat(saved.getDecidedAt()).isNull();
+        assertThat(saved.getRequestedAt()).isNotNull();
+
+        ArgumentCaptor<Notification> notifCap = ArgumentCaptor.forClass(Notification.class);
+        verify(notificationRepository).save(notifCap.capture());
+        Notification n = notifCap.getValue();
+        assertThat(n.getRecipientId()).isEqualTo(60L);
+        assertThat(n.getKind()).isEqualTo(NotificationKind.AGENT_ASSIGNMENT_REQUESTED);
+        assertThat(n.getSource()).isEqualTo(NotificationSource.SYNC);
+        assertThat(n.getPayload()).contains("\"assignmentId\":123").contains("\"listingId\":7");
+        assertThat(requested.getId()).isEqualTo(123L);
+    }
+
+    @Test
+    void requestRejectsNonOwnerOfListing() {
+        when(listingRepository.findById(7L)).thenReturn(Optional.of(listing(7L, /*ownerId=*/99L)));
+
+        assertThatThrownBy(() -> service.request(/*callerId=*/50L, 7L, 60L))
+                .isInstanceOf(NotPropertyOwnerException.class);
+
+        verify(agentListingRepository, never()).save(any());
+    }
+
+    @Test
+    void requestRejectsTargetingNonAgentUser() {
+        when(listingRepository.findById(7L)).thenReturn(Optional.of(listing(7L, 50L)));
+        when(userRepository.findById(60L)).thenReturn(Optional.of(user(60L, Role.APPLICANT)));
+
+        assertThatThrownBy(() -> service.request(50L, 7L, 60L))
+                .isInstanceOf(AgentNotFoundOrWrongRoleException.class);
+    }
+
+    @Test
+    void requestRejectsWhenListingAlreadyHasPendingInvite() {
+        when(listingRepository.findById(7L)).thenReturn(Optional.of(listing(7L, 50L)));
+        when(userRepository.findById(60L)).thenReturn(Optional.of(user(60L, Role.AGENT)));
+        when(agentListingRepository.existsByListingIdAndStatus(7L, AgentListingStatus.REQUESTED))
+                .thenReturn(true);
+
+        assertThatThrownBy(() -> service.request(50L, 7L, 60L))
+                .isInstanceOf(ListingAlreadyHasPendingInviteException.class);
+
+        verify(agentListingRepository, never()).save(any());
+    }
+
+    @Test
+    void requestRejectsWhenListingAlreadyHasActiveAgent() {
+        when(listingRepository.findById(7L)).thenReturn(Optional.of(listing(7L, 50L)));
+        when(userRepository.findById(60L)).thenReturn(Optional.of(user(60L, Role.AGENT)));
+        when(agentListingRepository.existsByListingIdAndStatus(7L, AgentListingStatus.REQUESTED))
+                .thenReturn(false);
+        when(agentListingRepository.existsByListingIdAndStatus(7L, AgentListingStatus.ACCEPTED))
+                .thenReturn(true);
+
+        assertThatThrownBy(() -> service.request(50L, 7L, 60L))
+                .isInstanceOf(ListingAlreadyHasActiveAgentException.class);
+    }
+
+    @Test
+    void requestThrowsWhenListingNotFound() {
+        when(listingRepository.findById(404L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.request(50L, 404L, 60L))
+                .isInstanceOf(ListingNotFoundException.class);
+    }
+
+    // ============================ respond (accept / decline) ============================
+
+    @Test
+    void targetedAgentAcceptingFlipsStatusAndNotifiesOwner() {
+        AgentListing pending = pending(123L, /*listingId=*/7L, /*ownerId=*/50L, /*agentId=*/60L);
+        when(agentListingRepository.findById(123L)).thenReturn(Optional.of(pending));
+
+        service.respond(/*callerAgentId=*/60L, 123L, AgentListingStatus.ACCEPTED, null);
+
+        ArgumentCaptor<AgentListing> cap = ArgumentCaptor.forClass(AgentListing.class);
+        verify(agentListingRepository).save(cap.capture());
+        assertThat(cap.getValue().getStatus()).isEqualTo(AgentListingStatus.ACCEPTED);
+        assertThat(cap.getValue().getDecidedAt()).isNotNull();
+
+        ArgumentCaptor<Notification> notifCap = ArgumentCaptor.forClass(Notification.class);
+        verify(notificationRepository).save(notifCap.capture());
+        assertThat(notifCap.getValue().getRecipientId()).isEqualTo(50L); // owner
+        assertThat(notifCap.getValue().getKind()).isEqualTo(NotificationKind.AGENT_ASSIGNMENT_ACCEPTED);
+    }
+
+    @Test
+    void targetedAgentDecliningStoresReasonAndNotifiesOwner() {
+        AgentListing pending = pending(123L, 7L, 50L, 60L);
+        when(agentListingRepository.findById(123L)).thenReturn(Optional.of(pending));
+
+        service.respond(60L, 123L, AgentListingStatus.DECLINED, "Booked solid this quarter");
+
+        ArgumentCaptor<AgentListing> cap = ArgumentCaptor.forClass(AgentListing.class);
+        verify(agentListingRepository).save(cap.capture());
+        assertThat(cap.getValue().getStatus()).isEqualTo(AgentListingStatus.DECLINED);
+        assertThat(cap.getValue().getDecisionReason()).isEqualTo("Booked solid this quarter");
+
+        ArgumentCaptor<Notification> notifCap = ArgumentCaptor.forClass(Notification.class);
+        verify(notificationRepository).save(notifCap.capture());
+        assertThat(notifCap.getValue().getKind()).isEqualTo(NotificationKind.AGENT_ASSIGNMENT_DECLINED);
+        assertThat(notifCap.getValue().getPayload()).contains("Booked solid this quarter");
+    }
+
+    @Test
+    void respondingAgentMustBeTheTargetedAgent() {
+        AgentListing pending = pending(123L, 7L, 50L, /*agentId=*/60L);
+        when(agentListingRepository.findById(123L)).thenReturn(Optional.of(pending));
+
+        assertThatThrownBy(() -> service.respond(/*callerId=*/61L, 123L, AgentListingStatus.ACCEPTED, null))
+                .isInstanceOf(NotTargetedAgentException.class);
+
+        verify(agentListingRepository, never()).save(any());
+    }
+
+    @Test
+    void respondRejectsNonRequestedRows() {
+        AgentListing accepted = pending(123L, 7L, 50L, 60L);
+        accepted.setStatus(AgentListingStatus.ACCEPTED);
+        accepted.setDecidedAt(Instant.now());
+        when(agentListingRepository.findById(123L)).thenReturn(Optional.of(accepted));
+
+        assertThatThrownBy(() -> service.respond(60L, 123L, AgentListingStatus.ACCEPTED, null))
+                .isInstanceOf(AgentListingAlreadyDecidedException.class);
+    }
+
+    @Test
+    void respondRequiresAcceptedOrDeclinedStatus() {
+        // Status check fires before any repo lookup — no findById stub needed.
+        assertThatThrownBy(() -> service.respond(60L, 123L, AgentListingStatus.REVOKED, null))
+                .isInstanceOf(IllegalArgumentException.class);
+
+        verify(agentListingRepository, never()).findById(any());
+    }
+
+    @Test
+    void declineRequiresReason() {
+        // Reason check fires before any repo lookup.
+        assertThatThrownBy(() -> service.respond(60L, 123L, AgentListingStatus.DECLINED, "  "))
+                .isInstanceOf(IllegalArgumentException.class);
+
+        verify(agentListingRepository, never()).findById(any());
+    }
+
+    // ============================ revoke ============================
+
+    @Test
+    void ownerCanRevokeAcceptedAssignmentNotifiesAgent() {
+        AgentListing active = pending(123L, 7L, /*ownerId=*/50L, /*agentId=*/60L);
+        active.setStatus(AgentListingStatus.ACCEPTED);
+        active.setDecidedAt(Instant.now().minusSeconds(3600));
+        when(agentListingRepository.findById(123L)).thenReturn(Optional.of(active));
+
+        service.revoke(/*callerId=*/50L, Role.OWNER, 123L, "Switching agents");
+
+        ArgumentCaptor<AgentListing> cap = ArgumentCaptor.forClass(AgentListing.class);
+        verify(agentListingRepository).save(cap.capture());
+        assertThat(cap.getValue().getStatus()).isEqualTo(AgentListingStatus.REVOKED);
+        assertThat(cap.getValue().getDecisionReason()).isEqualTo("Switching agents");
+
+        ArgumentCaptor<Notification> notifCap = ArgumentCaptor.forClass(Notification.class);
+        verify(notificationRepository).save(notifCap.capture());
+        assertThat(notifCap.getValue().getRecipientId()).isEqualTo(60L); // the other party = agent
+        assertThat(notifCap.getValue().getKind()).isEqualTo(NotificationKind.AGENT_ASSIGNMENT_REVOKED);
+    }
+
+    @Test
+    void agentCanRevokeAcceptedAssignmentNotifiesOwner() {
+        AgentListing active = pending(123L, 7L, 50L, /*agentId=*/60L);
+        active.setStatus(AgentListingStatus.ACCEPTED);
+        active.setDecidedAt(Instant.now().minusSeconds(3600));
+        when(agentListingRepository.findById(123L)).thenReturn(Optional.of(active));
+
+        service.revoke(/*callerId=*/60L, Role.AGENT, 123L, "Stepping down");
+
+        ArgumentCaptor<Notification> notifCap = ArgumentCaptor.forClass(Notification.class);
+        verify(notificationRepository).save(notifCap.capture());
+        assertThat(notifCap.getValue().getRecipientId()).isEqualTo(50L); // owner
+    }
+
+    @Test
+    void ownerCanRevokeStillPendingInviteToWithdrawIt() {
+        AgentListing pending = pending(123L, 7L, 50L, 60L); // status = REQUESTED
+        when(agentListingRepository.findById(123L)).thenReturn(Optional.of(pending));
+
+        service.revoke(50L, Role.OWNER, 123L, "Going self-managed");
+
+        ArgumentCaptor<AgentListing> cap = ArgumentCaptor.forClass(AgentListing.class);
+        verify(agentListingRepository).save(cap.capture());
+        assertThat(cap.getValue().getStatus()).isEqualTo(AgentListingStatus.REVOKED);
+    }
+
+    @Test
+    void revokeRejectsRandomThirdParty() {
+        AgentListing active = pending(123L, 7L, 50L, 60L);
+        active.setStatus(AgentListingStatus.ACCEPTED);
+        active.setDecidedAt(Instant.now());
+        when(agentListingRepository.findById(123L)).thenReturn(Optional.of(active));
+
+        assertThatThrownBy(() -> service.revoke(/*callerId=*/200L, Role.AGENT, 123L, "lol"))
+                .isInstanceOf(NotAuthorisedToRevokeException.class);
+
+        verify(agentListingRepository, never()).save(any());
+    }
+
+    @Test
+    void revokeRejectsTerminalRows() {
+        AgentListing declined = pending(123L, 7L, 50L, 60L);
+        declined.setStatus(AgentListingStatus.DECLINED);
+        declined.setDecidedAt(Instant.now());
+        when(agentListingRepository.findById(123L)).thenReturn(Optional.of(declined));
+
+        assertThatThrownBy(() -> service.revoke(50L, Role.OWNER, 123L, "anything"))
+                .isInstanceOf(AgentListingNotActiveException.class);
+    }
+
+    @Test
+    void revokeRequiresReason() {
+        assertThatThrownBy(() -> service.revoke(50L, Role.OWNER, 123L, "  "))
+                .isInstanceOf(IllegalArgumentException.class);
+
+        verify(agentListingRepository, never()).findById(any());
+    }
+
+    // ============================ helpers ============================
+
+    private static AgentListing pending(Long id, Long listingId, Long ownerId, Long agentId) {
+        return AgentListing.builder()
+                .id(id).listingId(listingId).agentUserId(agentId)
+                .requestedByOwnerId(ownerId)
+                .status(AgentListingStatus.REQUESTED)
+                .requestedAt(Instant.now())
+                .version(0L)
+                .build();
+    }
+
+    private static Listing listing(Long id, Long ownerId) {
+        Instant now = Instant.now();
+        return Listing.builder()
+                .id(id).propertyId(1L).ownerId(ownerId)
+                .listingType(ListingType.SALE).askingPrice(new BigDecimal("80000000.00")).currency("NGN")
+                .status(ListingStatus.LIVE)
+                .createdAt(now).updatedAt(now).version(0L).build();
+    }
+
+    private static User user(Long id, Role role) {
+        return User.builder().id(id).email("u" + id + "@x").passwordHash("x").fullName("U")
+                .role(role).tokenVersion(1).createdAt(Instant.now()).build();
+    }
+}

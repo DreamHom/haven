@@ -100,9 +100,12 @@ class OfferControllerTest {
     }
 
     @Test
-    void applicantCannotPatchOfferProvingPreAuthorizeIsWired() throws Exception {
+    void adminCannotPatchOfferProvingPreAuthorizeIsWired() throws Exception {
+        // Phase 13: PATCH is now open to OWNER and APPLICANT (applicants accept owner
+        // counters). ADMIN is deliberately NOT in the allowlist — admin moderation goes
+        // through dedicated /api/admin/* endpoints; offers are between the two parties.
         mockMvc.perform(patch("/api/offers/50")
-                        .with(asPrincipal(100L, Role.APPLICANT))
+                        .with(asPrincipal(1L, Role.ADMIN))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 { "status": "ACCEPTED" }

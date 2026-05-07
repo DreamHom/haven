@@ -123,12 +123,18 @@ class ListingFlowEndToEndIT extends AbstractPostgresIT {
         Long listingId = readId(listingResult);
 
         // 3. Public can browse it (no auth header), and the response embeds the property
-        // summary so the frontend can render a card without an extra round trip.
+        // summary so the frontend can render a card without an extra round trip. Verified
+        // badges (listings.approved_at, properties.documents_verified_at) are surfaced as
+        // null pre-approval — keeping the field present makes the JSON shape stable for
+        // the frontend's verified-badge rendering logic.
         mockMvc.perform(get("/api/listings"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].id").value(listingId.intValue()))
                 .andExpect(jsonPath("$.content[0].property.address").value("12 Lekki Phase 1, Lagos"))
-                .andExpect(jsonPath("$.content[0].property.bedrooms").value(3));
+                .andExpect(jsonPath("$.content[0].property.bedrooms").value(3))
+                .andExpect(jsonPath("$.content[0].approvedAt").value(org.hamcrest.Matchers.nullValue()))
+                .andExpect(jsonPath("$.content[0].property.documentsVerifiedAt")
+                        .value(org.hamcrest.Matchers.nullValue()));
 
         // 4. Owner pauses it.
         mockMvc.perform(patch("/api/listings/" + listingId)

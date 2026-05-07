@@ -27,9 +27,10 @@ class OfferServiceRespondTest {
 
     @BeforeEach
     void setUp() {
-        // submit() dependencies (listingRepository, outbox, objectMapper, eventPublisher)
-        // are unused here — pass nulls; respond() never touches them.
-        service = new OfferService(offerRepository, null, null, null, null);
+        // submit() dependencies (listingRepository, outbox, notification repo,
+        // objectMapper, eventPublisher) are unused here — pass nulls; respond() never
+        // touches them.
+        service = new OfferService(offerRepository, null, null, null, null, null);
     }
 
     @Test
@@ -106,6 +107,9 @@ class OfferServiceRespondTest {
                 .id(offerId).listingId(1L).applicantId(100L).ownerId(ownerId)
                 .amount(new BigDecimal("75000000.00")).currency("NGN")
                 .status(OfferStatus.PENDING)
+                // Phase 13: original offer was proposed by the applicant. The owner is
+                // therefore the one allowed to act on it (not its own proposer).
+                .proposedByUserId(100L)
                 .createdAt(now).updatedAt(now)
                 .build();
     }
