@@ -3,9 +3,9 @@ package com.dreamhomes.haven.offer;
 import com.dreamhomes.haven.common.outbox.OutboxEvent;
 import com.dreamhomes.haven.common.outbox.OutboxEventRepository;
 import com.dreamhomes.haven.common.outbox.OutboxRowReadyEvent;
-import com.dreamhomes.haven.listing.Listing;
+import com.dreamhomes.haven.listing.ListingApi;
 import com.dreamhomes.haven.listing.ListingNotFoundException;
-import com.dreamhomes.haven.listing.ListingRepository;
+import com.dreamhomes.haven.listing.ListingResponse;
 import com.dreamhomes.haven.listing.ListingStatus;
 import com.dreamhomes.haven.listing.ListingType;
 import com.dreamhomes.haven.offer.events.OfferSubmittedEvent;
@@ -20,7 +20,6 @@ import org.springframework.context.ApplicationEventPublisher;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -33,7 +32,7 @@ import static org.mockito.Mockito.when;
 class OfferServiceSubmitTest {
 
     @Mock OfferRepository offerRepository;
-    @Mock ListingRepository listingRepository;
+    @Mock ListingApi listingApi;
     @Mock OutboxEventRepository outboxRepository;
     @Mock com.dreamhomes.haven.notification.NotificationApi notificationApi;
     @Mock ApplicationEventPublisher applicationEventPublisher;
@@ -42,7 +41,7 @@ class OfferServiceSubmitTest {
 
     @BeforeEach
     void setUp() {
-        service = new OfferService(offerRepository, listingRepository,
+        service = new OfferService(offerRepository, listingApi,
                 outboxRepository, notificationApi,
                 new ObjectMapper().findAndRegisterModules(),
                 applicationEventPublisher);
@@ -50,7 +49,7 @@ class OfferServiceSubmitTest {
 
     @Test
     void persistsPendingOfferAndWritesOutboxRowInSameTransaction() throws Exception {
-        when(listingRepository.findById(7L)).thenReturn(Optional.of(liveListing(7L, 99L)));
+        when(listingApi.findById(7L)).thenReturn(liveListing(7L, 99L));
         when(offerRepository.save(any(Offer.class))).thenAnswer(inv -> {
             Offer o = inv.getArgument(0);
             o.setId(123L);
@@ -88,7 +87,7 @@ class OfferServiceSubmitTest {
 
     @Test
     void firesOutboxRowReadyEventSoTheRelayCanShipImmediatelyOnCommit() {
-        when(listingRepository.findById(7L)).thenReturn(Optional.of(liveListing(7L, 99L)));
+        when(listingApi.findById(7L)).thenReturn(liveListing(7L, 99L));
         when(offerRepository.save(any(Offer.class))).thenAnswer(inv -> {
             Offer o = inv.getArgument(0);
             o.setId(123L);
@@ -102,8 +101,7 @@ class OfferServiceSubmitTest {
 
     @Test
     void doesNotFireOutboxRowReadyEventWhenSubmitFails() {
-        when(listingRepository.findById(7L)).thenReturn(Optional.of(
-                listing(7L, 99L, ListingStatus.PAUSED)));
+        when(listingApi.findById(7L)).thenReturn(listing(7L, 99L, ListingStatus.PAUSED));
 
         assertThatThrownBy(() -> service.submit(100L, new SubmitOfferCommand(
                 7L, new BigDecimal("100"), null, null)))
@@ -114,7 +112,7 @@ class OfferServiceSubmitTest {
 
     @Test
     void defaultsCurrencyToNgnWhenCallerOmitsIt() {
-        when(listingRepository.findById(7L)).thenReturn(Optional.of(liveListing(7L, 99L)));
+        when(listingApi.findById(7L)).thenReturn(liveListing(7L, 99L));
         when(offerRepository.save(any(Offer.class))).thenAnswer(inv -> inv.getArgument(0));
 
         Offer result = service.submit(100L, new SubmitOfferCommand(
@@ -125,7 +123,7 @@ class OfferServiceSubmitTest {
 
     @Test
     void throwsWhenListingDoesNotExistAndDoesNotWriteOutbox() {
-        when(listingRepository.findById(404L)).thenReturn(Optional.empty());
+        when(listingApi.findById(404L)).thenThrow(new ListingNotFoundException(404L));
 
         assertThatThrownBy(() -> service.submit(100L, new SubmitOfferCommand(
                 404L, new BigDecimal("100"), null, null)))
@@ -137,8 +135,7 @@ class OfferServiceSubmitTest {
 
     @Test
     void rejectsOfferOnPausedListingAndDoesNotWriteOutbox() {
-        when(listingRepository.findById(7L)).thenReturn(Optional.of(
-                listing(7L, 99L, ListingStatus.PAUSED)));
+        when(listingApi.findById(7L)).thenReturn(listing(7L, 99L, ListingStatus.PAUSED));
 
         assertThatThrownBy(() -> service.submit(100L, new SubmitOfferCommand(
                 7L, new BigDecimal("100"), null, null)))
@@ -150,24 +147,21 @@ class OfferServiceSubmitTest {
 
     @Test
     void rejectsOfferOnClosedListing() {
-        when(listingRepository.findById(7L)).thenReturn(Optional.of(
-                listing(7L, 99L, ListingStatus.CLOSED)));
+        when(listingApi.findById(7L)).thenReturn(listing(7L, 99L, ListingStatus.CLOSED));
 
         assertThatThrownBy(() -> service.submit(100L, new SubmitOfferCommand(
                 7L, new BigDecimal("100"), null, null)))
                 .isInstanceOf(ListingNotOpenForOffersException.class);
     }
 
-    private static Listing liveListing(Long listingId, Long ownerId) {
+    private static ListingResponse liveListing(Long listingId, Long ownerId) {
         return listing(listingId, ownerId, ListingStatus.LIVE);
     }
 
-    private static Listing listing(Long listingId, Long ownerId, ListingStatus status) {
+    private static ListingResponse listing(Long listingId, Long ownerId, ListingStatus status) {
         Instant now = Instant.now();
-        return Listing.builder()
-                .id(listingId).propertyId(1L).ownerId(ownerId)
-                .listingType(ListingType.SALE).askingPrice(new BigDecimal("80000000.00")).currency("NGN")
-                .status(status)
-                .createdAt(now).updatedAt(now).build();
+        return new ListingResponse(listingId, 1L, ownerId, ListingType.SALE,
+                new BigDecimal("80000000.00"), "NGN", null, null, null,
+                status, null, 0L, now, now, null);
     }
 }

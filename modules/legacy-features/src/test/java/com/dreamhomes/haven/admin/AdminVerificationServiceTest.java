@@ -2,9 +2,7 @@ package com.dreamhomes.haven.admin;
 
 import com.dreamhomes.haven.notification.NotificationApi;
 import com.dreamhomes.haven.notification.NotificationKind;
-import com.dreamhomes.haven.property.Property;
-import com.dreamhomes.haven.property.PropertyRepository;
-import com.dreamhomes.haven.property.PropertyType;
+import com.dreamhomes.haven.property.PropertyApi;
 import com.dreamhomes.haven.user.AgentProfile;
 import com.dreamhomes.haven.user.AgentProfileRepository;
 import com.dreamhomes.haven.user.Role;
@@ -43,7 +41,7 @@ class AdminVerificationServiceTest {
     @Mock VerificationRepository verificationRepository;
     @Mock UserRepository userRepository;
     @Mock AgentProfileRepository agentProfileRepository;
-    @Mock PropertyRepository propertyRepository;
+    @Mock PropertyApi propertyApi;
     @Mock NotificationApi notificationApi;
     @Mock AdminAuditLogRepository auditLogRepository;
 
@@ -52,7 +50,7 @@ class AdminVerificationServiceTest {
     @BeforeEach
     void setUp() {
         service = new AdminVerificationService(verificationRepository, userRepository,
-                agentProfileRepository, propertyRepository, notificationApi,
+                agentProfileRepository, propertyApi, notificationApi,
                 auditLogRepository, new ObjectMapper(),
                 new AdminMetrics(new SimpleMeterRegistry()));
     }
@@ -90,7 +88,7 @@ class AdminVerificationServiceTest {
 
         verify(userRepository).save(any(User.class));
         verify(agentProfileRepository, never()).save(any());
-        verify(propertyRepository, never()).save(any());
+        verify(propertyApi, never()).markDocumentsVerified(anyLong(), any());
     }
 
     @Test
@@ -112,17 +110,11 @@ class AdminVerificationServiceTest {
     @Test
     void approvingPropertyDocumentsFlipsDocumentsVerifiedAtOnTheProperty() {
         Verification pending = pendingFor(VerificationType.PROPERTY_DOCUMENTS, null, 7L);
-        Property property = Property.builder()
-                .id(7L).ownerId(50L).type(PropertyType.HOUSE)
-                .address("addr").createdAt(Instant.now()).build();
         when(verificationRepository.findById(99L)).thenReturn(Optional.of(pending));
-        when(propertyRepository.findById(7L)).thenReturn(Optional.of(property));
 
         service.approve(8L, 99L, null);
 
-        ArgumentCaptor<Property> cap = ArgumentCaptor.forClass(Property.class);
-        verify(propertyRepository).save(cap.capture());
-        assertThat(cap.getValue().getDocumentsVerifiedAt()).isNotNull();
+        verify(propertyApi).markDocumentsVerified(eq(7L), any());
     }
 
     @Test
@@ -160,7 +152,7 @@ class AdminVerificationServiceTest {
 
         verify(userRepository, never()).save(any());
         verify(agentProfileRepository, never()).save(any());
-        verify(propertyRepository, never()).save(any());
+        verify(propertyApi, never()).markDocumentsVerified(anyLong(), any());
 
         verify(notificationApi).recordSync(eq(NotificationKind.VERIFICATION_REJECTED), eq(50L), any());
     }

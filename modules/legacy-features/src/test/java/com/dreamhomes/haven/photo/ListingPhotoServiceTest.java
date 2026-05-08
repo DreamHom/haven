@@ -1,10 +1,7 @@
 package com.dreamhomes.haven.photo;
 
-import com.dreamhomes.haven.listing.Listing;
+import com.dreamhomes.haven.listing.ListingApi;
 import com.dreamhomes.haven.listing.ListingNotFoundException;
-import com.dreamhomes.haven.listing.ListingRepository;
-import com.dreamhomes.haven.listing.ListingStatus;
-import com.dreamhomes.haven.listing.ListingType;
 import com.dreamhomes.haven.listing.NotPropertyOwnerException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -13,7 +10,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Optional;
 
@@ -28,18 +24,18 @@ import static org.mockito.Mockito.when;
 class ListingPhotoServiceTest {
 
     @Mock ListingPhotoRepository photoRepository;
-    @Mock ListingRepository listingRepository;
+    @Mock ListingApi listingApi;
 
     ListingPhotoService service;
 
     @BeforeEach
     void setUp() {
-        service = new ListingPhotoService(photoRepository, listingRepository);
+        service = new ListingPhotoService(photoRepository, listingApi);
     }
 
     @Test
     void ownerAddingFirstPhotoStartsDisplayOrderAtOne() {
-        when(listingRepository.findById(7L)).thenReturn(Optional.of(listing(7L, /*ownerId=*/50L)));
+        when(listingApi.ownerOf(7L)).thenReturn(Optional.of(50L));
         when(photoRepository.findMaxDisplayOrderForListing(7L)).thenReturn(null);
         when(photoRepository.save(any(ListingPhoto.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -56,7 +52,7 @@ class ListingPhotoServiceTest {
 
     @Test
     void subsequentPhotoIncrementsDisplayOrder() {
-        when(listingRepository.findById(7L)).thenReturn(Optional.of(listing(7L, 50L)));
+        when(listingApi.ownerOf(7L)).thenReturn(Optional.of(50L));
         when(photoRepository.findMaxDisplayOrderForListing(7L)).thenReturn(4);
         when(photoRepository.save(any(ListingPhoto.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -69,7 +65,7 @@ class ListingPhotoServiceTest {
 
     @Test
     void nonOwnerCannotAddPhoto() {
-        when(listingRepository.findById(7L)).thenReturn(Optional.of(listing(7L, /*ownerId=*/99L)));
+        when(listingApi.ownerOf(7L)).thenReturn(Optional.of(99L));
 
         assertThatThrownBy(() -> service.add(/*callerId=*/50L, 7L, "https://cdn/x.jpg", null))
                 .isInstanceOf(NotPropertyOwnerException.class);
@@ -79,7 +75,7 @@ class ListingPhotoServiceTest {
 
     @Test
     void addRejectsNonExistentListing() {
-        when(listingRepository.findById(404L)).thenReturn(Optional.empty());
+        when(listingApi.ownerOf(404L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.add(50L, 404L, "https://cdn/x.jpg", null))
                 .isInstanceOf(ListingNotFoundException.class);
@@ -90,7 +86,7 @@ class ListingPhotoServiceTest {
         assertThatThrownBy(() -> service.add(50L, 7L, "  ", null))
                 .isInstanceOf(IllegalArgumentException.class);
 
-        verify(listingRepository, never()).findById(any());
+        verify(listingApi, never()).ownerOf(any());
     }
 
     @Test
@@ -99,7 +95,7 @@ class ListingPhotoServiceTest {
                 .id(123L).listingId(7L).url("u").displayOrder(1)
                 .uploadedAt(Instant.now()).build();
         when(photoRepository.findById(123L)).thenReturn(Optional.of(photo));
-        when(listingRepository.findById(7L)).thenReturn(Optional.of(listing(7L, /*ownerId=*/50L)));
+        when(listingApi.ownerOf(7L)).thenReturn(Optional.of(50L));
 
         service.delete(/*callerId=*/50L, 123L);
 
@@ -112,7 +108,7 @@ class ListingPhotoServiceTest {
                 .id(123L).listingId(7L).url("u").displayOrder(1)
                 .uploadedAt(Instant.now()).build();
         when(photoRepository.findById(123L)).thenReturn(Optional.of(photo));
-        when(listingRepository.findById(7L)).thenReturn(Optional.of(listing(7L, /*ownerId=*/99L)));
+        when(listingApi.ownerOf(7L)).thenReturn(Optional.of(99L));
 
         assertThatThrownBy(() -> service.delete(/*callerId=*/50L, 123L))
                 .isInstanceOf(NotPropertyOwnerException.class);
@@ -138,14 +134,5 @@ class ListingPhotoServiceTest {
         var result = service.list(7L);
 
         assertThat(result).extracting(ListingPhoto::getId).containsExactly(1L, 2L);
-    }
-
-    private static Listing listing(Long id, Long ownerId) {
-        Instant now = Instant.now();
-        return Listing.builder()
-                .id(id).propertyId(1L).ownerId(ownerId)
-                .listingType(ListingType.SALE).askingPrice(new BigDecimal("80000000.00")).currency("NGN")
-                .status(ListingStatus.LIVE)
-                .createdAt(now).updatedAt(now).version(0L).build();
     }
 }

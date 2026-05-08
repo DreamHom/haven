@@ -2,7 +2,7 @@ package com.dreamhomes.haven.user;
 
 import com.dreamhomes.haven.user.UserNotFoundException;
 import com.dreamhomes.haven.review.ReviewAggregate;
-import com.dreamhomes.haven.review.ReviewService;
+import com.dreamhomes.haven.review.ReviewApi;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,15 +23,15 @@ class UserProfileServiceTest {
 
     @Mock UserRepository userRepository;
     @Mock AgentProfileRepository agentProfileRepository;
-    @Mock ReviewService reviewService;
+    @Mock ReviewApi reviewApi;
 
     UserProfileService service;
 
     @BeforeEach
     void setUp() {
-        service = new UserProfileService(userRepository, agentProfileRepository, reviewService);
+        service = new UserProfileService(userRepository, agentProfileRepository, reviewApi);
         // Default: no reviews. Individual tests override when they need real numbers.
-        org.mockito.Mockito.lenient().when(reviewService.aggregateForUser(org.mockito.ArgumentMatchers.anyLong()))
+        org.mockito.Mockito.lenient().when(reviewApi.aggregateForUser(org.mockito.ArgumentMatchers.anyLong()))
                 .thenReturn(ReviewAggregate.empty());
     }
 
@@ -108,7 +108,7 @@ class UserProfileServiceTest {
                 .id(50L).email("o@x").passwordHash("x").fullName("Reviewed Owner")
                 .role(Role.OWNER).tokenVersion(1).createdAt(Instant.now()).build();
         when(userRepository.findById(50L)).thenReturn(Optional.of(owner));
-        when(reviewService.aggregateForUser(50L)).thenReturn(new ReviewAggregate(4.5, 12L));
+        when(reviewApi.aggregateForUser(50L)).thenReturn(new ReviewAggregate(4.5, 12L));
 
         PublicUserProfile result = service.findPublicProfile(50L);
 

@@ -21,6 +21,16 @@
             <groupId>com.dreamhomes</groupId>
             <artifactId>haven-feature-notification-api</artifactId>
         </dependency>
+        <!-- Listeners (InspectionRequestedListener, OfferSubmittedListener) consume Kafka
+             events whose contracts live in the producer's -api modules. -->
+        <dependency>
+            <groupId>com.dreamhomes</groupId>
+            <artifactId>haven-feature-inspection-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.dreamhomes</groupId>
+            <artifactId>haven-feature-offer-api</artifactId>
+        </dependency>
         <dependency>
             <groupId>com.dreamhomes</groupId>
             <artifactId>haven-core</artifactId>

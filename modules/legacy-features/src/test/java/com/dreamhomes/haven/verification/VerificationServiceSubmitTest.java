@@ -1,12 +1,9 @@
 package com.dreamhomes.haven.verification;
 
-import com.dreamhomes.haven.property.Property;
+import com.dreamhomes.haven.property.PropertyApi;
 import com.dreamhomes.haven.property.PropertyNotFoundException;
-import com.dreamhomes.haven.property.PropertyRepository;
-import com.dreamhomes.haven.property.PropertyType;
 import com.dreamhomes.haven.user.Role;
-import com.dreamhomes.haven.user.User;
-import com.dreamhomes.haven.user.UserRepository;
+import com.dreamhomes.haven.user.UserApi;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -15,7 +12,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -31,20 +27,19 @@ import static org.mockito.Mockito.when;
 class VerificationServiceSubmitTest {
 
     @Mock VerificationRepository verificationRepository;
-    @Mock UserRepository userRepository;
-    @Mock PropertyRepository propertyRepository;
+    @Mock UserApi userApi;
+    @Mock PropertyApi propertyApi;
 
     VerificationService service;
 
     @BeforeEach
     void setUp() {
-        service = new VerificationService(verificationRepository, userRepository,
-                propertyRepository, new ObjectMapper());
+        service = new VerificationService(verificationRepository, userApi, propertyApi, new ObjectMapper());
     }
 
     @Test
     void ownerIdentitySubmissionPersistsPendingRowTargetingTheSubmitter() {
-        when(userRepository.findById(50L)).thenReturn(Optional.of(user(50L, Role.OWNER)));
+        when(userApi.roleOf(50L)).thenReturn(Optional.of(Role.OWNER));
         when(verificationRepository.existsByTypeAndTargetUserIdAndStatus(
                 VerificationType.OWNER_IDENTITY, 50L, VerificationStatus.PENDING))
                 .thenReturn(false);
@@ -70,7 +65,7 @@ class VerificationServiceSubmitTest {
 
     @Test
     void agentCredentialsSubmissionRequiresAgentRole() {
-        when(userRepository.findById(50L)).thenReturn(Optional.of(user(50L, Role.OWNER)));
+        when(userApi.roleOf(50L)).thenReturn(Optional.of(Role.OWNER));
 
         assertThatThrownBy(() -> service.submit(50L, new SubmitVerificationCommand(
                 VerificationType.AGENT_CREDENTIALS, null, idDocs())))
@@ -81,7 +76,7 @@ class VerificationServiceSubmitTest {
 
     @Test
     void applicantIdentitySubmissionRequiresApplicantRole() {
-        when(userRepository.findById(50L)).thenReturn(Optional.of(user(50L, Role.AGENT)));
+        when(userApi.roleOf(50L)).thenReturn(Optional.of(Role.AGENT));
 
         assertThatThrownBy(() -> service.submit(50L, new SubmitVerificationCommand(
                 VerificationType.APPLICANT_IDENTITY, null, idDocs())))
@@ -90,7 +85,7 @@ class VerificationServiceSubmitTest {
 
     @Test
     void ownerIdentitySubmissionRequiresOwnerRole() {
-        when(userRepository.findById(50L)).thenReturn(Optional.of(user(50L, Role.APPLICANT)));
+        when(userApi.roleOf(50L)).thenReturn(Optional.of(Role.APPLICANT));
 
         assertThatThrownBy(() -> service.submit(50L, new SubmitVerificationCommand(
                 VerificationType.OWNER_IDENTITY, null, idDocs())))
@@ -99,8 +94,8 @@ class VerificationServiceSubmitTest {
 
     @Test
     void propertyDocumentsSubmissionTargetsThePropertyNotTheSubmitter() {
-        when(userRepository.findById(50L)).thenReturn(Optional.of(user(50L, Role.OWNER)));
-        when(propertyRepository.findById(7L)).thenReturn(Optional.of(property(7L, 50L)));
+        when(userApi.roleOf(50L)).thenReturn(Optional.of(Role.OWNER));
+        when(propertyApi.ownerOf(7L)).thenReturn(Optional.of(50L));
         when(verificationRepository.existsByTypeAndTargetPropertyIdAndStatus(
                 VerificationType.PROPERTY_DOCUMENTS, 7L, VerificationStatus.PENDING))
                 .thenReturn(false);
@@ -118,8 +113,8 @@ class VerificationServiceSubmitTest {
 
     @Test
     void propertyDocumentsSubmissionRejectsCallerWhoDoesNotOwnTheProperty() {
-        when(userRepository.findById(50L)).thenReturn(Optional.of(user(50L, Role.OWNER)));
-        when(propertyRepository.findById(7L)).thenReturn(Optional.of(property(7L, /*ownerId=*/99L)));
+        when(userApi.roleOf(50L)).thenReturn(Optional.of(Role.OWNER));
+        when(propertyApi.ownerOf(7L)).thenReturn(Optional.of(99L));
 
         assertThatThrownBy(() -> service.submit(50L, new SubmitVerificationCommand(
                 VerificationType.PROPERTY_DOCUMENTS, 7L, propertyDocs())))
@@ -130,8 +125,8 @@ class VerificationServiceSubmitTest {
 
     @Test
     void propertyDocumentsSubmissionThrowsWhenPropertyDoesNotExist() {
-        when(userRepository.findById(50L)).thenReturn(Optional.of(user(50L, Role.OWNER)));
-        when(propertyRepository.findById(404L)).thenReturn(Optional.empty());
+        when(userApi.roleOf(50L)).thenReturn(Optional.of(Role.OWNER));
+        when(propertyApi.ownerOf(404L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.submit(50L, new SubmitVerificationCommand(
                 VerificationType.PROPERTY_DOCUMENTS, 404L, propertyDocs())))
@@ -140,7 +135,7 @@ class VerificationServiceSubmitTest {
 
     @Test
     void rejectsDuplicatePendingSubmissionForSameUserAndType() {
-        when(userRepository.findById(50L)).thenReturn(Optional.of(user(50L, Role.OWNER)));
+        when(userApi.roleOf(50L)).thenReturn(Optional.of(Role.OWNER));
         when(verificationRepository.existsByTypeAndTargetUserIdAndStatus(
                 VerificationType.OWNER_IDENTITY, 50L, VerificationStatus.PENDING))
                 .thenReturn(true);
@@ -154,8 +149,8 @@ class VerificationServiceSubmitTest {
 
     @Test
     void rejectsDuplicatePendingPropertyDocsSubmission() {
-        when(userRepository.findById(50L)).thenReturn(Optional.of(user(50L, Role.OWNER)));
-        when(propertyRepository.findById(7L)).thenReturn(Optional.of(property(7L, 50L)));
+        when(userApi.roleOf(50L)).thenReturn(Optional.of(Role.OWNER));
+        when(propertyApi.ownerOf(7L)).thenReturn(Optional.of(50L));
         when(verificationRepository.existsByTypeAndTargetPropertyIdAndStatus(
                 VerificationType.PROPERTY_DOCUMENTS, 7L, VerificationStatus.PENDING))
                 .thenReturn(true);
@@ -167,22 +162,11 @@ class VerificationServiceSubmitTest {
 
     @Test
     void propertyDocumentsRequirePropertyId() {
-        when(userRepository.findById(50L)).thenReturn(Optional.of(user(50L, Role.OWNER)));
+        when(userApi.roleOf(50L)).thenReturn(Optional.of(Role.OWNER));
 
         assertThatThrownBy(() -> service.submit(50L, new SubmitVerificationCommand(
                 VerificationType.PROPERTY_DOCUMENTS, null, propertyDocs())))
                 .isInstanceOf(IllegalArgumentException.class);
-    }
-
-    private static User user(Long id, Role role) {
-        return User.builder().id(id).email("u" + id + "@example.com")
-                .passwordHash("x").fullName("U " + id).role(role)
-                .tokenVersion(1).createdAt(Instant.now()).build();
-    }
-
-    private static Property property(Long id, Long ownerId) {
-        return Property.builder().id(id).ownerId(ownerId)
-                .type(PropertyType.HOUSE).address("addr").createdAt(Instant.now()).build();
     }
 
     private static Map<String, Object> idDocs() {

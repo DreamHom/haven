@@ -1,8 +1,8 @@
 package com.dreamhomes.haven.comment;
 
-import com.dreamhomes.haven.listing.Listing;
+import com.dreamhomes.haven.listing.ListingApi;
 import com.dreamhomes.haven.listing.ListingNotFoundException;
-import com.dreamhomes.haven.listing.ListingRepository;
+import com.dreamhomes.haven.listing.ListingResponse;
 import com.dreamhomes.haven.listing.ListingStatus;
 import com.dreamhomes.haven.listing.ListingType;
 import com.dreamhomes.haven.notification.NotificationApi;
@@ -17,6 +17,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -28,25 +29,23 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.Map;
-
 @ExtendWith(MockitoExtension.class)
 class CommentServiceTest {
 
     @Mock CommentRepository commentRepository;
-    @Mock ListingRepository listingRepository;
+    @Mock ListingApi listingApi;
     @Mock NotificationApi notificationApi;
 
     CommentService service;
 
     @BeforeEach
     void setUp() {
-        service = new CommentService(commentRepository, listingRepository, notificationApi);
+        service = new CommentService(commentRepository, listingApi, notificationApi);
     }
 
     @Test
     void postingCommentPersistsRowAndNotifiesListingOwner() {
-        when(listingRepository.findById(7L)).thenReturn(Optional.of(liveListing(7L, /*ownerId=*/99L)));
+        when(listingApi.findById(7L)).thenReturn(liveListing(7L, /*ownerId=*/99L));
         when(commentRepository.save(any(Comment.class))).thenAnswer(inv -> {
             Comment c = inv.getArgument(0);
             c.setId(123L);
@@ -71,7 +70,7 @@ class CommentServiceTest {
 
     @Test
     void ownerCommentingOnTheirOwnListingDoesNotSelfNotify() {
-        when(listingRepository.findById(7L)).thenReturn(Optional.of(liveListing(7L, /*ownerId=*/99L)));
+        when(listingApi.findById(7L)).thenReturn(liveListing(7L, /*ownerId=*/99L));
         when(commentRepository.save(any(Comment.class))).thenAnswer(inv -> inv.getArgument(0));
 
         service.post(/*authorId=*/99L, 7L, "Anything I should clarify?");
@@ -81,7 +80,7 @@ class CommentServiceTest {
 
     @Test
     void postingOnNonExistentListingThrows404() {
-        when(listingRepository.findById(404L)).thenReturn(Optional.empty());
+        when(listingApi.findById(404L)).thenThrow(new ListingNotFoundException(404L));
 
         assertThatThrownBy(() -> service.post(100L, 404L, "..."))
                 .isInstanceOf(ListingNotFoundException.class);
@@ -94,7 +93,7 @@ class CommentServiceTest {
         assertThatThrownBy(() -> service.post(100L, 7L, "  "))
                 .isInstanceOf(IllegalArgumentException.class);
 
-        verify(listingRepository, never()).findById(any());
+        verify(listingApi, never()).findById(any());
     }
 
     @Test
@@ -114,7 +113,7 @@ class CommentServiceTest {
     void listingOwnerCanDeleteCommentOnTheirListing() {
         Comment existing = active(50L, /*authorId=*/100L, 7L);
         when(commentRepository.findById(50L)).thenReturn(Optional.of(existing));
-        when(listingRepository.findById(7L)).thenReturn(Optional.of(liveListing(7L, /*ownerId=*/99L)));
+        when(listingApi.isOwnedBy(7L, 99L)).thenReturn(true);
 
         service.delete(/*callerId=*/99L, Role.OWNER, 50L, "Off-topic");
 
@@ -138,7 +137,7 @@ class CommentServiceTest {
         Comment existing = active(50L, /*authorId=*/100L, /*listingId=*/7L);
         when(commentRepository.findById(50L)).thenReturn(Optional.of(existing));
         // Caller is an OWNER but of a different listing — listing 7's owner is 99, caller is 200.
-        when(listingRepository.findById(7L)).thenReturn(Optional.of(liveListing(7L, /*ownerId=*/99L)));
+        when(listingApi.isOwnedBy(7L, 200L)).thenReturn(false);
 
         assertThatThrownBy(() -> service.delete(/*callerId=*/200L, Role.OWNER, 50L, "any"))
                 .isInstanceOf(NotAuthorisedToDeleteCommentException.class);
@@ -171,12 +170,10 @@ class CommentServiceTest {
                 .body("body").createdAt(Instant.now()).build();
     }
 
-    private static Listing liveListing(Long id, Long ownerId) {
+    private static ListingResponse liveListing(Long id, Long ownerId) {
         Instant now = Instant.now();
-        return Listing.builder()
-                .id(id).propertyId(1L).ownerId(ownerId)
-                .listingType(ListingType.SALE).askingPrice(new BigDecimal("80000000.00")).currency("NGN")
-                .status(ListingStatus.LIVE)
-                .createdAt(now).updatedAt(now).version(0L).build();
+        return new ListingResponse(id, 1L, ownerId, ListingType.SALE,
+                new BigDecimal("80000000.00"), "NGN", null, null, null,
+                ListingStatus.LIVE, null, 0L, now, now, null);
     }
 }

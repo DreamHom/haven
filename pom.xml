@@ -31,8 +31,25 @@
         <module>modules/feature/user/api</module>
         <module>modules/feature/user/impl</module>
         <module>modules/feature/review/api</module>
+        <module>modules/feature/review/impl</module>
         <module>modules/feature/auth/api</module>
         <module>modules/feature/auth/impl</module>
+        <module>modules/feature/inspection/api</module>
+        <module>modules/feature/inspection/impl</module>
+        <module>modules/feature/offer/api</module>
+        <module>modules/feature/offer/impl</module>
+        <module>modules/feature/comment/api</module>
+        <module>modules/feature/comment/impl</module>
+        <module>modules/feature/agentlisting/api</module>
+        <module>modules/feature/agentlisting/impl</module>
+        <module>modules/feature/photo/api</module>
+        <module>modules/feature/photo/impl</module>
+        <module>modules/feature/engagement/api</module>
+        <module>modules/feature/engagement/impl</module>
+        <module>modules/feature/verification/api</module>
+        <module>modules/feature/verification/impl</module>
+        <module>modules/feature/admin/api</module>
+        <module>modules/feature/admin/impl</module>
         <module>modules/legacy-features</module>
         <module>modules/app</module>
     </modules>
@@ -122,6 +139,91 @@
             <dependency>
                 <groupId>com.dreamhomes</groupId>
                 <artifactId>haven-feature-auth-impl</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.dreamhomes</groupId>
+                <artifactId>haven-feature-inspection-api</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.dreamhomes</groupId>
+                <artifactId>haven-feature-inspection-impl</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.dreamhomes</groupId>
+                <artifactId>haven-feature-offer-api</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.dreamhomes</groupId>
+                <artifactId>haven-feature-offer-impl</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.dreamhomes</groupId>
+                <artifactId>haven-feature-comment-api</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.dreamhomes</groupId>
+                <artifactId>haven-feature-comment-impl</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.dreamhomes</groupId>
+                <artifactId>haven-feature-agentlisting-api</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.dreamhomes</groupId>
+                <artifactId>haven-feature-agentlisting-impl</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.dreamhomes</groupId>
+                <artifactId>haven-feature-photo-api</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.dreamhomes</groupId>
+                <artifactId>haven-feature-photo-impl</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.dreamhomes</groupId>
+                <artifactId>haven-feature-engagement-api</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.dreamhomes</groupId>
+                <artifactId>haven-feature-engagement-impl</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.dreamhomes</groupId>
+                <artifactId>haven-feature-verification-api</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.dreamhomes</groupId>
+                <artifactId>haven-feature-verification-impl</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.dreamhomes</groupId>
+                <artifactId>haven-feature-admin-api</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.dreamhomes</groupId>
+                <artifactId>haven-feature-admin-impl</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.dreamhomes</groupId>
+                <artifactId>haven-feature-review-impl</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

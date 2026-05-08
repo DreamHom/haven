@@ -1,7 +1,7 @@
 package com.dreamhomes.haven.engagement;
 
 import com.dreamhomes.haven.listing.ListingNotFoundException;
-import com.dreamhomes.haven.listing.ListingRepository;
+import com.dreamhomes.haven.listing.ListingApi;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -22,18 +22,18 @@ import static org.mockito.Mockito.when;
 class ListingSaveServiceTest {
 
     @Mock ListingSaveRepository listingSaveRepository;
-    @Mock ListingRepository listingRepository;
+    @Mock ListingApi listingApi;
 
     ListingSaveService service;
 
     @BeforeEach
     void setUp() {
-        service = new ListingSaveService(listingSaveRepository, listingRepository);
+        service = new ListingSaveService(listingSaveRepository, listingApi);
     }
 
     @Test
     void savingNewListingPersistsRowWithBothIds() {
-        when(listingRepository.existsById(7L)).thenReturn(true);
+        when(listingApi.exists(7L)).thenReturn(true);
         when(listingSaveRepository.existsByUserIdAndListingId(50L, 7L)).thenReturn(false);
 
         service.save(50L, 7L);
@@ -47,7 +47,7 @@ class ListingSaveServiceTest {
 
     @Test
     void savingAlreadySavedListingIsIdempotent() {
-        when(listingRepository.existsById(7L)).thenReturn(true);
+        when(listingApi.exists(7L)).thenReturn(true);
         when(listingSaveRepository.existsByUserIdAndListingId(50L, 7L)).thenReturn(true);
 
         service.save(50L, 7L);
@@ -59,7 +59,7 @@ class ListingSaveServiceTest {
 
     @Test
     void savingNonExistentListingThrows404() {
-        when(listingRepository.existsById(404L)).thenReturn(false);
+        when(listingApi.exists(404L)).thenReturn(false);
 
         assertThatThrownBy(() -> service.save(50L, 404L))
                 .isInstanceOf(ListingNotFoundException.class);

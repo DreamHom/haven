@@ -1,16 +1,12 @@
 package com.dreamhomes.haven.agentlisting;
 
-import com.dreamhomes.haven.listing.Listing;
+import com.dreamhomes.haven.listing.ListingApi;
 import com.dreamhomes.haven.listing.ListingNotFoundException;
-import com.dreamhomes.haven.listing.ListingRepository;
-import com.dreamhomes.haven.listing.ListingStatus;
-import com.dreamhomes.haven.listing.ListingType;
 import com.dreamhomes.haven.listing.NotPropertyOwnerException;
 import com.dreamhomes.haven.notification.NotificationApi;
 import com.dreamhomes.haven.notification.NotificationKind;
 import com.dreamhomes.haven.user.Role;
-import com.dreamhomes.haven.user.User;
-import com.dreamhomes.haven.user.UserRepository;
+import com.dreamhomes.haven.user.UserApi;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -18,43 +14,39 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.Map;
-
 @ExtendWith(MockitoExtension.class)
 class AgentListingServiceTest {
 
     @Mock AgentListingRepository agentListingRepository;
-    @Mock ListingRepository listingRepository;
-    @Mock UserRepository userRepository;
+    @Mock ListingApi listingApi;
+    @Mock UserApi userApi;
     @Mock NotificationApi notificationApi;
 
     AgentListingService service;
 
     @BeforeEach
     void setUp() {
-        service = new AgentListingService(agentListingRepository, listingRepository,
-                userRepository, notificationApi);
+        service = new AgentListingService(agentListingRepository, listingApi, userApi, notificationApi);
     }
 
     // ============================ request ============================
 
     @Test
     void ownerInvitingAgentPersistsRequestedRowAndNotifiesAgent() {
-        when(listingRepository.findById(7L)).thenReturn(Optional.of(listing(7L, /*ownerId=*/50L)));
-        when(userRepository.findById(60L)).thenReturn(Optional.of(user(60L, Role.AGENT)));
+        when(listingApi.ownerOf(7L)).thenReturn(Optional.of(50L));
+        when(userApi.roleOf(60L)).thenReturn(Optional.of(Role.AGENT));
         when(agentListingRepository.save(any(AgentListing.class))).thenAnswer(inv -> {
             AgentListing al = inv.getArgument(0);
             al.setId(123L);
@@ -83,7 +75,7 @@ class AgentListingServiceTest {
 
     @Test
     void requestRejectsNonOwnerOfListing() {
-        when(listingRepository.findById(7L)).thenReturn(Optional.of(listing(7L, /*ownerId=*/99L)));
+        when(listingApi.ownerOf(7L)).thenReturn(Optional.of(99L));
 
         assertThatThrownBy(() -> service.request(/*callerId=*/50L, 7L, 60L))
                 .isInstanceOf(NotPropertyOwnerException.class);
@@ -93,8 +85,8 @@ class AgentListingServiceTest {
 
     @Test
     void requestRejectsTargetingNonAgentUser() {
-        when(listingRepository.findById(7L)).thenReturn(Optional.of(listing(7L, 50L)));
-        when(userRepository.findById(60L)).thenReturn(Optional.of(user(60L, Role.APPLICANT)));
+        when(listingApi.ownerOf(7L)).thenReturn(Optional.of(50L));
+        when(userApi.roleOf(60L)).thenReturn(Optional.of(Role.APPLICANT));
 
         assertThatThrownBy(() -> service.request(50L, 7L, 60L))
                 .isInstanceOf(AgentNotFoundOrWrongRoleException.class);
@@ -102,8 +94,8 @@ class AgentListingServiceTest {
 
     @Test
     void requestRejectsWhenListingAlreadyHasPendingInvite() {
-        when(listingRepository.findById(7L)).thenReturn(Optional.of(listing(7L, 50L)));
-        when(userRepository.findById(60L)).thenReturn(Optional.of(user(60L, Role.AGENT)));
+        when(listingApi.ownerOf(7L)).thenReturn(Optional.of(50L));
+        when(userApi.roleOf(60L)).thenReturn(Optional.of(Role.AGENT));
         when(agentListingRepository.existsByListingIdAndStatus(7L, AgentListingStatus.REQUESTED))
                 .thenReturn(true);
 
@@ -115,8 +107,8 @@ class AgentListingServiceTest {
 
     @Test
     void requestRejectsWhenListingAlreadyHasActiveAgent() {
-        when(listingRepository.findById(7L)).thenReturn(Optional.of(listing(7L, 50L)));
-        when(userRepository.findById(60L)).thenReturn(Optional.of(user(60L, Role.AGENT)));
+        when(listingApi.ownerOf(7L)).thenReturn(Optional.of(50L));
+        when(userApi.roleOf(60L)).thenReturn(Optional.of(Role.AGENT));
         when(agentListingRepository.existsByListingIdAndStatus(7L, AgentListingStatus.REQUESTED))
                 .thenReturn(false);
         when(agentListingRepository.existsByListingIdAndStatus(7L, AgentListingStatus.ACCEPTED))
@@ -128,7 +120,7 @@ class AgentListingServiceTest {
 
     @Test
     void requestThrowsWhenListingNotFound() {
-        when(listingRepository.findById(404L)).thenReturn(Optional.empty());
+        when(listingApi.ownerOf(404L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.request(50L, 404L, 60L))
                 .isInstanceOf(ListingNotFoundException.class);
@@ -295,19 +287,5 @@ class AgentListingServiceTest {
                 .requestedAt(Instant.now())
                 .version(0L)
                 .build();
-    }
-
-    private static Listing listing(Long id, Long ownerId) {
-        Instant now = Instant.now();
-        return Listing.builder()
-                .id(id).propertyId(1L).ownerId(ownerId)
-                .listingType(ListingType.SALE).askingPrice(new BigDecimal("80000000.00")).currency("NGN")
-                .status(ListingStatus.LIVE)
-                .createdAt(now).updatedAt(now).version(0L).build();
-    }
-
-    private static User user(Long id, Role role) {
-        return User.builder().id(id).email("u" + id + "@x").passwordHash("x").fullName("U")
-                .role(role).tokenVersion(1).createdAt(Instant.now()).build();
     }
 }

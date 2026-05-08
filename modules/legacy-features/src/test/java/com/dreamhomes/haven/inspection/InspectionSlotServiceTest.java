@@ -1,10 +1,7 @@
 package com.dreamhomes.haven.inspection;
 
-import com.dreamhomes.haven.listing.Listing;
+import com.dreamhomes.haven.listing.ListingApi;
 import com.dreamhomes.haven.listing.ListingNotFoundException;
-import com.dreamhomes.haven.listing.ListingRepository;
-import com.dreamhomes.haven.listing.ListingStatus;
-import com.dreamhomes.haven.listing.ListingType;
 import com.dreamhomes.haven.listing.NotPropertyOwnerException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -13,7 +10,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Optional;
 
@@ -27,19 +23,19 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class InspectionSlotServiceTest {
 
-    @Mock ListingRepository listingRepository;
+    @Mock ListingApi listingApi;
     @Mock InspectionSlotRepository slotRepository;
 
     InspectionSlotService service;
 
     @BeforeEach
     void setUp() {
-        service = new InspectionSlotService(slotRepository, listingRepository);
+        service = new InspectionSlotService(slotRepository, listingApi);
     }
 
     @Test
     void persistsSlotWhenCallerOwnsTheListing() {
-        when(listingRepository.findById(7L)).thenReturn(Optional.of(listingOwnedBy(99L)));
+        when(listingApi.ownerOf(7L)).thenReturn(Optional.of(99L));
         when(slotRepository.saveAndFlush(any(InspectionSlot.class))).thenAnswer(inv -> {
             InspectionSlot s = inv.getArgument(0);
             s.setId(123L);
@@ -59,7 +55,7 @@ class InspectionSlotServiceTest {
 
     @Test
     void rejectsWhenCallerDoesNotOwnTheListing() {
-        when(listingRepository.findById(7L)).thenReturn(Optional.of(listingOwnedBy(200L)));
+        when(listingApi.ownerOf(7L)).thenReturn(Optional.of(200L));
 
         assertThatThrownBy(() -> service.create(99L, 7L, new CreateSlotCommand(
                 Instant.parse("2026-06-01T10:00:00Z"),
@@ -71,7 +67,7 @@ class InspectionSlotServiceTest {
 
     @Test
     void rejectsWhenListingNotFound() {
-        when(listingRepository.findById(404L)).thenReturn(Optional.empty());
+        when(listingApi.ownerOf(404L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.create(99L, 404L, new CreateSlotCommand(
                 Instant.parse("2026-06-01T10:00:00Z"),
@@ -81,21 +77,19 @@ class InspectionSlotServiceTest {
 
     @Test
     void rejectsSlotWhereEndIsNotAfterStart() {
-        // Window check fires before any DB lookup — fail fast on garbage input.
+        // Window check fires before any API lookup — fail fast on garbage input.
         assertThatThrownBy(() -> service.create(99L, 7L, new CreateSlotCommand(
                 Instant.parse("2026-06-01T11:00:00Z"),
                 Instant.parse("2026-06-01T10:00:00Z"))))
                 .isInstanceOf(InvalidSlotWindowException.class);
 
         verify(slotRepository, never()).save(any());
-        verify(listingRepository, never()).findById(any());
+        verify(listingApi, never()).ownerOf(any());
     }
 
     @Test
     void translatesGistExcludeViolationToSlotOverlapException() {
-        // Owner publishes two slots that overlap. The DB rejects the second; we surface
-        // the violation as a clean 409 instead of leaking a DataIntegrityViolation.
-        when(listingRepository.findById(7L)).thenReturn(Optional.of(listingOwnedBy(99L)));
+        when(listingApi.ownerOf(7L)).thenReturn(Optional.of(99L));
         when(slotRepository.saveAndFlush(any(InspectionSlot.class)))
                 .thenThrow(new org.springframework.dao.DataIntegrityViolationException("overlap"));
 
@@ -114,14 +108,5 @@ class InspectionSlotServiceTest {
 
         assertThat(result).hasSize(1);
         verify(slotRepository).findAvailableForListing(7L);
-    }
-
-    private static Listing listingOwnedBy(Long ownerId) {
-        Instant now = Instant.now();
-        return Listing.builder()
-                .id(7L).propertyId(1L).ownerId(ownerId)
-                .listingType(ListingType.RENT).askingPrice(new BigDecimal("100.00")).currency("NGN")
-                .status(ListingStatus.LIVE)
-                .createdAt(now).updatedAt(now).build();
     }
 }

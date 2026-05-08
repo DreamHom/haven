@@ -131,7 +131,10 @@ class AgentListingControllerTest {
     }
 
     private static AgentListingResponse fromStub(Long id, AgentListingStatus status) {
-        return AgentListingResponse.from(stub(id, status));
+        AgentListing al = stub(id, status);
+        return new AgentListingResponse(al.getId(), al.getListingId(), al.getAgentUserId(),
+                al.getRequestedByOwnerId(), al.getStatus(), al.getDecisionReason(),
+                al.getRequestedAt(), al.getDecidedAt());
     }
 
     private static AgentListing stub(Long id, AgentListingStatus status) {

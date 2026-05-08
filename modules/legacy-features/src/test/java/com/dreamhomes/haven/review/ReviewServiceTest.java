@@ -1,20 +1,17 @@
 package com.dreamhomes.haven.review;
 
-import com.dreamhomes.haven.listing.Listing;
+import com.dreamhomes.haven.admin.AdminAction;
+import com.dreamhomes.haven.admin.AdminAuditApi;
+import com.dreamhomes.haven.admin.AuditTargetType;
+import com.dreamhomes.haven.listing.ListingApi;
 import com.dreamhomes.haven.listing.ListingNotFoundException;
-import com.dreamhomes.haven.listing.ListingRepository;
+import com.dreamhomes.haven.listing.ListingResponse;
 import com.dreamhomes.haven.listing.ListingStatus;
 import com.dreamhomes.haven.listing.ListingType;
-import com.dreamhomes.haven.admin.AdminAction;
-import com.dreamhomes.haven.admin.AdminAuditLog;
-import com.dreamhomes.haven.admin.AdminAuditLogRepository;
-import com.dreamhomes.haven.admin.AuditTargetType;
 import com.dreamhomes.haven.notification.NotificationApi;
 import com.dreamhomes.haven.notification.NotificationKind;
-import com.dreamhomes.haven.offer.OfferRepository;
-import com.dreamhomes.haven.offer.OfferStatus;
+import com.dreamhomes.haven.offer.OfferApi;
 import com.dreamhomes.haven.user.Role;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,11 +21,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -38,24 +37,22 @@ import static org.mockito.Mockito.when;
 class ReviewServiceTest {
 
     @Mock ListingReviewRepository reviewRepository;
-    @Mock ListingRepository listingRepository;
-    @Mock OfferRepository offerRepository;
+    @Mock ListingApi listingApi;
+    @Mock OfferApi offerApi;
     @Mock NotificationApi notificationApi;
-    @Mock AdminAuditLogRepository adminAuditLogRepository;
+    @Mock AdminAuditApi adminAuditApi;
 
     ReviewService service;
 
     @BeforeEach
     void setUp() {
-        service = new ReviewService(reviewRepository, listingRepository, offerRepository,
-                notificationApi, adminAuditLogRepository, new ObjectMapper());
+        service = new ReviewService(reviewRepository, listingApi, offerApi, notificationApi, adminAuditApi);
     }
 
     @Test
     void ownerReviewsApplicantAfterAcceptedOfferAndListingClosed() {
-        when(listingRepository.findById(7L)).thenReturn(Optional.of(closedListing(7L, /*ownerId=*/50L)));
-        when(offerRepository.existsByListingIdAndApplicantIdAndStatus(7L, /*revieweeId=*/100L, OfferStatus.ACCEPTED))
-                .thenReturn(true);
+        when(listingApi.findById(7L)).thenReturn(closedListing(7L, /*ownerId=*/50L));
+        when(offerApi.hadAcceptedOffer(7L, /*revieweeId=*/100L)).thenReturn(true);
         when(reviewRepository.existsByListingIdAndReviewerUserIdAndRevieweeUserId(7L, 50L, 100L))
                 .thenReturn(false);
         when(reviewRepository.save(any(ListingReview.class))).thenAnswer(inv -> {
@@ -80,9 +77,8 @@ class ReviewServiceTest {
 
     @Test
     void applicantReviewsOwnerAfterAcceptedOfferAndListingClosed() {
-        when(listingRepository.findById(7L)).thenReturn(Optional.of(closedListing(7L, /*ownerId=*/50L)));
-        when(offerRepository.existsByListingIdAndApplicantIdAndStatus(7L, /*reviewerId=*/100L, OfferStatus.ACCEPTED))
-                .thenReturn(true);
+        when(listingApi.findById(7L)).thenReturn(closedListing(7L, /*ownerId=*/50L));
+        when(offerApi.hadAcceptedOffer(7L, /*reviewerId=*/100L)).thenReturn(true);
         when(reviewRepository.save(any(ListingReview.class))).thenAnswer(inv -> inv.getArgument(0));
 
         service.post(/*reviewerId=*/100L, 7L, /*revieweeId=*/50L, (short) 4, "Friendly owner");
@@ -92,7 +88,7 @@ class ReviewServiceTest {
 
     @Test
     void rejectsReviewWhenListingIsStillLive() {
-        when(listingRepository.findById(7L)).thenReturn(Optional.of(liveListing(7L, 50L)));
+        when(listingApi.findById(7L)).thenReturn(liveListing(7L, 50L));
 
         assertThatThrownBy(() -> service.post(50L, 7L, 100L, (short) 5, "anything"))
                 .isInstanceOf(ListingNotClosedException.class);
@@ -102,7 +98,8 @@ class ReviewServiceTest {
 
     @Test
     void rejectsReviewByNonParticipant() {
-        when(listingRepository.findById(7L)).thenReturn(Optional.of(closedListing(7L, /*ownerId=*/50L)));
+        when(listingApi.findById(7L)).thenReturn(closedListing(7L, /*ownerId=*/50L));
+        when(offerApi.hadAcceptedOffer(7L, 200L)).thenReturn(false);
 
         assertThatThrownBy(() -> service.post(/*reviewerId=*/200L, 7L, 100L, (short) 5, "x"))
                 .isInstanceOf(NotADealParticipantException.class);
@@ -110,11 +107,10 @@ class ReviewServiceTest {
 
     @Test
     void rejectsReviewWhenRevieweeIsNotTheCounterparty() {
-        // Reviewer is the owner; reviewee should be an accepted-offer applicant. We supply
-        // someone who never had an accepted offer on this listing.
-        when(listingRepository.findById(7L)).thenReturn(Optional.of(closedListing(7L, /*ownerId=*/50L)));
-        when(offerRepository.existsByListingIdAndApplicantIdAndStatus(7L, /*revieweeId=*/200L, OfferStatus.ACCEPTED))
-                .thenReturn(false);
+        // Reviewer is the owner; reviewee should be an accepted-offer applicant. Supplied
+        // reviewee never had an accepted offer on this listing.
+        when(listingApi.findById(7L)).thenReturn(closedListing(7L, /*ownerId=*/50L));
+        when(offerApi.hadAcceptedOffer(7L, /*revieweeId=*/200L)).thenReturn(false);
 
         assertThatThrownBy(() -> service.post(50L, 7L, 200L, (short) 5, "x"))
                 .isInstanceOf(InvalidRevieweeException.class);
@@ -122,9 +118,8 @@ class ReviewServiceTest {
 
     @Test
     void rejectsApplicantReviewingSomeoneOtherThanTheOwner() {
-        when(listingRepository.findById(7L)).thenReturn(Optional.of(closedListing(7L, /*ownerId=*/50L)));
-        when(offerRepository.existsByListingIdAndApplicantIdAndStatus(7L, /*reviewerId=*/100L, OfferStatus.ACCEPTED))
-                .thenReturn(true);
+        when(listingApi.findById(7L)).thenReturn(closedListing(7L, /*ownerId=*/50L));
+        when(offerApi.hadAcceptedOffer(7L, /*reviewerId=*/100L)).thenReturn(true);
 
         assertThatThrownBy(() -> service.post(/*reviewerId=*/100L, 7L, /*revieweeId=*/999L, (short) 5, "x"))
                 .isInstanceOf(InvalidRevieweeException.class);
@@ -135,7 +130,7 @@ class ReviewServiceTest {
         assertThatThrownBy(() -> service.post(50L, 7L, /*revieweeId=*/50L, (short) 5, "x"))
                 .isInstanceOf(InvalidRevieweeException.class);
 
-        verify(listingRepository, never()).findById(any());
+        verify(listingApi, never()).findById(any());
     }
 
     @Test
@@ -154,9 +149,8 @@ class ReviewServiceTest {
 
     @Test
     void rejectsDuplicateReviewByTheSameReviewerOnSameCounterpartyForSameListing() {
-        when(listingRepository.findById(7L)).thenReturn(Optional.of(closedListing(7L, 50L)));
-        when(offerRepository.existsByListingIdAndApplicantIdAndStatus(7L, 100L, OfferStatus.ACCEPTED))
-                .thenReturn(true);
+        when(listingApi.findById(7L)).thenReturn(closedListing(7L, 50L));
+        when(offerApi.hadAcceptedOffer(7L, 100L)).thenReturn(true);
         when(reviewRepository.existsByListingIdAndReviewerUserIdAndRevieweeUserId(7L, 50L, 100L))
                 .thenReturn(true);
 
@@ -168,7 +162,7 @@ class ReviewServiceTest {
 
     @Test
     void rejectsReviewOnNonExistentListing() {
-        when(listingRepository.findById(404L)).thenReturn(Optional.empty());
+        when(listingApi.findById(404L)).thenThrow(new ListingNotFoundException(404L));
 
         assertThatThrownBy(() -> service.post(50L, 404L, 100L, (short) 5, "x"))
                 .isInstanceOf(ListingNotFoundException.class);
@@ -203,7 +197,7 @@ class ReviewServiceTest {
         assertThat(agg.count()).isZero();
     }
 
-    // ============================ takedown (Phase 12) ============================
+    // ============================ takedown ============================
 
     @Test
     void authorCanDeleteTheirOwnReview() {
@@ -218,7 +212,7 @@ class ReviewServiceTest {
         assertThat(cap.getValue().getDeletedByUserId()).isEqualTo(50L);
         assertThat(cap.getValue().getDeletionReason()).isEqualTo("Wrote it in anger");
         // No admin audit row when the author self-deletes — only admin moderation gets logged.
-        verify(adminAuditLogRepository, never()).save(any());
+        verify(adminAuditApi, never()).record(anyLong(), any(), any(), anyLong(), any());
     }
 
     @Test
@@ -229,13 +223,12 @@ class ReviewServiceTest {
         service.delete(/*adminId=*/1L, Role.ADMIN, 123L, "Defamatory");
 
         verify(reviewRepository).save(any(ListingReview.class));
-        ArgumentCaptor<AdminAuditLog> cap = ArgumentCaptor.forClass(AdminAuditLog.class);
-        verify(adminAuditLogRepository).save(cap.capture());
-        assertThat(cap.getValue().getAdminId()).isEqualTo(1L);
-        assertThat(cap.getValue().getAction()).isEqualTo(AdminAction.REVIEW_TAKEDOWN);
-        assertThat(cap.getValue().getTargetType()).isEqualTo(AuditTargetType.REVIEW);
-        assertThat(cap.getValue().getTargetId()).isEqualTo(123L);
-        assertThat(cap.getValue().getMetadata()).contains("Defamatory");
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Map<String, Object>> metaCap = ArgumentCaptor.forClass(Map.class);
+        verify(adminAuditApi).record(eq(1L), eq(AdminAction.REVIEW_TAKEDOWN),
+                eq(AuditTargetType.REVIEW), eq(123L), metaCap.capture());
+        assertThat(metaCap.getValue()).containsEntry("reason", "Defamatory");
     }
 
     @Test
@@ -294,22 +287,18 @@ class ReviewServiceTest {
                 .createdAt(Instant.now()).build();
     }
 
-    // ============================ helpers ============================
-
-    private static Listing closedListing(Long id, Long ownerId) {
+    private static ListingResponse closedListing(Long id, Long ownerId) {
         return listing(id, ownerId, ListingStatus.CLOSED);
     }
 
-    private static Listing liveListing(Long id, Long ownerId) {
+    private static ListingResponse liveListing(Long id, Long ownerId) {
         return listing(id, ownerId, ListingStatus.LIVE);
     }
 
-    private static Listing listing(Long id, Long ownerId, ListingStatus status) {
+    private static ListingResponse listing(Long id, Long ownerId, ListingStatus status) {
         Instant now = Instant.now();
-        return Listing.builder()
-                .id(id).propertyId(1L).ownerId(ownerId)
-                .listingType(ListingType.SALE).askingPrice(new BigDecimal("80000000.00")).currency("NGN")
-                .status(status)
-                .createdAt(now).updatedAt(now).version(0L).build();
+        return new ListingResponse(id, 1L, ownerId, ListingType.SALE,
+                new BigDecimal("80000000.00"), "NGN", null, null, null,
+                status, null, 0L, now, now, null);
     }
 }

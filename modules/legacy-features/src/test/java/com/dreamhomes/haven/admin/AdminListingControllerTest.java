@@ -3,7 +3,7 @@ package com.dreamhomes.haven.admin;
 import com.dreamhomes.haven.auth.JwtPrincipal;
 import com.dreamhomes.haven.auth.JwtService;
 import com.dreamhomes.haven.common.config.SecurityConfig;
-import com.dreamhomes.haven.listing.Listing;
+import com.dreamhomes.haven.listing.ListingResponse;
 import com.dreamhomes.haven.listing.ListingStatus;
 import com.dreamhomes.haven.listing.ListingType;
 import com.dreamhomes.haven.user.Role;
@@ -55,7 +55,7 @@ class AdminListingControllerTest {
 
     @Test
     void adminApprovesListingReturns200WithApprovedAt() throws Exception {
-        Listing approved = listing(11L, ListingStatus.LIVE, Instant.now());
+        ListingResponse approved = listing(11L, ListingStatus.LIVE, Instant.now());
         when(adminListingService.approve(eq(7L), eq(11L))).thenReturn(approved);
 
         mockMvc.perform(post("/api/admin/listings/11/approve")
@@ -76,7 +76,7 @@ class AdminListingControllerTest {
 
     @Test
     void adminTakedownWithReasonReturns200WithClosedStatus() throws Exception {
-        Listing closed = listing(11L, ListingStatus.CLOSED, null);
+        ListingResponse closed = listing(11L, ListingStatus.CLOSED, null);
         when(adminListingService.takedown(eq(7L), eq(11L), eq("policy violation"))).thenReturn(closed);
 
         mockMvc.perform(post("/api/admin/listings/11/takedown")
@@ -102,13 +102,11 @@ class AdminListingControllerTest {
         verify(adminListingService, never()).takedown(any(), any(), any());
     }
 
-    private static Listing listing(Long id, ListingStatus status, Instant approvedAt) {
+    private static ListingResponse listing(Long id, ListingStatus status, Instant approvedAt) {
         Instant now = Instant.now();
-        return Listing.builder()
-                .id(id).propertyId(1L).ownerId(50L)
-                .listingType(ListingType.SALE).askingPrice(new BigDecimal("80000000.00")).currency("NGN")
-                .status(status).approvedAt(approvedAt)
-                .createdAt(now).updatedAt(now).version(0L).build();
+        return new ListingResponse(id, 1L, 50L, ListingType.SALE,
+                new BigDecimal("80000000.00"), "NGN", null, null, null,
+                status, approvedAt, 0L, now, now, null);
     }
 
     private static RequestPostProcessor asPrincipal(Long userId, Role role) {
