@@ -11,14 +11,13 @@
         <relativePath>../../../../pom.xml</relativePath>
     </parent>
 
-    <artifactId>haven-feature-notification-api</artifactId>
-    <name>haven-feature-notification-api</name>
-    <description>Public contract for the notification feature: NotificationApi (recordSync /
-        recordAsync), NotificationKind enum, exceptions. No implementation, no entities,
-        no repositories.</description>
+    <artifactId>haven-feature-user-api</artifactId>
+    <name>haven-feature-user-api</name>
+    <description>Public contract for the user feature: UserApi, PublicUserProfile,
+        UserNotFoundException. Role stays in core (security primitive, used by JWT
+        + @PreAuthorize across every module).</description>
 
     <dependencies>
-        <!-- DomainException base for the notification exceptions -->
         <dependency>
             <groupId>com.dreamhomes</groupId>
             <artifactId>haven-core</artifactId>

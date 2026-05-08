@@ -2,6 +2,7 @@ package com.dreamhomes.haven.admin;
 
 import com.dreamhomes.haven.user.Role;
 import com.dreamhomes.haven.user.User;
+import com.dreamhomes.haven.user.UserNotFoundException;
 import com.dreamhomes.haven.user.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;

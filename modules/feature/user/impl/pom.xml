@@ -11,15 +11,20 @@
         <relativePath>../../../../pom.xml</relativePath>
     </parent>
 
-    <artifactId>haven-feature-notification-impl</artifactId>
-    <name>haven-feature-notification-impl</name>
-    <description>Notification implementation: Notification entity, repository, service
-        (implements NotificationApi), REST controller, response DTO, source enum.</description>
+    <artifactId>haven-feature-user-impl</artifactId>
+    <name>haven-feature-user-impl</name>
+    <description>User implementation: User + AgentProfile entities, repositories,
+        UserProfileService (implements UserApi), UserProfileController. Cross-aggregate
+        review read goes through ReviewApi.</description>
 
     <dependencies>
         <dependency>
             <groupId>com.dreamhomes</groupId>
-            <artifactId>haven-feature-notification-api</artifactId>
+            <artifactId>haven-feature-user-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.dreamhomes</groupId>
+            <artifactId>haven-feature-review-api</artifactId>
         </dependency>
         <dependency>
             <groupId>com.dreamhomes</groupId>
@@ -42,10 +47,6 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-        </dependency>
 
         <dependency>
             <groupId>org.projectlombok</groupId>
@@ -53,7 +54,6 @@
             <optional>true</optional>
         </dependency>
 
-        <!-- test -->
         <dependency>
             <groupId>com.dreamhomes</groupId>
             <artifactId>haven-test-support</artifactId>
@@ -62,31 +62,6 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.security</groupId>
-            <artifactId>spring-security-test</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-testcontainers</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.testcontainers</groupId>
-            <artifactId>postgresql</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.testcontainers</groupId>
-            <artifactId>junit-jupiter</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.kafka</groupId>
-            <artifactId>spring-kafka-test</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

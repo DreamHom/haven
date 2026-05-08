@@ -28,6 +28,9 @@
         <module>modules/feature/property/impl</module>
         <module>modules/feature/listing/api</module>
         <module>modules/feature/listing/impl</module>
+        <module>modules/feature/user/api</module>
+        <module>modules/feature/user/impl</module>
+        <module>modules/feature/review/api</module>
         <module>modules/legacy-features</module>
         <module>modules/app</module>
     </modules>
@@ -92,6 +95,21 @@
             <dependency>
                 <groupId>com.dreamhomes</groupId>
                 <artifactId>haven-feature-listing-impl</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.dreamhomes</groupId>
+                <artifactId>haven-feature-user-api</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.dreamhomes</groupId>
+                <artifactId>haven-feature-user-impl</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.dreamhomes</groupId>
+                <artifactId>haven-feature-review-api</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

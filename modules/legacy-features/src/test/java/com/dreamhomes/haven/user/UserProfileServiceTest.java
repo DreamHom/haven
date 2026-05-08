@@ -1,6 +1,6 @@
 package com.dreamhomes.haven.user;
 
-import com.dreamhomes.haven.admin.UserNotFoundException;
+import com.dreamhomes.haven.user.UserNotFoundException;
 import com.dreamhomes.haven.review.ReviewAggregate;
 import com.dreamhomes.haven.review.ReviewService;
 import org.junit.jupiter.api.BeforeEach;

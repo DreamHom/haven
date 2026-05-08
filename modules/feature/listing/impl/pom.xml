@@ -8,7 +8,7 @@
         <groupId>com.dreamhomes</groupId>
         <artifactId>dreamhomes-haven-parent</artifactId>
         <version>0.0.1-SNAPSHOT</version>
-        <relativePath/>
+        <relativePath>../../../../pom.xml</relativePath>
     </parent>
 
     <artifactId>haven-feature-listing-impl</artifactId>

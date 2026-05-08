@@ -8,7 +8,7 @@
         <groupId>com.dreamhomes</groupId>
         <artifactId>dreamhomes-haven-parent</artifactId>
         <version>0.0.1-SNAPSHOT</version>
-        <relativePath/>
+        <relativePath>../../pom.xml</relativePath>
     </parent>
 
     <artifactId>haven-legacy-features</artifactId>
@@ -45,6 +45,18 @@
         <dependency>
             <groupId>com.dreamhomes</groupId>
             <artifactId>haven-feature-property-impl</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.dreamhomes</groupId>
+            <artifactId>haven-feature-user-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.dreamhomes</groupId>
+            <artifactId>haven-feature-user-impl</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.dreamhomes</groupId>
+            <artifactId>haven-feature-review-api</artifactId>
         </dependency>
         <dependency>
             <groupId>com.dreamhomes</groupId>

@@ -44,7 +44,7 @@ import java.util.Map;
 @Service
 @Slf4j
 @RequiredArgsConstructor
-public class ReviewService {
+public class ReviewService implements ReviewApi {
 
     private final ListingReviewRepository reviewRepository;
     private final ListingRepository listingRepository;
@@ -181,6 +181,7 @@ public class ReviewService {
                 .build());
     }
 
+    @Override
     @Transactional(readOnly = true)
     public ReviewAggregate aggregateForUser(Long userId) {
         ReviewAggregate agg = reviewRepository.aggregateForUser(userId);

@@ -1,6 +1,7 @@
 package com.dreamhomes.haven.admin;
 
 import com.dreamhomes.haven.user.User;
+import com.dreamhomes.haven.user.UserNotFoundException;
 import com.dreamhomes.haven.user.UserRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;

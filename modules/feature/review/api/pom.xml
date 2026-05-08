@@ -11,14 +11,14 @@
         <relativePath>../../../../pom.xml</relativePath>
     </parent>
 
-    <artifactId>haven-feature-notification-api</artifactId>
-    <name>haven-feature-notification-api</name>
-    <description>Public contract for the notification feature: NotificationApi (recordSync /
-        recordAsync), NotificationKind enum, exceptions. No implementation, no entities,
-        no repositories.</description>
+    <artifactId>haven-feature-review-api</artifactId>
+    <name>haven-feature-review-api</name>
+    <description>Public contract slice of the review feature: ReviewApi (aggregateForUser)
+        + ReviewAggregate record. Created early because user-impl needs cross-aggregate
+        review reads; the rest of review (entity, repo, controller, post / soft-delete)
+        will land in feature/review/impl when the review feature splits in P3.</description>
 
     <dependencies>
-        <!-- DomainException base for the notification exceptions -->
         <dependency>
             <groupId>com.dreamhomes</groupId>
             <artifactId>haven-core</artifactId>
