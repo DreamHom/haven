@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.dreamhomes</groupId>
+        <artifactId>dreamhomes-haven-parent</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+        <relativePath/>
+    </parent>
+
+    <artifactId>haven-feature-listing-api</artifactId>
+    <name>haven-feature-listing-api</name>
+    <description>Public contract for the listing feature: ListingApi, ListingType +
+        ListingStatus enums, ListingResponse DTO (which embeds PropertySummary from the
+        property API), exceptions.</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.dreamhomes</groupId>
+            <artifactId>haven-core</artifactId>
+        </dependency>
+        <!-- ListingResponse embeds PropertySummary -->
+        <dependency>
+            <groupId>com.dreamhomes</groupId>
+            <artifactId>haven-feature-property-api</artifactId>
+        </dependency>
+    </dependencies>
+</project>

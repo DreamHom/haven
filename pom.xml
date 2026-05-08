@@ -19,15 +19,17 @@
     <packaging>pom</packaging>
 
     <modules>
-        <module>core</module>
-        <module>core-events</module>
-        <module>test-support</module>
-        <module>feature-notification-api</module>
-        <module>feature-notification-impl</module>
-        <module>feature-property-api</module>
-        <module>feature-property-impl</module>
-        <module>legacy-features</module>
-        <module>app</module>
+        <module>modules/core</module>
+        <module>modules/core-events</module>
+        <module>modules/test-support</module>
+        <module>modules/feature/notification/api</module>
+        <module>modules/feature/notification/impl</module>
+        <module>modules/feature/property/api</module>
+        <module>modules/feature/property/impl</module>
+        <module>modules/feature/listing/api</module>
+        <module>modules/feature/listing/impl</module>
+        <module>modules/legacy-features</module>
+        <module>modules/app</module>
     </modules>
 
     <properties>
@@ -80,6 +82,16 @@
             <dependency>
                 <groupId>com.dreamhomes</groupId>
                 <artifactId>haven-feature-property-impl</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.dreamhomes</groupId>
+                <artifactId>haven-feature-listing-api</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.dreamhomes</groupId>
+                <artifactId>haven-feature-listing-impl</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
