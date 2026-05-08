@@ -8,10 +8,8 @@ import com.dreamhomes.haven.listing.ListingNotFoundException;
 import com.dreamhomes.haven.listing.ListingRepository;
 import com.dreamhomes.haven.listing.ListingStatus;
 import com.dreamhomes.haven.listing.NotPropertyOwnerException;
-import com.dreamhomes.haven.notification.Notification;
+import com.dreamhomes.haven.notification.NotificationApi;
 import com.dreamhomes.haven.notification.NotificationKind;
-import com.dreamhomes.haven.notification.NotificationRepository;
-import com.dreamhomes.haven.notification.NotificationSource;
 import com.dreamhomes.haven.offer.events.OfferSubmittedEvent;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -37,7 +35,7 @@ public class OfferService {
     private final OfferRepository offerRepository;
     private final ListingRepository listingRepository;
     private final OutboxEventRepository outboxRepository;
-    private final NotificationRepository notificationRepository;
+    private final NotificationApi notificationApi;
     private final ObjectMapper objectMapper;
     private final ApplicationEventPublisher applicationEventPublisher;
 
@@ -200,21 +198,7 @@ public class OfferService {
         payload.put("listingId", child.getListingId());
         payload.put("amount", child.getAmount());
         payload.put("proposedByUserId", child.getProposedByUserId());
-        notificationRepository.save(Notification.builder()
-                .recipientId(recipientId)
-                .kind(NotificationKind.OFFER_COUNTERED)
-                .source(NotificationSource.SYNC)
-                .payload(serializeMap(payload))
-                .createdAt(Instant.now())
-                .build());
-    }
-
-    private String serializeMap(Map<String, Object> payload) {
-        try {
-            return objectMapper.writeValueAsString(payload);
-        } catch (JsonProcessingException e) {
-            throw new IllegalStateException("Failed to serialise counter-offer notification payload", e);
-        }
+        notificationApi.recordSync(NotificationKind.OFFER_COUNTERED, recipientId, payload);
     }
 
     private String serialize(Object event) {

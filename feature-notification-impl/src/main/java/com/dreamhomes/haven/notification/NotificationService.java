@@ -1,7 +1,5 @@
 package com.dreamhomes.haven.notification;
 
-import com.dreamhomes.haven.inspection.events.InspectionRequestedEvent;
-import com.dreamhomes.haven.offer.events.OfferSubmittedEvent;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -12,50 +10,61 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.util.Optional;
+import java.util.Map;
 import java.util.UUID;
 
 /**
- * Persists notification rows triggered by Kafka events. Idempotent on {@code eventId} —
- * Kafka delivers at-least-once, so the same event can arrive twice; the
- * {@code existsByEventId} check is the service-level half of that guarantee, with the
- * UNIQUE constraint on the column as belt-and-suspenders for the race window between
- * check and insert.
+ * Implementation of {@link NotificationApi}. Persists notification rows for both
+ * synchronous (same-transaction) callers and asynchronous (Kafka-driven) consumers.
+ *
+ * <p>Async path is idempotent on {@code eventId} — Kafka delivers at-least-once, so
+ * the same event can arrive twice; the {@code existsByEventId} check is the
+ * service-level half of that guarantee, with the UNIQUE constraint on the column as
+ * belt-and-suspenders for the race window between check and insert.
+ *
+ * <p>Read-side methods (listMine / countUnread / markRead) are NOT on the public API
+ * because no other feature needs them — they're called by NotificationController in
+ * the same module.
  */
 @Service
 @Slf4j
 @RequiredArgsConstructor
-public class NotificationService {
+public class NotificationService implements NotificationApi {
 
     private final NotificationRepository notificationRepository;
     private final ObjectMapper objectMapper;
 
+    @Override
     @Transactional
-    public Optional<Notification> recordInspectionRequested(InspectionRequestedEvent event) {
-        return record(event.eventId(), event.ownerId(), NotificationKind.INSPECTION_REQUESTED, event);
+    public void recordSync(NotificationKind kind, Long recipientUserId, Map<String, Object> payload) {
+        Notification saved = notificationRepository.save(Notification.builder()
+                .recipientId(recipientUserId)
+                .kind(kind)
+                .source(NotificationSource.SYNC)
+                .payload(serialize(payload))
+                .createdAt(Instant.now())
+                .build());
+        log.info("Recorded sync notificationId={} kind={} recipientId={}",
+                saved.getId(), kind, recipientUserId);
     }
 
+    @Override
     @Transactional
-    public Optional<Notification> recordOfferSubmitted(OfferSubmittedEvent event) {
-        return record(event.eventId(), event.ownerId(), NotificationKind.OFFER_SUBMITTED, event);
-    }
-
-    private Optional<Notification> record(UUID eventId, Long recipientId, NotificationKind kind, Object payload) {
+    public void recordAsync(UUID eventId, NotificationKind kind, Long recipientUserId, Object payload) {
         if (notificationRepository.existsByEventId(eventId)) {
             log.info("Skipping duplicate notification eventId={} kind={}", eventId, kind);
-            return Optional.empty();
+            return;
         }
         Notification saved = notificationRepository.save(Notification.builder()
                 .eventId(eventId)
-                .recipientId(recipientId)
+                .recipientId(recipientUserId)
                 .kind(kind)
                 .source(NotificationSource.ASYNC_KAFKA)
                 .payload(serialize(payload))
                 .createdAt(Instant.now())
                 .build());
-        log.info("Recorded notificationId={} eventId={} kind={} recipientId={}",
-                saved.getId(), eventId, saved.getKind(), saved.getRecipientId());
-        return Optional.of(saved);
+        log.info("Recorded async notificationId={} eventId={} kind={} recipientId={}",
+                saved.getId(), eventId, kind, recipientUserId);
     }
 
     /**

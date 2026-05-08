@@ -1,9 +1,7 @@
 package com.dreamhomes.haven.admin;
 
-import com.dreamhomes.haven.notification.Notification;
+import com.dreamhomes.haven.notification.NotificationApi;
 import com.dreamhomes.haven.notification.NotificationKind;
-import com.dreamhomes.haven.notification.NotificationRepository;
-import com.dreamhomes.haven.notification.NotificationSource;
 import com.dreamhomes.haven.property.Property;
 import com.dreamhomes.haven.property.PropertyRepository;
 import com.dreamhomes.haven.property.PropertyType;
@@ -33,6 +31,8 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -44,7 +44,7 @@ class AdminVerificationServiceTest {
     @Mock UserRepository userRepository;
     @Mock AgentProfileRepository agentProfileRepository;
     @Mock PropertyRepository propertyRepository;
-    @Mock NotificationRepository notificationRepository;
+    @Mock NotificationApi notificationApi;
     @Mock AdminAuditLogRepository auditLogRepository;
 
     AdminVerificationService service;
@@ -52,7 +52,7 @@ class AdminVerificationServiceTest {
     @BeforeEach
     void setUp() {
         service = new AdminVerificationService(verificationRepository, userRepository,
-                agentProfileRepository, propertyRepository, notificationRepository,
+                agentProfileRepository, propertyRepository, notificationApi,
                 auditLogRepository, new ObjectMapper(),
                 new AdminMetrics(new SimpleMeterRegistry()));
     }
@@ -141,13 +141,7 @@ class AdminVerificationServiceTest {
         assertThat(audit.getTargetType()).isEqualTo(AuditTargetType.VERIFICATION);
         assertThat(audit.getTargetId()).isEqualTo(99L);
 
-        ArgumentCaptor<Notification> notifCap = ArgumentCaptor.forClass(Notification.class);
-        verify(notificationRepository).save(notifCap.capture());
-        Notification notif = notifCap.getValue();
-        assertThat(notif.getRecipientId()).isEqualTo(50L);   // submitter
-        assertThat(notif.getKind()).isEqualTo(NotificationKind.VERIFICATION_APPROVED);
-        assertThat(notif.getSource()).isEqualTo(NotificationSource.SYNC);
-        assertThat(notif.getEventId()).isNull();
+        verify(notificationApi).recordSync(eq(NotificationKind.VERIFICATION_APPROVED), eq(50L), any());
     }
 
     @Test
@@ -168,9 +162,7 @@ class AdminVerificationServiceTest {
         verify(agentProfileRepository, never()).save(any());
         verify(propertyRepository, never()).save(any());
 
-        ArgumentCaptor<Notification> notifCap = ArgumentCaptor.forClass(Notification.class);
-        verify(notificationRepository).save(notifCap.capture());
-        assertThat(notifCap.getValue().getKind()).isEqualTo(NotificationKind.VERIFICATION_REJECTED);
+        verify(notificationApi).recordSync(eq(NotificationKind.VERIFICATION_REJECTED), eq(50L), any());
     }
 
     @Test
@@ -185,7 +177,7 @@ class AdminVerificationServiceTest {
                 .isInstanceOf(VerificationAlreadyDecidedException.class);
 
         verify(verificationRepository, never()).save(any());
-        verify(notificationRepository, never()).save(any());
+        verify(notificationApi, never()).recordSync(any(), anyLong(), any());
         verify(auditLogRepository, never()).save(any());
     }
 

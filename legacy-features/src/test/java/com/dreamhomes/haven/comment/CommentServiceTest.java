@@ -5,12 +5,9 @@ import com.dreamhomes.haven.listing.ListingNotFoundException;
 import com.dreamhomes.haven.listing.ListingRepository;
 import com.dreamhomes.haven.listing.ListingStatus;
 import com.dreamhomes.haven.listing.ListingType;
-import com.dreamhomes.haven.notification.Notification;
+import com.dreamhomes.haven.notification.NotificationApi;
 import com.dreamhomes.haven.notification.NotificationKind;
-import com.dreamhomes.haven.notification.NotificationRepository;
-import com.dreamhomes.haven.notification.NotificationSource;
 import com.dreamhomes.haven.user.Role;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,23 +22,26 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
+import java.util.Map;
 
 @ExtendWith(MockitoExtension.class)
 class CommentServiceTest {
 
     @Mock CommentRepository commentRepository;
     @Mock ListingRepository listingRepository;
-    @Mock NotificationRepository notificationRepository;
+    @Mock NotificationApi notificationApi;
 
     CommentService service;
 
     @BeforeEach
     void setUp() {
-        service = new CommentService(commentRepository, listingRepository,
-                notificationRepository, new ObjectMapper());
+        service = new CommentService(commentRepository, listingRepository, notificationApi);
     }
 
     @Test
@@ -62,13 +62,10 @@ class CommentServiceTest {
         assertThat(commentCap.getValue().getBody()).isEqualTo("Hi, is this still available?");
         assertThat(commentCap.getValue().getDeletedAt()).isNull();
 
-        ArgumentCaptor<Notification> notifCap = ArgumentCaptor.forClass(Notification.class);
-        verify(notificationRepository).save(notifCap.capture());
-        Notification notif = notifCap.getValue();
-        assertThat(notif.getRecipientId()).isEqualTo(99L);
-        assertThat(notif.getKind()).isEqualTo(NotificationKind.COMMENT_POSTED);
-        assertThat(notif.getSource()).isEqualTo(NotificationSource.SYNC);
-        assertThat(notif.getPayload()).contains("\"commentId\":123").contains("\"listingId\":7");
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Map<String, Object>> payloadCap = ArgumentCaptor.forClass(Map.class);
+        verify(notificationApi).recordSync(eq(NotificationKind.COMMENT_POSTED), eq(99L), payloadCap.capture());
+        assertThat(payloadCap.getValue()).containsEntry("commentId", 123L).containsEntry("listingId", 7L);
         assertThat(posted.getId()).isEqualTo(123L);
     }
 
@@ -79,7 +76,7 @@ class CommentServiceTest {
 
         service.post(/*authorId=*/99L, 7L, "Anything I should clarify?");
 
-        verify(notificationRepository, never()).save(any());
+        verify(notificationApi, never()).recordSync(any(), anyLong(), any());
     }
 
     @Test

@@ -22,6 +22,8 @@
         <module>core</module>
         <module>core-events</module>
         <module>test-support</module>
+        <module>feature-notification-api</module>
+        <module>feature-notification-impl</module>
         <module>legacy-features</module>
         <module>app</module>
     </modules>
@@ -56,6 +58,16 @@
             <dependency>
                 <groupId>com.dreamhomes</groupId>
                 <artifactId>haven-test-support</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.dreamhomes</groupId>
+                <artifactId>haven-feature-notification-api</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.dreamhomes</groupId>
+                <artifactId>haven-feature-notification-impl</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

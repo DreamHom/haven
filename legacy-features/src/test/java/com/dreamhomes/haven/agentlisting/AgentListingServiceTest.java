@@ -6,14 +6,11 @@ import com.dreamhomes.haven.listing.ListingRepository;
 import com.dreamhomes.haven.listing.ListingStatus;
 import com.dreamhomes.haven.listing.ListingType;
 import com.dreamhomes.haven.listing.NotPropertyOwnerException;
-import com.dreamhomes.haven.notification.Notification;
+import com.dreamhomes.haven.notification.NotificationApi;
 import com.dreamhomes.haven.notification.NotificationKind;
-import com.dreamhomes.haven.notification.NotificationRepository;
-import com.dreamhomes.haven.notification.NotificationSource;
 import com.dreamhomes.haven.user.Role;
 import com.dreamhomes.haven.user.User;
 import com.dreamhomes.haven.user.UserRepository;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -28,9 +25,13 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
+import java.util.Map;
 
 @ExtendWith(MockitoExtension.class)
 class AgentListingServiceTest {
@@ -38,14 +39,14 @@ class AgentListingServiceTest {
     @Mock AgentListingRepository agentListingRepository;
     @Mock ListingRepository listingRepository;
     @Mock UserRepository userRepository;
-    @Mock NotificationRepository notificationRepository;
+    @Mock NotificationApi notificationApi;
 
     AgentListingService service;
 
     @BeforeEach
     void setUp() {
         service = new AgentListingService(agentListingRepository, listingRepository,
-                userRepository, notificationRepository, new ObjectMapper());
+                userRepository, notificationApi);
     }
 
     // ============================ request ============================
@@ -72,13 +73,11 @@ class AgentListingServiceTest {
         assertThat(saved.getDecidedAt()).isNull();
         assertThat(saved.getRequestedAt()).isNotNull();
 
-        ArgumentCaptor<Notification> notifCap = ArgumentCaptor.forClass(Notification.class);
-        verify(notificationRepository).save(notifCap.capture());
-        Notification n = notifCap.getValue();
-        assertThat(n.getRecipientId()).isEqualTo(60L);
-        assertThat(n.getKind()).isEqualTo(NotificationKind.AGENT_ASSIGNMENT_REQUESTED);
-        assertThat(n.getSource()).isEqualTo(NotificationSource.SYNC);
-        assertThat(n.getPayload()).contains("\"assignmentId\":123").contains("\"listingId\":7");
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Map<String, Object>> payloadCap = ArgumentCaptor.forClass(Map.class);
+        verify(notificationApi).recordSync(eq(NotificationKind.AGENT_ASSIGNMENT_REQUESTED), eq(60L),
+                payloadCap.capture());
+        assertThat(payloadCap.getValue()).containsEntry("assignmentId", 123L).containsEntry("listingId", 7L);
         assertThat(requested.getId()).isEqualTo(123L);
     }
 
@@ -149,10 +148,7 @@ class AgentListingServiceTest {
         assertThat(cap.getValue().getStatus()).isEqualTo(AgentListingStatus.ACCEPTED);
         assertThat(cap.getValue().getDecidedAt()).isNotNull();
 
-        ArgumentCaptor<Notification> notifCap = ArgumentCaptor.forClass(Notification.class);
-        verify(notificationRepository).save(notifCap.capture());
-        assertThat(notifCap.getValue().getRecipientId()).isEqualTo(50L); // owner
-        assertThat(notifCap.getValue().getKind()).isEqualTo(NotificationKind.AGENT_ASSIGNMENT_ACCEPTED);
+        verify(notificationApi).recordSync(eq(NotificationKind.AGENT_ASSIGNMENT_ACCEPTED), eq(50L), any());
     }
 
     @Test
@@ -167,10 +163,11 @@ class AgentListingServiceTest {
         assertThat(cap.getValue().getStatus()).isEqualTo(AgentListingStatus.DECLINED);
         assertThat(cap.getValue().getDecisionReason()).isEqualTo("Booked solid this quarter");
 
-        ArgumentCaptor<Notification> notifCap = ArgumentCaptor.forClass(Notification.class);
-        verify(notificationRepository).save(notifCap.capture());
-        assertThat(notifCap.getValue().getKind()).isEqualTo(NotificationKind.AGENT_ASSIGNMENT_DECLINED);
-        assertThat(notifCap.getValue().getPayload()).contains("Booked solid this quarter");
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Map<String, Object>> payloadCap = ArgumentCaptor.forClass(Map.class);
+        verify(notificationApi).recordSync(eq(NotificationKind.AGENT_ASSIGNMENT_DECLINED), eq(50L),
+                payloadCap.capture());
+        assertThat(payloadCap.getValue()).containsEntry("reason", "Booked solid this quarter");
     }
 
     @Test
@@ -229,10 +226,7 @@ class AgentListingServiceTest {
         assertThat(cap.getValue().getStatus()).isEqualTo(AgentListingStatus.REVOKED);
         assertThat(cap.getValue().getDecisionReason()).isEqualTo("Switching agents");
 
-        ArgumentCaptor<Notification> notifCap = ArgumentCaptor.forClass(Notification.class);
-        verify(notificationRepository).save(notifCap.capture());
-        assertThat(notifCap.getValue().getRecipientId()).isEqualTo(60L); // the other party = agent
-        assertThat(notifCap.getValue().getKind()).isEqualTo(NotificationKind.AGENT_ASSIGNMENT_REVOKED);
+        verify(notificationApi).recordSync(eq(NotificationKind.AGENT_ASSIGNMENT_REVOKED), eq(60L), any());
     }
 
     @Test
@@ -244,9 +238,7 @@ class AgentListingServiceTest {
 
         service.revoke(/*callerId=*/60L, Role.AGENT, 123L, "Stepping down");
 
-        ArgumentCaptor<Notification> notifCap = ArgumentCaptor.forClass(Notification.class);
-        verify(notificationRepository).save(notifCap.capture());
-        assertThat(notifCap.getValue().getRecipientId()).isEqualTo(50L); // owner
+        verify(notificationApi).recordSync(any(), eq(50L), any()); // owner notified
     }
 
     @Test

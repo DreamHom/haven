@@ -9,10 +9,8 @@ import com.dreamhomes.haven.admin.AdminAction;
 import com.dreamhomes.haven.admin.AdminAuditLog;
 import com.dreamhomes.haven.admin.AdminAuditLogRepository;
 import com.dreamhomes.haven.admin.AuditTargetType;
-import com.dreamhomes.haven.notification.Notification;
+import com.dreamhomes.haven.notification.NotificationApi;
 import com.dreamhomes.haven.notification.NotificationKind;
-import com.dreamhomes.haven.notification.NotificationRepository;
-import com.dreamhomes.haven.notification.NotificationSource;
 import com.dreamhomes.haven.offer.OfferRepository;
 import com.dreamhomes.haven.offer.OfferStatus;
 import com.dreamhomes.haven.user.Role;
@@ -31,6 +29,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -41,7 +40,7 @@ class ReviewServiceTest {
     @Mock ListingReviewRepository reviewRepository;
     @Mock ListingRepository listingRepository;
     @Mock OfferRepository offerRepository;
-    @Mock NotificationRepository notificationRepository;
+    @Mock NotificationApi notificationApi;
     @Mock AdminAuditLogRepository adminAuditLogRepository;
 
     ReviewService service;
@@ -49,7 +48,7 @@ class ReviewServiceTest {
     @BeforeEach
     void setUp() {
         service = new ReviewService(reviewRepository, listingRepository, offerRepository,
-                notificationRepository, adminAuditLogRepository, new ObjectMapper());
+                notificationApi, adminAuditLogRepository, new ObjectMapper());
     }
 
     @Test
@@ -76,11 +75,7 @@ class ReviewServiceTest {
         assertThat(cap.getValue().getRevieweeUserId()).isEqualTo(100L);
         assertThat(cap.getValue().getRating()).isEqualTo((short) 5);
 
-        ArgumentCaptor<Notification> notifCap = ArgumentCaptor.forClass(Notification.class);
-        verify(notificationRepository).save(notifCap.capture());
-        assertThat(notifCap.getValue().getRecipientId()).isEqualTo(100L);
-        assertThat(notifCap.getValue().getKind()).isEqualTo(NotificationKind.REVIEW_RECEIVED);
-        assertThat(notifCap.getValue().getSource()).isEqualTo(NotificationSource.SYNC);
+        verify(notificationApi).recordSync(eq(NotificationKind.REVIEW_RECEIVED), eq(100L), any());
     }
 
     @Test

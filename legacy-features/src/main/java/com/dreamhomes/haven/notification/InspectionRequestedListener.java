@@ -8,26 +8,27 @@ import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.stereotype.Component;
 
 /**
- * Bridges Kafka and {@link NotificationService}: every {@code inspection.requested.v1}
- * event becomes a Notification row for the listing owner.
+ * Bridges Kafka and {@link NotificationApi}: every {@code inspection.requested.v1} event
+ * becomes a Notification row for the listing owner.
  *
  * <p>Manual ack semantics: we acknowledge the offset only after the DB insert returns.
  * If the JVM dies between consume and write, the offset stays at the previous mark and
- * Kafka redelivers — combined with {@code event_id} dedup in
- * {@link NotificationService}, this gives at-least-once-with-effective-once-at-DB.
+ * Kafka redelivers — combined with {@code event_id} dedup in {@link NotificationApi},
+ * this gives at-least-once-with-effective-once-at-DB.
  */
 @Component
 @Slf4j
 @RequiredArgsConstructor
 public class InspectionRequestedListener {
 
-    private final NotificationService notificationService;
+    private final NotificationApi notificationApi;
 
     @KafkaListener(topics = InspectionRequestedEvent.TOPIC, groupId = "haven-notifications")
     public void onInspectionRequested(InspectionRequestedEvent event, Acknowledgment ack) {
         log.info("Received inspection.requested.v1 eventId={} inspectionRequestId={} ownerId={}",
                 event.eventId(), event.inspectionRequestId(), event.ownerId());
-        notificationService.recordInspectionRequested(event);
+        notificationApi.recordAsync(event.eventId(), NotificationKind.INSPECTION_REQUESTED,
+                event.ownerId(), event);
         ack.acknowledge();
     }
 }

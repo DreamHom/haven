@@ -5,10 +5,8 @@ import com.dreamhomes.haven.listing.ListingNotFoundException;
 import com.dreamhomes.haven.listing.ListingRepository;
 import com.dreamhomes.haven.listing.ListingStatus;
 import com.dreamhomes.haven.listing.ListingType;
-import com.dreamhomes.haven.notification.Notification;
+import com.dreamhomes.haven.notification.NotificationApi;
 import com.dreamhomes.haven.notification.NotificationKind;
-import com.dreamhomes.haven.notification.NotificationRepository;
-import com.dreamhomes.haven.notification.NotificationSource;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,11 +18,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -33,14 +34,14 @@ import static org.mockito.Mockito.when;
 class AdminListingServiceTest {
 
     @Mock ListingRepository listingRepository;
-    @Mock NotificationRepository notificationRepository;
+    @Mock NotificationApi notificationApi;
     @Mock AdminAuditLogRepository auditLogRepository;
 
     AdminListingService service;
 
     @BeforeEach
     void setUp() {
-        service = new AdminListingService(listingRepository, notificationRepository,
+        service = new AdminListingService(listingRepository, notificationApi,
                 auditLogRepository, new ObjectMapper(),
                 new AdminMetrics(new SimpleMeterRegistry()));
     }
@@ -61,11 +62,7 @@ class AdminListingServiceTest {
         assertThat(auditCap.getValue().getTargetType()).isEqualTo(AuditTargetType.LISTING);
         assertThat(auditCap.getValue().getTargetId()).isEqualTo(11L);
 
-        ArgumentCaptor<Notification> notifCap = ArgumentCaptor.forClass(Notification.class);
-        verify(notificationRepository).save(notifCap.capture());
-        assertThat(notifCap.getValue().getKind()).isEqualTo(NotificationKind.LISTING_APPROVED);
-        assertThat(notifCap.getValue().getRecipientId()).isEqualTo(50L);
-        assertThat(notifCap.getValue().getSource()).isEqualTo(NotificationSource.SYNC);
+        verify(notificationApi).recordSync(eq(NotificationKind.LISTING_APPROVED), eq(50L), any());
     }
 
     @Test
@@ -78,7 +75,7 @@ class AdminListingServiceTest {
 
         verify(listingRepository, never()).save(any());
         verify(auditLogRepository, never()).save(any());
-        verify(notificationRepository, never()).save(any());
+        verify(notificationApi, never()).recordSync(any(), anyLong(), any());
     }
 
     @Test
@@ -105,10 +102,10 @@ class AdminListingServiceTest {
         assertThat(auditCap.getValue().getAction()).isEqualTo(AdminAction.LISTING_TAKEDOWN);
         assertThat(auditCap.getValue().getMetadata()).contains("Reported as fraudulent");
 
-        ArgumentCaptor<Notification> notifCap = ArgumentCaptor.forClass(Notification.class);
-        verify(notificationRepository).save(notifCap.capture());
-        assertThat(notifCap.getValue().getKind()).isEqualTo(NotificationKind.LISTING_TAKEDOWN);
-        assertThat(notifCap.getValue().getRecipientId()).isEqualTo(50L);
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Map<String, Object>> payloadCap = ArgumentCaptor.forClass(Map.class);
+        verify(notificationApi).recordSync(eq(NotificationKind.LISTING_TAKEDOWN), eq(50L), payloadCap.capture());
+        assertThat(payloadCap.getValue()).containsEntry("reason", "Reported as fraudulent");
     }
 
     @Test

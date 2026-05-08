@@ -1,9 +1,7 @@
 package com.dreamhomes.haven.admin;
 
-import com.dreamhomes.haven.notification.Notification;
+import com.dreamhomes.haven.notification.NotificationApi;
 import com.dreamhomes.haven.notification.NotificationKind;
-import com.dreamhomes.haven.notification.NotificationRepository;
-import com.dreamhomes.haven.notification.NotificationSource;
 import com.dreamhomes.haven.property.Property;
 import com.dreamhomes.haven.property.PropertyNotFoundException;
 import com.dreamhomes.haven.property.PropertyRepository;
@@ -49,7 +47,7 @@ public class AdminVerificationService {
     private final UserRepository userRepository;
     private final AgentProfileRepository agentProfileRepository;
     private final PropertyRepository propertyRepository;
-    private final NotificationRepository notificationRepository;
+    private final NotificationApi notificationApi;
     private final AdminAuditLogRepository auditLogRepository;
     private final ObjectMapper objectMapper;
     private final AdminMetrics adminMetrics;
@@ -176,13 +174,7 @@ public class AdminVerificationService {
         if (reason != null && !reason.isBlank()) {
             payload.put("reason", reason);
         }
-        notificationRepository.save(Notification.builder()
-                .recipientId(recipientId)
-                .kind(kind)
-                .source(NotificationSource.SYNC)
-                .payload(serialize(payload))
-                .createdAt(Instant.now())
-                .build());
+        notificationApi.recordSync(kind, recipientId, payload);
     }
 
     private String serialize(Object payload) {

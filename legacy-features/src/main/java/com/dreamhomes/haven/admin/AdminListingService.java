@@ -4,10 +4,8 @@ import com.dreamhomes.haven.listing.Listing;
 import com.dreamhomes.haven.listing.ListingNotFoundException;
 import com.dreamhomes.haven.listing.ListingRepository;
 import com.dreamhomes.haven.listing.ListingStatus;
-import com.dreamhomes.haven.notification.Notification;
+import com.dreamhomes.haven.notification.NotificationApi;
 import com.dreamhomes.haven.notification.NotificationKind;
-import com.dreamhomes.haven.notification.NotificationRepository;
-import com.dreamhomes.haven.notification.NotificationSource;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -39,7 +37,7 @@ import java.util.Map;
 public class AdminListingService {
 
     private final ListingRepository listingRepository;
-    private final NotificationRepository notificationRepository;
+    private final NotificationApi notificationApi;
     private final AdminAuditLogRepository auditLogRepository;
     private final ObjectMapper objectMapper;
     private final AdminMetrics adminMetrics;
@@ -111,13 +109,7 @@ public class AdminListingService {
         if (reason != null && !reason.isBlank()) {
             payload.put("reason", reason);
         }
-        notificationRepository.save(Notification.builder()
-                .recipientId(listing.getOwnerId())
-                .kind(kind)
-                .source(NotificationSource.SYNC)
-                .payload(serialize(payload))
-                .createdAt(Instant.now())
-                .build());
+        notificationApi.recordSync(kind, listing.getOwnerId(), payload);
     }
 
     private String serialize(Object payload) {

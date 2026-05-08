@@ -8,7 +8,7 @@ import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.stereotype.Component;
 
 /**
- * Bridges Kafka and {@link NotificationService} for offer events. Manual ack — same
+ * Bridges Kafka and {@link NotificationApi} for offer events. Manual ack — same
  * insert-then-ack discipline as the inspection listener.
  */
 @Component
@@ -16,13 +16,14 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class OfferSubmittedListener {
 
-    private final NotificationService notificationService;
+    private final NotificationApi notificationApi;
 
     @KafkaListener(topics = OfferSubmittedEvent.TOPIC, groupId = "haven-notifications")
     public void onOfferSubmitted(OfferSubmittedEvent event, Acknowledgment ack) {
         log.info("Received offer.submitted.v1 eventId={} offerId={} ownerId={}",
                 event.eventId(), event.offerId(), event.ownerId());
-        notificationService.recordOfferSubmitted(event);
+        notificationApi.recordAsync(event.eventId(), NotificationKind.OFFER_SUBMITTED,
+                event.ownerId(), event);
         ack.acknowledge();
     }
 }

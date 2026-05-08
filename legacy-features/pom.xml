@@ -27,6 +27,17 @@
             <groupId>com.dreamhomes</groupId>
             <artifactId>haven-core-events</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.dreamhomes</groupId>
+            <artifactId>haven-feature-notification-api</artifactId>
+        </dependency>
+        <!-- impl is needed at runtime so the @Service NotificationService bean is wired and
+             the Notification entity is in the EntityManager. Listeners (still here) and ITs
+             that exercise the full Spring context need both classes loadable. -->
+        <dependency>
+            <groupId>com.dreamhomes</groupId>
+            <artifactId>haven-feature-notification-impl</artifactId>
+        </dependency>
 
         <!-- web stack -->
         <dependency>

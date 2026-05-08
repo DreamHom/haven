@@ -8,10 +8,8 @@ import com.dreamhomes.haven.admin.AdminAction;
 import com.dreamhomes.haven.admin.AdminAuditLog;
 import com.dreamhomes.haven.admin.AdminAuditLogRepository;
 import com.dreamhomes.haven.admin.AuditTargetType;
-import com.dreamhomes.haven.notification.Notification;
+import com.dreamhomes.haven.notification.NotificationApi;
 import com.dreamhomes.haven.notification.NotificationKind;
-import com.dreamhomes.haven.notification.NotificationRepository;
-import com.dreamhomes.haven.notification.NotificationSource;
 import com.dreamhomes.haven.offer.OfferRepository;
 import com.dreamhomes.haven.offer.OfferStatus;
 import com.dreamhomes.haven.user.Role;
@@ -51,7 +49,7 @@ public class ReviewService {
     private final ListingReviewRepository reviewRepository;
     private final ListingRepository listingRepository;
     private final OfferRepository offerRepository;
-    private final NotificationRepository notificationRepository;
+    private final NotificationApi notificationApi;
     private final AdminAuditLogRepository adminAuditLogRepository;
     private final ObjectMapper objectMapper;
 
@@ -195,13 +193,7 @@ public class ReviewService {
         payload.put("listingId", review.getListingId());
         payload.put("reviewerUserId", review.getReviewerUserId());
         payload.put("rating", review.getRating());
-        notificationRepository.save(Notification.builder()
-                .recipientId(recipientId)
-                .kind(NotificationKind.REVIEW_RECEIVED)
-                .source(NotificationSource.SYNC)
-                .payload(serialize(payload))
-                .createdAt(Instant.now())
-                .build());
+        notificationApi.recordSync(NotificationKind.REVIEW_RECEIVED, recipientId, payload);
     }
 
     private String serialize(Object payload) {

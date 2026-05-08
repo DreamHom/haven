@@ -3,13 +3,9 @@ package com.dreamhomes.haven.comment;
 import com.dreamhomes.haven.listing.Listing;
 import com.dreamhomes.haven.listing.ListingNotFoundException;
 import com.dreamhomes.haven.listing.ListingRepository;
-import com.dreamhomes.haven.notification.Notification;
+import com.dreamhomes.haven.notification.NotificationApi;
 import com.dreamhomes.haven.notification.NotificationKind;
-import com.dreamhomes.haven.notification.NotificationRepository;
-import com.dreamhomes.haven.notification.NotificationSource;
 import com.dreamhomes.haven.user.Role;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -37,8 +33,7 @@ public class CommentService {
 
     private final CommentRepository commentRepository;
     private final ListingRepository listingRepository;
-    private final NotificationRepository notificationRepository;
-    private final ObjectMapper objectMapper;
+    private final NotificationApi notificationApi;
 
     @Transactional
     public Comment post(Long authorId, Long listingId, String body) {
@@ -122,20 +117,6 @@ public class CommentService {
         payload.put("commentId", comment.getId());
         payload.put("listingId", comment.getListingId());
         payload.put("authorUserId", comment.getAuthorUserId());
-        notificationRepository.save(Notification.builder()
-                .recipientId(ownerId)
-                .kind(NotificationKind.COMMENT_POSTED)
-                .source(NotificationSource.SYNC)
-                .payload(serialize(payload))
-                .createdAt(Instant.now())
-                .build());
-    }
-
-    private String serialize(Object payload) {
-        try {
-            return objectMapper.writeValueAsString(payload);
-        } catch (JsonProcessingException e) {
-            throw new IllegalStateException("Failed to serialise comment notification payload", e);
-        }
+        notificationApi.recordSync(NotificationKind.COMMENT_POSTED, ownerId, payload);
     }
 }

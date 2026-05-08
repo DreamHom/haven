@@ -1,10 +1,8 @@
 package com.dreamhomes.haven.offer;
 
 import com.dreamhomes.haven.listing.NotPropertyOwnerException;
-import com.dreamhomes.haven.notification.Notification;
+import com.dreamhomes.haven.notification.NotificationApi;
 import com.dreamhomes.haven.notification.NotificationKind;
-import com.dreamhomes.haven.notification.NotificationRepository;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -19,6 +17,8 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -32,14 +32,14 @@ import static org.mockito.Mockito.when;
 class OfferServiceCounterTest {
 
     @Mock OfferRepository offerRepository;
-    @Mock NotificationRepository notificationRepository;
+    @Mock NotificationApi notificationApi;
 
     OfferService service;
 
     @BeforeEach
     void setUp() {
-        service = new OfferService(offerRepository, null, null, notificationRepository,
-                new ObjectMapper(), null);
+        service = new OfferService(offerRepository, null, null, notificationApi,
+                new com.fasterxml.jackson.databind.ObjectMapper(), null);
     }
 
     @Test
@@ -69,10 +69,7 @@ class OfferServiceCounterTest {
         assertThat(savedChild.getListingId()).isEqualTo(parent.getListingId());
 
         // Sync notification to applicant (the OTHER party).
-        ArgumentCaptor<Notification> notifCap = ArgumentCaptor.forClass(Notification.class);
-        verify(notificationRepository).save(notifCap.capture());
-        assertThat(notifCap.getValue().getRecipientId()).isEqualTo(100L);
-        assertThat(notifCap.getValue().getKind()).isEqualTo(NotificationKind.OFFER_COUNTERED);
+        verify(notificationApi).recordSync(eq(NotificationKind.OFFER_COUNTERED), eq(100L), any());
     }
 
     @Test
@@ -94,9 +91,7 @@ class OfferServiceCounterTest {
         Offer savedChild = cap.getAllValues().get(1);
         assertThat(savedChild.getProposedByUserId()).isEqualTo(100L); // applicant
 
-        ArgumentCaptor<Notification> notifCap = ArgumentCaptor.forClass(Notification.class);
-        verify(notificationRepository).save(notifCap.capture());
-        assertThat(notifCap.getValue().getRecipientId()).isEqualTo(99L); // owner
+        verify(notificationApi).recordSync(eq(NotificationKind.OFFER_COUNTERED), eq(99L), any()); // owner
     }
 
     @Test
@@ -108,7 +103,7 @@ class OfferServiceCounterTest {
                 .isInstanceOf(CannotActOnOwnOfferException.class);
 
         verify(offerRepository, never()).save(any());
-        verify(notificationRepository, never()).save(any());
+        verify(notificationApi, never()).recordSync(any(), anyLong(), any());
     }
 
     @Test

@@ -35,7 +35,7 @@ class OfferServiceSubmitTest {
     @Mock OfferRepository offerRepository;
     @Mock ListingRepository listingRepository;
     @Mock OutboxEventRepository outboxRepository;
-    @Mock com.dreamhomes.haven.notification.NotificationRepository notificationRepository;
+    @Mock com.dreamhomes.haven.notification.NotificationApi notificationApi;
     @Mock ApplicationEventPublisher applicationEventPublisher;
 
     OfferService service;
@@ -43,7 +43,7 @@ class OfferServiceSubmitTest {
     @BeforeEach
     void setUp() {
         service = new OfferService(offerRepository, listingRepository,
-                outboxRepository, notificationRepository,
+                outboxRepository, notificationApi,
                 new ObjectMapper().findAndRegisterModules(),
                 applicationEventPublisher);
     }
