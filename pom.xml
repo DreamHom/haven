@@ -31,6 +31,8 @@
         <module>modules/feature/user/api</module>
         <module>modules/feature/user/impl</module>
         <module>modules/feature/review/api</module>
+        <module>modules/feature/auth/api</module>
+        <module>modules/feature/auth/impl</module>
         <module>modules/legacy-features</module>
         <module>modules/app</module>
     </modules>
@@ -110,6 +112,16 @@
             <dependency>
                 <groupId>com.dreamhomes</groupId>
                 <artifactId>haven-feature-review-api</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.dreamhomes</groupId>
+                <artifactId>haven-feature-auth-api</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.dreamhomes</groupId>
+                <artifactId>haven-feature-auth-impl</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

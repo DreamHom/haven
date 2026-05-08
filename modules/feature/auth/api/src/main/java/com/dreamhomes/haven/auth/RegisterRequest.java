@@ -28,7 +28,4 @@ public record RegisterRequest(
         return role != Role.AGENT || (licenseNumber != null && !licenseNumber.isBlank());
     }
 
-    public RegisterCommand toCommand() {
-        return new RegisterCommand(email, password, fullName, phone, role, licenseNumber);
-    }
 }

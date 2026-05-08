@@ -1,10 +1,14 @@
 package com.dreamhomes.haven.auth;
 
 import com.dreamhomes.haven.user.Role;
-import com.dreamhomes.haven.user.User;
 
 import java.time.Instant;
 
+/**
+ * Public response shape for the post-register and authenticated-self endpoints. Plain
+ * record — construction lives in {@code feature-auth-impl} since this DTO is in -api
+ * and never sees the {@code User} entity.
+ */
 public record UserResponse(
         Long id,
         String email,
@@ -12,7 +16,4 @@ public record UserResponse(
         Role role,
         Instant createdAt
 ) {
-    public static UserResponse from(User user) {
-        return new UserResponse(user.getId(), user.getEmail(), user.getFullName(), user.getRole(), user.getCreatedAt());
-    }
 }

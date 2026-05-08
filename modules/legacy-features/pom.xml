@@ -60,6 +60,14 @@
         </dependency>
         <dependency>
             <groupId>com.dreamhomes</groupId>
+            <artifactId>haven-feature-auth-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.dreamhomes</groupId>
+            <artifactId>haven-feature-auth-impl</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.dreamhomes</groupId>
             <artifactId>haven-feature-listing-api</artifactId>
         </dependency>
         <dependency>

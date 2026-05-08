@@ -7,7 +7,4 @@ public record LoginRequest(
         @NotBlank @StrictEmail String email,
         @NotBlank String password
 ) {
-    public LoginCommand toCommand() {
-        return new LoginCommand(email, password);
-    }
 }

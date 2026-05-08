@@ -19,12 +19,16 @@ public class AuthController {
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
     public UserResponse register(@Valid @RequestBody RegisterRequest request) {
-        return UserResponse.from(authService.register(request.toCommand()));
+        com.dreamhomes.haven.user.User saved = authService.register(new RegisterCommand(
+                request.email(), request.password(), request.fullName(), request.phone(),
+                request.role(), request.licenseNumber()));
+        return new UserResponse(saved.getId(), saved.getEmail(), saved.getFullName(),
+                saved.getRole(), saved.getCreatedAt());
     }
 
     @PostMapping("/login")
     public LoginResponse login(@Valid @RequestBody LoginRequest request) {
-        return new LoginResponse(authService.login(request.toCommand()));
+        return new LoginResponse(authService.login(new LoginCommand(request.email(), request.password())));
     }
 
     @PostMapping("/logout")
