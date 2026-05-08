@@ -24,6 +24,8 @@
         <module>test-support</module>
         <module>feature-notification-api</module>
         <module>feature-notification-impl</module>
+        <module>feature-property-api</module>
+        <module>feature-property-impl</module>
         <module>legacy-features</module>
         <module>app</module>
     </modules>
@@ -68,6 +70,16 @@
             <dependency>
                 <groupId>com.dreamhomes</groupId>
                 <artifactId>haven-feature-notification-impl</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.dreamhomes</groupId>
+                <artifactId>haven-feature-property-api</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.dreamhomes</groupId>
+                <artifactId>haven-feature-property-impl</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

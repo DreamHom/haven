@@ -38,6 +38,14 @@
             <groupId>com.dreamhomes</groupId>
             <artifactId>haven-feature-notification-impl</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.dreamhomes</groupId>
+            <artifactId>haven-feature-property-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.dreamhomes</groupId>
+            <artifactId>haven-feature-property-impl</artifactId>
+        </dependency>
 
         <!-- web stack -->
         <dependency>

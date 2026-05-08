@@ -31,7 +31,9 @@ public record ListingResponse(
                 l.getStatus(), l.getApprovedAt(),
                 l.getViewCount(),
                 l.getCreatedAt(), l.getUpdatedAt(),
-                p == null ? null : PropertySummary.from(p));
+                p == null ? null : new PropertySummary(p.getId(), p.getType(), p.getAddress(),
+                        p.getBedrooms(), p.getBathrooms(), p.getSizeSqm(),
+                        p.getDocumentsVerifiedAt()));
     }
 
     public static ListingResponse from(ListingWithProperty lwp) {

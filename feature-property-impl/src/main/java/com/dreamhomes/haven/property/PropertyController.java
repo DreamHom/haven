@@ -24,6 +24,9 @@ public class PropertyController {
     @PreAuthorize("hasRole('OWNER')")
     public PropertyResponse create(@AuthenticationPrincipal JwtPrincipal principal,
                                    @Valid @RequestBody CreatePropertyRequest request) {
-        return PropertyResponse.from(propertyService.create(principal.userId(), request.toCommand()));
+        Property saved = propertyService.create(principal.userId(), request.toCommand());
+        return new PropertyResponse(saved.getId(), saved.getOwnerId(), saved.getType(),
+                saved.getAddress(), saved.getBedrooms(), saved.getBathrooms(),
+                saved.getSizeSqm(), saved.getDescription(), saved.getCreatedAt());
     }
 }

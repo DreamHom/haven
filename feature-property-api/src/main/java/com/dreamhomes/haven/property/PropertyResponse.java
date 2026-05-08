@@ -14,10 +14,4 @@ public record PropertyResponse(
         String description,
         Instant createdAt
 ) {
-    public static PropertyResponse from(Property p) {
-        return new PropertyResponse(
-                p.getId(), p.getOwnerId(), p.getType(), p.getAddress(),
-                p.getBedrooms(), p.getBathrooms(), p.getSizeSqm(),
-                p.getDescription(), p.getCreatedAt());
-    }
 }
