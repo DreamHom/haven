@@ -21,6 +21,7 @@
     <modules>
         <module>modules/core</module>
         <module>modules/core-events</module>
+        <module>modules/app-shared</module>
         <module>modules/test-support</module>
         <module>modules/feature/notification/api</module>
         <module>modules/feature/notification/impl</module>
@@ -50,7 +51,7 @@
         <module>modules/feature/verification/impl</module>
         <module>modules/feature/admin/api</module>
         <module>modules/feature/admin/impl</module>
-        <module>modules/legacy-features</module>
+        <module>modules/integration-tests</module>
         <module>modules/app</module>
     </modules>
 
@@ -84,6 +85,11 @@
             <dependency>
                 <groupId>com.dreamhomes</groupId>
                 <artifactId>haven-test-support</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.dreamhomes</groupId>
+                <artifactId>haven-app-shared</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -226,11 +232,6 @@
                 <artifactId>haven-feature-review-impl</artifactId>
                 <version>${project.version}</version>
             </dependency>
-            <dependency>
-                <groupId>com.dreamhomes</groupId>
-                <artifactId>haven-legacy-features</artifactId>
-                <version>${project.version}</version>
-            </dependency>
 
             <!-- Third-party version pins -->
             <dependency>
@@ -332,6 +333,39 @@
                             </exclude>
                         </excludes>
                     </configuration>
+                </plugin>
+                <!--
+                    BannedDependencies enforcer for cross-feature -impl leakage. Activated
+                    per-module by feature-*-impl poms that should never depend on another
+                    feature's -impl. The two documented exceptions (auth-impl → user-impl
+                    and admin-impl → user-impl + verification-impl) simply don't activate
+                    this plugin — see TRADEOFFS.md for rationale.
+
+                    Pattern: ANY direct dependency on an artifact matching
+                    com.dreamhomes:haven-feature-*-impl fails the build at validate-time.
+                    searchTransitive=false so transitive impl deps that come through
+                    legitimate paths (integration-tests depending on every -impl at test
+                    scope, app depending on every -impl for runtime) don't trigger.
+                -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-enforcer-plugin</artifactId>
+                    <executions>
+                        <execution>
+                            <id>ban-cross-feature-impl</id>
+                            <goals><goal>enforce</goal></goals>
+                            <configuration>
+                                <rules>
+                                    <bannedDependencies>
+                                        <searchTransitive>false</searchTransitive>
+                                        <excludes>
+                                            <exclude>com.dreamhomes:haven-feature-*-impl</exclude>
+                                        </excludes>
+                                    </bannedDependencies>
+                                </rules>
+                            </configuration>
+                        </execution>
+                    </executions>
                 </plugin>
             </plugins>
         </pluginManagement>

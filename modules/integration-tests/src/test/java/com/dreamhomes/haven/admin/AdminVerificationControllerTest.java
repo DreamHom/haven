@@ -4,8 +4,8 @@ import com.dreamhomes.haven.auth.JwtPrincipal;
 import com.dreamhomes.haven.auth.JwtService;
 import com.dreamhomes.haven.common.config.SecurityConfig;
 import com.dreamhomes.haven.user.Role;
-import com.dreamhomes.haven.user.UserRepository;
-import com.dreamhomes.haven.verification.Verification;
+import com.dreamhomes.haven.user.UserCredentialsApi;
+import com.dreamhomes.haven.verification.VerificationAdminView;
 import com.dreamhomes.haven.verification.VerificationStatus;
 import com.dreamhomes.haven.verification.VerificationType;
 import org.junit.jupiter.api.Test;
@@ -53,11 +53,11 @@ class AdminVerificationControllerTest {
     @Autowired MockMvc mockMvc;
     @MockBean AdminVerificationService adminVerificationService;
     @MockBean JwtService jwtService;
-    @MockBean UserRepository userRepository;
+    @MockBean UserCredentialsApi userCredentialsApi;
 
     @Test
     void adminListsPendingByTypeReturnsPagedResults() throws Exception {
-        Page<Verification> page = new PageImpl<>(
+        Page<VerificationAdminView> page = new PageImpl<>(
                 List.of(pending(1L, VerificationType.OWNER_IDENTITY)),
                 PageRequest.of(0, 20), 1);
         when(adminVerificationService.listPending(eq(VerificationType.OWNER_IDENTITY), any()))
@@ -81,10 +81,8 @@ class AdminVerificationControllerTest {
 
     @Test
     void adminApprovesVerificationReturns200WithApprovedRow() throws Exception {
-        Verification approved = pending(99L, VerificationType.OWNER_IDENTITY);
-        approved.setStatus(VerificationStatus.APPROVED);
-        approved.setDecidedByAdminId(7L);
-        approved.setDecidedAt(Instant.now());
+        VerificationAdminView approved = decided(99L, VerificationType.OWNER_IDENTITY,
+                VerificationStatus.APPROVED, null);
         when(adminVerificationService.approve(eq(7L), eq(99L), any()))
                 .thenReturn(approved);
 
@@ -110,11 +108,8 @@ class AdminVerificationControllerTest {
 
     @Test
     void adminRejectsWithReasonReturns200WithRejectedRow() throws Exception {
-        Verification rejected = pending(99L, VerificationType.OWNER_IDENTITY);
-        rejected.setStatus(VerificationStatus.REJECTED);
-        rejected.setDecisionReason("Image is blurry");
-        rejected.setDecidedByAdminId(7L);
-        rejected.setDecidedAt(Instant.now());
+        VerificationAdminView rejected = decided(99L, VerificationType.OWNER_IDENTITY,
+                VerificationStatus.REJECTED, "Image is blurry");
         when(adminVerificationService.reject(eq(7L), eq(99L), eq("Image is blurry")))
                 .thenReturn(rejected);
 
@@ -129,14 +124,21 @@ class AdminVerificationControllerTest {
                 .andExpect(jsonPath("$.decisionReason", is("Image is blurry")));
     }
 
-    private static Verification pending(Long id, VerificationType type) {
-        return Verification.builder()
-                .id(id).type(type)
-                .submitterUserId(50L).targetUserId(50L)
-                .status(VerificationStatus.PENDING)
-                .documentRefs("{}")
-                .submittedAt(Instant.now())
-                .build();
+    private static VerificationAdminView pending(Long id, VerificationType type) {
+        return new VerificationAdminView(
+                id, type, VerificationStatus.PENDING,
+                50L, 50L, null,
+                "{}", Instant.now(),
+                null, null, null);
+    }
+
+    private static VerificationAdminView decided(Long id, VerificationType type,
+                                                 VerificationStatus status, String reason) {
+        return new VerificationAdminView(
+                id, type, status,
+                50L, 50L, null,
+                "{}", Instant.now(),
+                Instant.now(), 7L, reason);
     }
 
     private static RequestPostProcessor asPrincipal(Long userId, Role role) {

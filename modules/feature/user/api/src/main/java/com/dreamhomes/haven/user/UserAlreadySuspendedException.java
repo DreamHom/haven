@@ -1,4 +1,4 @@
-package com.dreamhomes.haven.admin;
+package com.dreamhomes.haven.user;
 
 import com.dreamhomes.haven.common.DomainException;
 import org.springframework.http.HttpStatus;

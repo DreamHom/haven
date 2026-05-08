@@ -2,7 +2,7 @@
 
 Every "we chose X over Y" decision worth remembering. Append as new ones land; revise when a defer becomes a do. **Format: choice → why → cost → revisit signal.**
 
-Last updated after Phase 13 (photos + review takedown + counter-offers).
+Last updated after Phase 14 (modular monolith restructure + auth/admin api extraction that retired the impl-impl exceptions).
 
 ---
 
@@ -610,10 +610,10 @@ Last updated after Phase 13 (photos + review takedown + counter-offers).
 - **Cost**: split-package — `core` and `feature/user/impl` both contribute classes to `com.dreamhomes.haven.user`. Maven handles split packages fine; IDE may warn cosmetically.
 - **Revisit**: never.
 
-### Two intra-aggregate exceptions: `auth-impl → user-impl` + `admin-impl → user-impl + verification-impl`
-- **Why**: auth and user share a bounded context — `AuthService` reads `User.passwordHash` and writes `tokenVersion`; that's not a cross-feature read, it's the same aggregate. Admin moderation similarly mutates `User.suspendedAt` and `Verification.status` directly because those are admin-track-specific fields better managed in admin's flow than exposed as bloated UserApi/VerificationApi methods.
-- **Cost**: two narrow violations of the "no impl-impl deps" rule. Documented in each module's pom description and excluded from the `BannedDependencies` enforcer (the plugin simply isn't activated in those two modules).
-- **Revisit when**: either feature grows enough to justify a full UserCredentialsApi / VerificationDecisionApi extraction.
+### Auth + admin impl-impl exceptions retired via three narrow admin/credential APIs
+- **Why**: the original Phase 14 plan documented two "intra-aggregate" exceptions where auth-impl reached directly into user-impl, and admin-impl reached into user-impl + verification-impl. The "shared bounded context" framing was theology smoothing over a real modeling miss — the `BannedDependencies` rule existed to prevent exactly this kind of cross-impl reach. So the exceptions were collapsed by extracting three new APIs: `UserCredentialsApi` (login + register + tokenVersion writes for auth), `UserAdminApi` (suspend + reactivate + badge stamps for admin and verification), and `VerificationAdminApi` (decision write + badge-flip dispatch). All three live in their owning feature's `-api` module; the impls return small projection records (`UserCredentials`, `UserAdminView`, `VerificationAdminView`, `RegisteredUser`) so consumers never touch a JPA entity. Net result: every feature-impl compiles against `*-api` only, the enforcer activates uniformly across all 14 impls, and admin-impl + auth-impl pom descriptions no longer carry "exception" caveats.
+- **Cost**: three new interfaces (~80 lines), three new projection records, ~25 lines of mapping in the impls; auth-impl's register flow lost its direct AgentProfile creation (now bundled inside `UserCredentialsApi.create`) — that's a meaningful behavioural move worth knowing about. The admin response DTOs (`AdminUserResponse`, `AdminVerificationResponse`) moved out of admin-api into their owning feature-api as `UserAdminView` / `VerificationAdminView`; the wire shape stays identical, the OpenAPI schema name changes.
+- **Revisit**: never. The split rule is now uniform — no feature-impl ever sees another feature-impl's entity, repository, or service.
 
 ### `BannedDependencies` enforcer over ArchUnit tests
 - **Why**: build-time (validate phase) enforcement is faster + closer to the violation than a test-time assertion. A future contributor who tries to add `feature-X-impl` as a dep to another feature's impl gets a clear message at `mvn validate`, before any code compiles. ArchUnit would only fire during the test phase and adds a test dependency to every module.

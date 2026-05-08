@@ -15,10 +15,8 @@
     <name>haven-feature-auth-impl</name>
     <description>Auth implementation: AuthController + service, JwtService,
         JwtAuthenticationFilter, MeController (folded from me/), SecurityConfig.
-
-        Depends on feature-user-impl by deliberate exception — auth and user share an
-        aggregate (User entity holds passwordHash + tokenVersion + suspendedAt, all of
-        which auth needs to read and write). Documented in TRADEOFFS.</description>
+        Reads + writes to the user aggregate go through UserCredentialsApi exclusively
+        — no compile-time dependency on feature-user-impl.</description>
 
     <dependencies>
         <dependency>
@@ -28,12 +26,6 @@
         <dependency>
             <groupId>com.dreamhomes</groupId>
             <artifactId>haven-feature-user-api</artifactId>
-        </dependency>
-        <!-- Intra-aggregate exception: auth needs the User entity directly for credential
-             reads + tokenVersion writes. -->
-        <dependency>
-            <groupId>com.dreamhomes</groupId>
-            <artifactId>haven-feature-user-impl</artifactId>
         </dependency>
         <dependency>
             <groupId>com.dreamhomes</groupId>
@@ -93,4 +85,15 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <!-- Ban cross-feature -impl leaks. The auth-impl exception was retired when
+         UserCredentialsApi landed; activating the enforcer locks that in. -->
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
 </project>

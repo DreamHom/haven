@@ -6,7 +6,7 @@ import com.dreamhomes.haven.common.config.SecurityConfig;
 import com.dreamhomes.haven.property.PropertySummary;
 import com.dreamhomes.haven.property.PropertyType;
 import com.dreamhomes.haven.user.Role;
-import com.dreamhomes.haven.user.UserRepository;
+import com.dreamhomes.haven.user.UserCredentialsApi;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -65,7 +65,7 @@ class ListingControllerTest {
     JwtService jwtService;
 
     @MockBean
-    UserRepository userRepository;
+    UserCredentialsApi userCredentialsApi;
 
     @Test
     void ownerCreatingListingReturns201WithListingSummary() throws Exception {

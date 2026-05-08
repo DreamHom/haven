@@ -1,21 +1,26 @@
 package com.dreamhomes.haven.auth;
 
-import com.dreamhomes.haven.user.AgentProfile;
-import com.dreamhomes.haven.user.AgentProfileRepository;
-import com.dreamhomes.haven.user.Role;
-import com.dreamhomes.haven.user.User;
-import com.dreamhomes.haven.user.UserRepository;
+import com.dreamhomes.haven.user.EmailAlreadyTakenException;
+import com.dreamhomes.haven.user.NewUser;
+import com.dreamhomes.haven.user.RegisteredUser;
+import com.dreamhomes.haven.user.UserCredentials;
+import com.dreamhomes.haven.user.UserCredentialsApi;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
 import java.util.Locale;
+import java.util.Optional;
 
+/**
+ * Login + registration + logout. Talks to the user feature exclusively via
+ * {@link UserCredentialsApi} — no direct repository access. The "auth and user share
+ * an aggregate" exception that {@code TRADEOFFS.md} used to document is collapsed:
+ * auth-impl no longer compiles against user-impl, and the {@code BannedDependencies}
+ * enforcer now applies to this module like every other feature-impl.
+ */
 @Service
 @Slf4j
 @RequiredArgsConstructor
@@ -31,29 +36,28 @@ public class AuthService {
      */
     private static final String DUMMY_HASH = new BCryptPasswordEncoder().encode("never-matches");
 
-    private final UserRepository userRepository;
+    private final UserCredentialsApi userCredentialsApi;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
-    private final AgentProfileRepository agentProfileRepository;
 
-    @Transactional(readOnly = true)
     public String login(LoginCommand cmd) {
         String email = normalize(cmd.email());
-        User user = userRepository.findByEmail(email).orElse(null);
-        String hashToCheck = user != null ? user.getPasswordHash() : DUMMY_HASH;
+        Optional<UserCredentials> maybe = userCredentialsApi.loadByEmail(email);
+        String hashToCheck = maybe.map(UserCredentials::passwordHash).orElse(DUMMY_HASH);
         boolean passwordMatches = passwordEncoder.matches(cmd.password(), hashToCheck);
-        if (user == null || !passwordMatches) {
+        if (maybe.isEmpty() || !passwordMatches) {
             log.warn("Login failed for email='{}'", email);
             throw new InvalidCredentialsException();
         }
+        UserCredentials creds = maybe.get();
         // Suspended users have valid credentials but can't get a fresh JWT — surface the
         // same 401 as a bad password so the response shape stays uniform across reasons.
-        if (user.getSuspendedAt() != null) {
-            log.warn("Login rejected for suspended userId={}", user.getId());
+        if (creds.suspended()) {
+            log.warn("Login rejected for suspended userId={}", creds.id());
             throw new InvalidCredentialsException();
         }
-        log.info("Login succeeded for userId={} role={}", user.getId(), user.getRole());
-        return jwtService.issue(user.getId(), user.getEmail(), user.getRole(), user.getTokenVersion());
+        log.info("Login succeeded for userId={} role={}", creds.id(), creds.role());
+        return jwtService.issue(creds.id(), creds.email(), creds.role(), creds.tokenVersion());
     }
 
     /**
@@ -61,49 +65,32 @@ public class AuthService {
      * is rejected by the auth filter on the next request. Idempotent: calling twice in a
      * row produces tokens-already-invalid, which is fine.
      */
-    @Transactional
     public void logout(Long userId) {
-        userRepository.findById(userId).ifPresent(user -> {
-            user.setTokenVersion(user.getTokenVersion() + 1);
-            userRepository.save(user);
-            log.info("Logged out userId={}, bumped tokenVersion to {}", userId, user.getTokenVersion());
-        });
+        userCredentialsApi.bumpTokenVersion(userId);
+        log.info("Logged out userId={}", userId);
     }
 
-    @Transactional
-    public User register(RegisterCommand cmd) {
+    public UserResponse register(RegisterCommand cmd) {
         String email = normalize(cmd.email());
-        if (userRepository.existsByEmail(email)) {
+        if (userCredentialsApi.existsByEmail(email)) {
             throw new EmailAlreadyRegisteredException();
         }
-        User user = User.builder()
-                .email(email)
-                .passwordHash(passwordEncoder.encode(cmd.password()))
-                .role(cmd.role())
-                .fullName(cmd.fullName())
-                .phone(cmd.phone())
-                .createdAt(Instant.now())
-                .build();
-        User saved;
         try {
-            saved = userRepository.save(user);
-        } catch (DataIntegrityViolationException race) {
-            // Lost a TOCTOU race against a concurrent registration with the same email.
-            // The DB UNIQUE constraint already blocked the dup; surface the same 409 as the
-            // pre-check path so the client sees one consistent failure mode.
+            RegisteredUser registered = userCredentialsApi.create(new NewUser(
+                    email,
+                    passwordEncoder.encode(cmd.password()),
+                    cmd.role(),
+                    cmd.fullName(),
+                    cmd.phone(),
+                    cmd.licenseNumber()));
+            log.info("Registered userId={} role={}", registered.id(), cmd.role());
+            return new UserResponse(registered.id(), email, cmd.fullName(), cmd.role(), registered.createdAt());
+        } catch (EmailAlreadyTakenException race) {
+            // user-api signals the post-encode TOCTOU collision; remap to auth-api's
+            // wire-stable exception so the controller layer / GlobalExceptionHandler
+            // sees a consistent type.
             throw new EmailAlreadyRegisteredException();
         }
-
-        if (saved.getRole() == Role.AGENT) {
-            agentProfileRepository.save(AgentProfile.builder()
-                    .userId(saved.getId())
-                    .licenseNumber(cmd.licenseNumber())
-                    .createdAt(Instant.now())
-                    .build());
-        }
-
-        log.info("Registered userId={} role={}", saved.getId(), saved.getRole());
-        return saved;
     }
 
     /** Emails are case-insensitive identifiers — store and look them up in lowercase. */

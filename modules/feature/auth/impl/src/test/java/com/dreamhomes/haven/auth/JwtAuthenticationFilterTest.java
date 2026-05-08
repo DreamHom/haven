@@ -1,8 +1,7 @@
 package com.dreamhomes.haven.auth;
 
 import com.dreamhomes.haven.user.Role;
-import com.dreamhomes.haven.user.User;
-import com.dreamhomes.haven.user.UserRepository;
+import com.dreamhomes.haven.user.UserCredentialsApi;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import org.junit.jupiter.api.AfterEach;
@@ -16,8 +15,7 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-import java.time.Instant;
-import java.util.Optional;
+import java.util.OptionalInt;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.times;
@@ -31,7 +29,7 @@ class JwtAuthenticationFilterTest {
     JwtService jwtService;
 
     @Mock
-    UserRepository userRepository;
+    UserCredentialsApi userCredentialsApi;
 
     @Mock
     FilterChain chain;
@@ -40,7 +38,7 @@ class JwtAuthenticationFilterTest {
 
     @BeforeEach
     void setUp() {
-        filter = new JwtAuthenticationFilter(jwtService, userRepository);
+        filter = new JwtAuthenticationFilter(jwtService, userCredentialsApi);
     }
 
     @AfterEach
@@ -48,22 +46,11 @@ class JwtAuthenticationFilterTest {
         SecurityContextHolder.clearContext();
     }
 
-    private static User userWithTokenVersion(long id, int tv) {
-        return User.builder()
-                .id(id)
-                .email("ada@example.com")
-                .role(Role.OWNER)
-                .fullName("Ada")
-                .tokenVersion(tv)
-                .createdAt(Instant.now())
-                .build();
-    }
-
     @Test
     void setsAuthenticationWhenBearerTokenIsValidAndTokenVersionMatches() throws Exception {
         when(jwtService.parse("valid-token"))
                 .thenReturn(new JwtPrincipal(7L, "ada@example.com", Role.OWNER, 3));
-        when(userRepository.findById(7L)).thenReturn(Optional.of(userWithTokenVersion(7L, 3)));
+        when(userCredentialsApi.tokenVersionOf(7L)).thenReturn(OptionalInt.of(3));
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.addHeader("Authorization", "Bearer valid-token");
@@ -86,7 +73,7 @@ class JwtAuthenticationFilterTest {
         // Token claims tv=3, but current user is tv=4 (e.g. a logout happened after issuance).
         when(jwtService.parse("stale-token"))
                 .thenReturn(new JwtPrincipal(7L, "ada@example.com", Role.OWNER, 3));
-        when(userRepository.findById(7L)).thenReturn(Optional.of(userWithTokenVersion(7L, 4)));
+        when(userCredentialsApi.tokenVersionOf(7L)).thenReturn(OptionalInt.of(4));
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.addHeader("Authorization", "Bearer stale-token");
@@ -102,7 +89,7 @@ class JwtAuthenticationFilterTest {
     void rejectsTokenWhenUserNoLongerExists() throws Exception {
         when(jwtService.parse("orphan-token"))
                 .thenReturn(new JwtPrincipal(99L, "ghost@example.com", Role.OWNER, 1));
-        when(userRepository.findById(99L)).thenReturn(Optional.empty());
+        when(userCredentialsApi.tokenVersionOf(99L)).thenReturn(OptionalInt.empty());
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.addHeader("Authorization", "Bearer orphan-token");

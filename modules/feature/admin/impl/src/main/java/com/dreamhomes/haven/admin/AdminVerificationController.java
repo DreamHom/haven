@@ -1,7 +1,7 @@
 package com.dreamhomes.haven.admin;
 
 import com.dreamhomes.haven.auth.JwtPrincipal;
-import com.dreamhomes.haven.verification.Verification;
+import com.dreamhomes.haven.verification.VerificationAdminView;
 import com.dreamhomes.haven.verification.VerificationType;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -33,35 +33,27 @@ public class AdminVerificationController {
     private final AdminVerificationService adminVerificationService;
 
     @GetMapping
-    public Page<AdminVerificationResponse> listPending(
+    public Page<VerificationAdminView> listPending(
             @RequestParam VerificationType type,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         Pageable pageable = PageRequest.of(Math.max(page, 0),
                 Math.min(Math.max(size, 1), MAX_PAGE_SIZE));
-        return adminVerificationService.listPending(type, pageable)
-                .map(AdminVerificationController::toResponse);
+        return adminVerificationService.listPending(type, pageable);
     }
 
     @PostMapping("/{id}/approve")
-    public AdminVerificationResponse approve(
+    public VerificationAdminView approve(
             @AuthenticationPrincipal JwtPrincipal principal,
             @PathVariable Long id) {
-        return toResponse(adminVerificationService.approve(principal.userId(), id, null));
+        return adminVerificationService.approve(principal.userId(), id, null);
     }
 
     @PostMapping("/{id}/reject")
-    public AdminVerificationResponse reject(
+    public VerificationAdminView reject(
             @AuthenticationPrincipal JwtPrincipal principal,
             @PathVariable Long id,
             @Valid @RequestBody RejectVerificationRequest request) {
-        return toResponse(adminVerificationService.reject(principal.userId(), id, request.reason()));
-    }
-
-    static AdminVerificationResponse toResponse(Verification v) {
-        return new AdminVerificationResponse(v.getId(), v.getType(), v.getStatus(),
-                v.getSubmitterUserId(), v.getTargetUserId(), v.getTargetPropertyId(),
-                v.getDocumentRefs(), v.getSubmittedAt(),
-                v.getDecidedAt(), v.getDecidedByAdminId(), v.getDecisionReason());
+        return adminVerificationService.reject(principal.userId(), id, request.reason());
     }
 }

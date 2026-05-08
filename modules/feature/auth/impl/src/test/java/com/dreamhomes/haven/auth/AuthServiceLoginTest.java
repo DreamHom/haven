@@ -1,8 +1,8 @@
 package com.dreamhomes.haven.auth;
 
 import com.dreamhomes.haven.user.Role;
-import com.dreamhomes.haven.user.User;
-import com.dreamhomes.haven.user.UserRepository;
+import com.dreamhomes.haven.user.UserCredentials;
+import com.dreamhomes.haven.user.UserCredentialsApi;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -10,7 +10,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import java.time.Instant;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -24,7 +23,7 @@ import static org.mockito.Mockito.when;
 class AuthServiceLoginTest {
 
     @Mock
-    UserRepository userRepository;
+    UserCredentialsApi userCredentialsApi;
 
     @Mock
     PasswordEncoder passwordEncoder;
@@ -32,30 +31,20 @@ class AuthServiceLoginTest {
     @Mock
     JwtService jwtService;
 
-    @Mock
-    com.dreamhomes.haven.user.AgentProfileRepository agentProfileRepository;
-
     AuthService authService;
 
-    User existingUser;
+    UserCredentials existing;
 
     @BeforeEach
     void setUp() {
-        authService = new AuthService(userRepository, passwordEncoder, jwtService, agentProfileRepository);
-        existingUser = User.builder()
-                .id(7L)
-                .email("ada@example.com")
-                .passwordHash("$2a$10$hashed")
-                .role(Role.OWNER)
-                .fullName("Ada Lovelace")
-                .tokenVersion(1)
-                .createdAt(Instant.now())
-                .build();
+        authService = new AuthService(userCredentialsApi, passwordEncoder, jwtService);
+        existing = new UserCredentials(
+                7L, "ada@example.com", "$2a$10$hashed", Role.OWNER, 1, false);
     }
 
     @Test
     void issuesJwtWhenCredentialsMatch() {
-        when(userRepository.findByEmail("ada@example.com")).thenReturn(Optional.of(existingUser));
+        when(userCredentialsApi.loadByEmail("ada@example.com")).thenReturn(Optional.of(existing));
         when(passwordEncoder.matches("plaintext-pw", "$2a$10$hashed")).thenReturn(true);
         when(jwtService.issue(7L, "ada@example.com", Role.OWNER, 1)).thenReturn("the-jwt-token");
 
@@ -66,7 +55,7 @@ class AuthServiceLoginTest {
 
     @Test
     void rejectsWrongPasswordWithoutLeakingWhetherUserExists() {
-        when(userRepository.findByEmail("ada@example.com")).thenReturn(Optional.of(existingUser));
+        when(userCredentialsApi.loadByEmail("ada@example.com")).thenReturn(Optional.of(existing));
         when(passwordEncoder.matches("wrong", "$2a$10$hashed")).thenReturn(false);
 
         assertThatThrownBy(() -> authService.login(new LoginCommand("ada@example.com", "wrong")))
@@ -77,19 +66,19 @@ class AuthServiceLoginTest {
 
     @Test
     void loginIsCaseInsensitiveOnEmail() {
-        when(userRepository.findByEmail("ada@example.com")).thenReturn(Optional.of(existingUser));
+        when(userCredentialsApi.loadByEmail("ada@example.com")).thenReturn(Optional.of(existing));
         when(passwordEncoder.matches("plaintext-pw", "$2a$10$hashed")).thenReturn(true);
         when(jwtService.issue(7L, "ada@example.com", Role.OWNER, 1)).thenReturn("the-jwt-token");
 
         String token = authService.login(new LoginCommand("ADA@Example.COM", "plaintext-pw"));
 
         assertThat(token).isEqualTo("the-jwt-token");
-        verify(userRepository).findByEmail("ada@example.com");
+        verify(userCredentialsApi).loadByEmail("ada@example.com");
     }
 
     @Test
     void rejectsUnknownEmailWithSameExceptionAsBadPassword() {
-        when(userRepository.findByEmail("ghost@example.com")).thenReturn(Optional.empty());
+        when(userCredentialsApi.loadByEmail("ghost@example.com")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> authService.login(new LoginCommand("ghost@example.com", "any")))
                 .isInstanceOf(InvalidCredentialsException.class);
@@ -99,8 +88,9 @@ class AuthServiceLoginTest {
 
     @Test
     void suspendedUserCannotLoginEvenWithCorrectPassword() {
-        existingUser.setSuspendedAt(Instant.now());
-        when(userRepository.findByEmail("ada@example.com")).thenReturn(Optional.of(existingUser));
+        UserCredentials suspended = new UserCredentials(
+                7L, "ada@example.com", "$2a$10$hashed", Role.OWNER, 1, true);
+        when(userCredentialsApi.loadByEmail("ada@example.com")).thenReturn(Optional.of(suspended));
         when(passwordEncoder.matches("plaintext-pw", "$2a$10$hashed")).thenReturn(true);
 
         assertThatThrownBy(() -> authService.login(new LoginCommand("ada@example.com", "plaintext-pw")))
@@ -114,7 +104,7 @@ class AuthServiceLoginTest {
         // If we returned early on missing user, an attacker could distinguish "user exists
         // but wrong password" from "user does not exist" by response timing. Always run
         // matches() so the wall-clock cost of a login attempt is the same either way.
-        when(userRepository.findByEmail("ghost@example.com")).thenReturn(Optional.empty());
+        when(userCredentialsApi.loadByEmail("ghost@example.com")).thenReturn(Optional.empty());
 
         try {
             authService.login(new LoginCommand("ghost@example.com", "irrelevant"));

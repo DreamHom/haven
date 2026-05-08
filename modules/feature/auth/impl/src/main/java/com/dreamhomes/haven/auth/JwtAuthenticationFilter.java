@@ -1,7 +1,6 @@
 package com.dreamhomes.haven.auth;
 
-import com.dreamhomes.haven.user.User;
-import com.dreamhomes.haven.user.UserRepository;
+import com.dreamhomes.haven.user.UserCredentialsApi;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -16,10 +15,9 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import java.util.Optional;
-
 import java.io.IOException;
 import java.util.List;
+import java.util.OptionalInt;
 
 /**
  * Reads the {@code Authorization: Bearer <jwt>} header on every request, validates the
@@ -38,7 +36,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private static final String BEARER_PREFIX = "Bearer ";
 
     private final JwtService jwtService;
-    private final UserRepository userRepository;
+    private final UserCredentialsApi userCredentialsApi;
 
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request,
@@ -71,11 +69,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     /**
-     * One DB roundtrip per authenticated request. Acceptable for our scale; cache with
-     * a short TTL if/when this shows up in profiles.
+     * One DB roundtrip per authenticated request, hidden behind {@link UserCredentialsApi}.
+     * Acceptable for our scale; cache with a short TTL (or fold the version into the JWT
+     * with a refresh policy) if/when this shows up in profiles.
      */
     private boolean tokenVersionMatchesCurrent(JwtPrincipal principal) {
-        Optional<User> user = userRepository.findById(principal.userId());
-        return user.map(u -> u.getTokenVersion() == principal.tokenVersion()).orElse(false);
+        OptionalInt current = userCredentialsApi.tokenVersionOf(principal.userId());
+        return current.isPresent() && current.getAsInt() == principal.tokenVersion();
     }
 }

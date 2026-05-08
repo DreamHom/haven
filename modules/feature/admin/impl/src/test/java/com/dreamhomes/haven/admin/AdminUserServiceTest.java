@@ -1,9 +1,11 @@
 package com.dreamhomes.haven.admin;
 
 import com.dreamhomes.haven.user.Role;
-import com.dreamhomes.haven.user.User;
+import com.dreamhomes.haven.user.UserAdminApi;
+import com.dreamhomes.haven.user.UserAdminView;
+import com.dreamhomes.haven.user.UserAlreadySuspendedException;
 import com.dreamhomes.haven.user.UserNotFoundException;
-import com.dreamhomes.haven.user.UserRepository;
+import com.dreamhomes.haven.user.UserNotSuspendedException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
@@ -14,46 +16,53 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+/**
+ * AdminUserService is a thin orchestrator after the UserAdminApi extraction:
+ * <ul>
+ *   <li>self-moderation guard + reason validation in this layer</li>
+ *   <li>delegate the actual user-state mutation to {@link UserAdminApi}</li>
+ *   <li>write the admin audit log row + metric</li>
+ * </ul>
+ * Tests focus on what this layer owns; the suspendedAt/tokenVersion mechanics live
+ * in {@code UserAdminServiceTest} inside {@code feature/user/impl}.
+ */
 @ExtendWith(MockitoExtension.class)
 class AdminUserServiceTest {
 
-    @Mock UserRepository userRepository;
+    @Mock UserAdminApi userAdminApi;
     @Mock AdminAuditLogRepository auditLogRepository;
 
     AdminUserService service;
 
     @BeforeEach
     void setUp() {
-        service = new AdminUserService(userRepository, auditLogRepository, new ObjectMapper(),
+        service = new AdminUserService(userAdminApi, auditLogRepository, new ObjectMapper(),
                 new AdminMetrics(new SimpleMeterRegistry()));
     }
 
     @Test
-    void suspendingUserStampsSuspendedAtAndBumpsTokenVersionToInvalidateOutstandingTokens() {
-        User user = activeUser(50L, Role.OWNER);
-        when(userRepository.findById(50L)).thenReturn(Optional.of(user));
+    void suspendingDelegatesToUserApiAndReturnsView() {
+        UserAdminView suspended = view(50L, Role.OWNER, Instant.parse("2026-01-01T00:00:00Z"));
+        when(userAdminApi.suspend(50L)).thenReturn(suspended);
 
-        service.suspend(7L, 50L, "Repeated policy violations");
+        UserAdminView result = service.suspend(7L, 50L, "Repeated policy violations");
 
-        ArgumentCaptor<User> cap = ArgumentCaptor.forClass(User.class);
-        verify(userRepository).save(cap.capture());
-        assertThat(cap.getValue().getSuspendedAt()).isNotNull();
-        // Outstanding JWTs are invalidated by the auth filter on the next request.
-        assertThat(cap.getValue().getTokenVersion()).isEqualTo(2);
+        assertThat(result).isSameAs(suspended);
+        verify(userAdminApi).suspend(50L);
     }
 
     @Test
     void suspendingWritesAuditLogWithReason() {
-        when(userRepository.findById(50L)).thenReturn(Optional.of(activeUser(50L, Role.AGENT)));
+        when(userAdminApi.suspend(50L)).thenReturn(view(50L, Role.AGENT, Instant.now()));
 
         service.suspend(7L, 50L, "Bad behaviour");
 
@@ -67,15 +76,13 @@ class AdminUserServiceTest {
     }
 
     @Test
-    void cannotSuspendAlreadySuspendedUser() {
-        User user = activeUser(50L, Role.OWNER);
-        user.setSuspendedAt(Instant.now());
-        when(userRepository.findById(50L)).thenReturn(Optional.of(user));
+    void propagatesUserAlreadySuspendedFromApi() {
+        when(userAdminApi.suspend(50L)).thenThrow(new UserAlreadySuspendedException(50L));
 
         assertThatThrownBy(() -> service.suspend(7L, 50L, "any"))
                 .isInstanceOf(UserAlreadySuspendedException.class);
 
-        verify(userRepository, never()).save(any());
+        verify(auditLogRepository, never()).save(any());
     }
 
     @Test
@@ -83,7 +90,7 @@ class AdminUserServiceTest {
         assertThatThrownBy(() -> service.suspend(7L, 7L, "x"))
                 .isInstanceOf(CannotModerateSelfException.class);
 
-        verify(userRepository, never()).findById(any());
+        verify(userAdminApi, never()).suspend(any());
     }
 
     @Test
@@ -91,46 +98,41 @@ class AdminUserServiceTest {
         assertThatThrownBy(() -> service.suspend(7L, 50L, "  "))
                 .isInstanceOf(IllegalArgumentException.class);
 
-        verify(userRepository, never()).findById(any());
+        verify(userAdminApi, never()).suspend(any());
     }
 
     @Test
-    void suspendingNonExistentUserThrows404() {
-        when(userRepository.findById(404L)).thenReturn(Optional.empty());
+    void suspendingNonExistentUserPropagates404FromApi() {
+        when(userAdminApi.suspend(404L)).thenThrow(new UserNotFoundException(404L));
 
         assertThatThrownBy(() -> service.suspend(7L, 404L, "x"))
                 .isInstanceOf(UserNotFoundException.class);
     }
 
     @Test
-    void reactivatingClearsSuspendedAtAndAuditLogs() {
-        User user = activeUser(50L, Role.OWNER);
-        user.setSuspendedAt(Instant.now());
-        when(userRepository.findById(50L)).thenReturn(Optional.of(user));
+    void reactivatingDelegatesAndAuditLogs() {
+        UserAdminView reactivated = view(50L, Role.OWNER, null);
+        when(userAdminApi.reactivate(50L)).thenReturn(reactivated);
 
-        service.reactivate(7L, 50L);
+        UserAdminView result = service.reactivate(7L, 50L);
 
-        ArgumentCaptor<User> userCap = ArgumentCaptor.forClass(User.class);
-        verify(userRepository).save(userCap.capture());
-        assertThat(userCap.getValue().getSuspendedAt()).isNull();
-
+        assertThat(result).isSameAs(reactivated);
         ArgumentCaptor<AdminAuditLog> auditCap = ArgumentCaptor.forClass(AdminAuditLog.class);
         verify(auditLogRepository).save(auditCap.capture());
         assertThat(auditCap.getValue().getAction()).isEqualTo(AdminAction.USER_REACTIVATED);
     }
 
     @Test
-    void cannotReactivateUserThatIsNotSuspended() {
-        when(userRepository.findById(50L)).thenReturn(Optional.of(activeUser(50L, Role.OWNER)));
+    void propagatesUserNotSuspendedFromApi() {
+        when(userAdminApi.reactivate(eq(50L))).thenThrow(new UserNotSuspendedException(50L));
 
         assertThatThrownBy(() -> service.reactivate(7L, 50L))
                 .isInstanceOf(UserNotSuspendedException.class);
 
-        verify(userRepository, never()).save(any());
+        verify(auditLogRepository, never()).save(any());
     }
 
-    private static User activeUser(Long id, Role role) {
-        return User.builder().id(id).email("u@x").passwordHash("x").fullName("U")
-                .role(role).tokenVersion(1).createdAt(Instant.now()).build();
+    private static UserAdminView view(Long id, Role role, Instant suspendedAt) {
+        return new UserAdminView(id, "u@x", role, suspendedAt, null);
     }
 }

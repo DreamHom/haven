@@ -2,7 +2,6 @@ package com.dreamhomes.haven.auth;
 
 import com.dreamhomes.haven.common.config.SecurityConfig;
 import com.dreamhomes.haven.user.Role;
-import com.dreamhomes.haven.user.User;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -55,17 +54,12 @@ class AuthControllerRegisterTest {
     JwtService jwtService;
 
     @MockBean
-    com.dreamhomes.haven.user.UserRepository userRepository;
+    com.dreamhomes.haven.user.UserCredentialsApi userCredentialsApi;
 
     @Test
     void successfulRegistrationReturns201WithUserSummary() throws Exception {
-        when(authService.register(any())).thenAnswer(inv -> User.builder()
-                .id(42L)
-                .email("ada@example.com")
-                .role(Role.APPLICANT)
-                .fullName("Ada Lovelace")
-                .createdAt(Instant.now())
-                .build());
+        when(authService.register(any())).thenReturn(new UserResponse(
+                42L, "ada@example.com", "Ada Lovelace", Role.APPLICANT, Instant.now()));
 
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -141,13 +135,8 @@ class AuthControllerRegisterTest {
 
     @Test
     void agentRoleWithLicenceNumberIsAccepted() throws Exception {
-        when(authService.register(any())).thenAnswer(inv -> User.builder()
-                .id(99L)
-                .email("agent@example.com")
-                .role(Role.AGENT)
-                .fullName("An Agent")
-                .createdAt(Instant.now())
-                .build());
+        when(authService.register(any())).thenReturn(new UserResponse(
+                99L, "agent@example.com", "An Agent", Role.AGENT, Instant.now()));
 
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)

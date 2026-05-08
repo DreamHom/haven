@@ -13,7 +13,7 @@ review writeup. Pairs with `dreamhomes-prd.md` (the brief), `dreamhomes-userflow
 |---|---|
 | **Stack** | Java 21 · Spring Boot 3.3.5 · Spring Security · Spring Data JPA · Hibernate 6 · Spring Kafka · JJWT 0.12.6 · Flyway · Lombok · Micrometer · springdoc-openapi · bucket4j · Testcontainers · `@EmbeddedKafka` |
 | **Migrations** | Flyway V1 → V18 (18 numbered SQLs, schema-validated by Hibernate at startup) |
-| **Tests** | **363 total** (276 unit + 87 IT) · **0 failures · 0 errors** at `mvn verify` |
+| **Tests** | **389 total** · **0 failures · 0 errors** at `mvn verify` |
 | **Source files** | ~222 across 14 features (each split into `-api` + `-impl` Maven modules) |
 | **Maven modules** | **33** (parent + core + core-events + test-support + app-shared + 28 feature `api`/`impl` halves + integration-tests + app) |
 | **Phases shipped** | 0 (foundation) → 14 (modular monolith restructure) |
@@ -226,21 +226,27 @@ haven/
 ### Allowed cross-feature edges
 
 A `feature-X-impl` module can declare **`feature-Y-api`** as a dependency. It cannot
-declare another feature's `-impl` — `mvn validate` rejects the build. Two documented
-exceptions where the principle is deliberately relaxed:
+declare another feature's `-impl` — `mvn validate` rejects the build. **Zero
+exceptions** as of the post-Phase-14 cleanup: the original auth-impl→user-impl and
+admin-impl→user/verification-impl edges were retired by extracting three new admin /
+credential APIs:
 
-| from | to | why |
+| API (in -api) | Owner impl | Replaces what direct edge |
 |---|---|---|
-| `feature-auth-impl` | `feature-user-impl` | Auth + user share a bounded context. `AuthService` reads `User.passwordHash` and writes `tokenVersion` — same aggregate, not cross-feature. |
-| `feature-admin-impl` | `feature-user-impl`, `feature-verification-impl` | Admin moderation mutates `User.suspendedAt` and `Verification.status` directly. Better than bloating UserApi/VerificationApi with admin-only methods. |
+| `UserCredentialsApi` | feature-user-impl | auth-impl reaching into `UserRepository` for login + register + tokenVersion bumps |
+| `UserAdminApi` | feature-user-impl | admin-impl writing `User.suspendedAt` + `tokenVersion` and stamping identity / agent-credential badges |
+| `VerificationAdminApi` | feature-verification-impl | admin-impl reading + writing `Verification.status` directly; the api now owns the badge-flip dispatch through `UserAdminApi` / `PropertyApi` |
+
+The result: every `feature-impl` compiles against `*-api` only, including auth-impl
+and admin-impl, and the `BannedDependencies` enforcer activates uniformly across all
+14 feature-impl modules.
 
 ### `BannedDependencies` enforcer
 
 The parent pom's `pluginManagement` declares the `maven-enforcer-plugin` rule that bans
-direct deps on any `com.dreamhomes:haven-feature-*-impl` artifact. The 12 feature-impl
-modules without exceptions activate the plugin (4-line declaration). The 2 exception
-modules opt out by simply not declaring it. `mvn -pl <module> validate` fails fast on
-violations:
+direct deps on any `com.dreamhomes:haven-feature-*-impl` artifact. **All 14
+feature-impl modules** activate the plugin (4-line declaration). `mvn -pl <module>
+validate` fails fast on violations:
 
 ```
 [ERROR] Rule 0: org.apache.maven.enforcer.rules.dependency.BannedDependencies failed:
@@ -260,7 +266,7 @@ If you're a reviewer with limited time:
    the data layer, sync notification flow, end-to-end IT.
 4. **Read `TRADEOFFS.md`** — every architectural choice with a "why / cost / revisit"
    triplet. Forty-plus entries; every one has a real consequence.
-5. **`mvn verify`** — 363 tests, 0 failures, ~3 minutes wall-clock.
+5. **`mvn verify`** — 389 tests, 0 failures, ~3 minutes wall-clock.
 
 ---
 

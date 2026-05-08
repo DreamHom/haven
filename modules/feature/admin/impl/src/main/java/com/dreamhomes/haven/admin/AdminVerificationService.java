@@ -2,16 +2,8 @@ package com.dreamhomes.haven.admin;
 
 import com.dreamhomes.haven.notification.NotificationApi;
 import com.dreamhomes.haven.notification.NotificationKind;
-import com.dreamhomes.haven.property.PropertyApi;
-import com.dreamhomes.haven.user.AgentProfile;
-import com.dreamhomes.haven.user.AgentProfileRepository;
-import com.dreamhomes.haven.user.User;
-import com.dreamhomes.haven.user.UserRepository;
-import com.dreamhomes.haven.verification.Verification;
-import com.dreamhomes.haven.verification.VerificationAlreadyDecidedException;
-import com.dreamhomes.haven.verification.VerificationNotFoundException;
-import com.dreamhomes.haven.verification.VerificationRepository;
-import com.dreamhomes.haven.verification.VerificationStatus;
+import com.dreamhomes.haven.verification.VerificationAdminApi;
+import com.dreamhomes.haven.verification.VerificationAdminView;
 import com.dreamhomes.haven.verification.VerificationType;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -27,124 +19,64 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * Decision side of the verification system (PRD §4.8). Reads the queue, lands the
- * decision, flips the appropriate verified-badge timestamp, writes the audit log row,
- * and records a sync notification for the submitter.
+ * Decision orchestration for the verification system (PRD §4.8). The actual data
+ * write (status flip + decision metadata + verified-badge stamp) is owned by
+ * {@link VerificationAdminApi} inside {@code feature/verification/impl}; this service
+ * is the cross-cutting half — audit log, sync notification, metrics. Admin no longer
+ * compiles against verification-impl or user-impl.
  *
- * <p>Per PRD §7, listing approvals and verification updates are <strong>sync DB
- * notifications</strong>, not Kafka — so this whole flow stays in one transaction with
- * no outbox involvement. The third design diagram ({@code 03c-listing-approved.drawio})
- * is superseded for capstone scope; see {@code haven/docs/TRADEOFFS.md}.
+ * <p>Per PRD §7, listing approvals and verification updates are sync DB notifications,
+ * not Kafka — so the whole flow stays in one transaction with no outbox involvement.
+ * The third design diagram ({@code 03c-listing-approved.drawio}) is superseded for
+ * capstone scope; see {@code haven/docs/TRADEOFFS.md}.</p>
  */
 @Service
 @Slf4j
 @RequiredArgsConstructor
 public class AdminVerificationService {
 
-    private final VerificationRepository verificationRepository;
-    private final UserRepository userRepository;
-    private final AgentProfileRepository agentProfileRepository;
-    private final PropertyApi propertyApi;
+    private final VerificationAdminApi verificationAdminApi;
     private final NotificationApi notificationApi;
     private final AdminAuditLogRepository auditLogRepository;
     private final ObjectMapper objectMapper;
     private final AdminMetrics adminMetrics;
 
     @Transactional(readOnly = true)
-    public Page<Verification> listPending(VerificationType type, Pageable pageable) {
-        return verificationRepository.findByTypeAndStatusOrderBySubmittedAtAsc(
-                type, VerificationStatus.PENDING, pageable);
+    public Page<VerificationAdminView> listPending(VerificationType type, Pageable pageable) {
+        return verificationAdminApi.listPending(type, pageable);
     }
 
     @Transactional
-    public Verification approve(Long adminId, Long verificationId, String reason) {
-        Verification verification = loadPending(verificationId);
-        Instant now = Instant.now();
-        verification.setStatus(VerificationStatus.APPROVED);
-        verification.setDecidedAt(now);
-        verification.setDecidedByAdminId(adminId);
-        verification.setDecisionReason(reason);
-        // save() on a managed entity returns the same instance — keep working on the
-        // local reference so the unit test's mocked repo doesn't have to stub the return.
-        verificationRepository.save(verification);
-
-        flipBadge(verification, now);
-        recordAudit(adminId, AdminAction.VERIFICATION_APPROVED, verification, reason);
-        recordNotification(verification.getSubmitterUserId(),
-                NotificationKind.VERIFICATION_APPROVED, verification, reason);
-        adminMetrics.recordVerificationDecision(verification.getType(), true);
-
+    public VerificationAdminView approve(Long adminId, Long verificationId, String reason) {
+        VerificationAdminView decided = verificationAdminApi.approve(adminId, verificationId, reason);
+        recordAudit(adminId, AdminAction.VERIFICATION_APPROVED, decided, reason);
+        recordNotification(decided.submitterUserId(), NotificationKind.VERIFICATION_APPROVED, decided, reason);
+        adminMetrics.recordVerificationDecision(decided.type(), true);
         log.info("Admin {} approved verificationId={} type={}",
-                adminId, verification.getId(), verification.getType());
-        return verification;
+                adminId, decided.id(), decided.type());
+        return decided;
     }
 
     @Transactional
-    public Verification reject(Long adminId, Long verificationId, String reason) {
-        if (reason == null || reason.isBlank()) {
-            throw new IllegalArgumentException("Rejection reason is required");
-        }
-        Verification verification = loadPending(verificationId);
-        Instant now = Instant.now();
-        verification.setStatus(VerificationStatus.REJECTED);
-        verification.setDecidedAt(now);
-        verification.setDecidedByAdminId(adminId);
-        verification.setDecisionReason(reason);
-        verificationRepository.save(verification);
-
-        recordAudit(adminId, AdminAction.VERIFICATION_REJECTED, verification, reason);
-        recordNotification(verification.getSubmitterUserId(),
-                NotificationKind.VERIFICATION_REJECTED, verification, reason);
-        adminMetrics.recordVerificationDecision(verification.getType(), false);
-
+    public VerificationAdminView reject(Long adminId, Long verificationId, String reason) {
+        VerificationAdminView decided = verificationAdminApi.reject(adminId, verificationId, reason);
+        recordAudit(adminId, AdminAction.VERIFICATION_REJECTED, decided, reason);
+        recordNotification(decided.submitterUserId(), NotificationKind.VERIFICATION_REJECTED, decided, reason);
+        adminMetrics.recordVerificationDecision(decided.type(), false);
         log.info("Admin {} rejected verificationId={} type={} reason='{}'",
-                adminId, verification.getId(), verification.getType(), reason);
-        return verification;
+                adminId, decided.id(), decided.type(), reason);
+        return decided;
     }
 
-    private Verification loadPending(Long id) {
-        Verification verification = verificationRepository.findById(id)
-                .orElseThrow(() -> new VerificationNotFoundException(id));
-        if (verification.getStatus() != VerificationStatus.PENDING) {
-            throw new VerificationAlreadyDecidedException(id, verification.getStatus());
-        }
-        return verification;
-    }
-
-    /**
-     * Stamps the appropriate verified-badge timestamp on the right entity. Each track
-     * lands on a different table; the switch keeps the per-track surgery isolated.
-     */
-    private void flipBadge(Verification approved, Instant when) {
-        switch (approved.getType()) {
-            case OWNER_IDENTITY, APPLICANT_IDENTITY -> {
-                User user = userRepository.findById(approved.getTargetUserId())
-                        .orElseThrow(() -> new IllegalStateException(
-                                "Target user " + approved.getTargetUserId() + " missing on approved verification"));
-                user.setIdentityVerifiedAt(when);
-                userRepository.save(user);
-            }
-            case AGENT_CREDENTIALS -> {
-                AgentProfile profile = agentProfileRepository.findById(approved.getTargetUserId())
-                        .orElseThrow(() -> new IllegalStateException(
-                                "Agent profile for user " + approved.getTargetUserId() + " missing"));
-                profile.setCredentialVerifiedAt(when);
-                agentProfileRepository.save(profile);
-            }
-            case PROPERTY_DOCUMENTS -> propertyApi.markDocumentsVerified(
-                    approved.getTargetPropertyId(), when);
-        }
-    }
-
-    private void recordAudit(Long adminId, AdminAction action, Verification verification, String reason) {
+    private void recordAudit(Long adminId, AdminAction action, VerificationAdminView v, String reason) {
         Map<String, Object> metadata = new LinkedHashMap<>();
-        metadata.put("verificationType", verification.getType().name());
-        metadata.put("submitterUserId", verification.getSubmitterUserId());
-        if (verification.getTargetUserId() != null) {
-            metadata.put("targetUserId", verification.getTargetUserId());
+        metadata.put("verificationType", v.type().name());
+        metadata.put("submitterUserId", v.submitterUserId());
+        if (v.targetUserId() != null) {
+            metadata.put("targetUserId", v.targetUserId());
         }
-        if (verification.getTargetPropertyId() != null) {
-            metadata.put("targetPropertyId", verification.getTargetPropertyId());
+        if (v.targetPropertyId() != null) {
+            metadata.put("targetPropertyId", v.targetPropertyId());
         }
         if (reason != null && !reason.isBlank()) {
             metadata.put("reason", reason);
@@ -153,18 +85,18 @@ public class AdminVerificationService {
                 .adminId(adminId)
                 .action(action)
                 .targetType(AuditTargetType.VERIFICATION)
-                .targetId(verification.getId())
+                .targetId(v.id())
                 .metadata(serialize(metadata))
                 .createdAt(Instant.now())
                 .build());
     }
 
     private void recordNotification(Long recipientId, NotificationKind kind,
-                                    Verification verification, String reason) {
+                                    VerificationAdminView v, String reason) {
         Map<String, Object> payload = new LinkedHashMap<>();
-        payload.put("verificationId", verification.getId());
-        payload.put("verificationType", verification.getType().name());
-        payload.put("status", verification.getStatus().name());
+        payload.put("verificationId", v.id());
+        payload.put("verificationType", v.type().name());
+        payload.put("status", v.status().name());
         if (reason != null && !reason.isBlank()) {
             payload.put("reason", reason);
         }

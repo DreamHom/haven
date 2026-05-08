@@ -44,7 +44,7 @@ class AuthControllerLoginTest {
     JwtService jwtService;
 
     @MockBean
-    com.dreamhomes.haven.user.UserRepository userRepository;
+    com.dreamhomes.haven.user.UserCredentialsApi userCredentialsApi;
 
     @Test
     void successfulLoginReturns200WithTokenInBody() throws Exception {

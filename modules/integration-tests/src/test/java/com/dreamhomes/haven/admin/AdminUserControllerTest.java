@@ -4,8 +4,8 @@ import com.dreamhomes.haven.auth.JwtPrincipal;
 import com.dreamhomes.haven.auth.JwtService;
 import com.dreamhomes.haven.common.config.SecurityConfig;
 import com.dreamhomes.haven.user.Role;
-import com.dreamhomes.haven.user.User;
-import com.dreamhomes.haven.user.UserRepository;
+import com.dreamhomes.haven.user.UserAdminView;
+import com.dreamhomes.haven.user.UserCredentialsApi;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -49,12 +49,11 @@ class AdminUserControllerTest {
     @Autowired MockMvc mockMvc;
     @MockBean AdminUserService adminUserService;
     @MockBean JwtService jwtService;
-    @MockBean UserRepository userRepository;
+    @MockBean UserCredentialsApi userCredentialsApi;
 
     @Test
     void adminSuspendsUserReturns200WithSuspendedAtSet() throws Exception {
-        User suspended = user(50L, Role.OWNER);
-        suspended.setSuspendedAt(Instant.now());
+        UserAdminView suspended = view(50L, Role.OWNER, Instant.now());
         when(adminUserService.suspend(eq(7L), eq(50L), eq("policy violation"))).thenReturn(suspended);
 
         mockMvc.perform(post("/api/admin/users/50/suspend")
@@ -94,7 +93,7 @@ class AdminUserControllerTest {
 
     @Test
     void adminReactivatesUserReturns200WithSuspendedAtCleared() throws Exception {
-        User reactivated = user(50L, Role.OWNER);
+        UserAdminView reactivated = view(50L, Role.OWNER, null);
         when(adminUserService.reactivate(eq(7L), eq(50L))).thenReturn(reactivated);
 
         mockMvc.perform(post("/api/admin/users/50/reactivate")
@@ -103,9 +102,8 @@ class AdminUserControllerTest {
                 .andExpect(jsonPath("$.suspendedAt", is(nullValue())));
     }
 
-    private static User user(Long id, Role role) {
-        return User.builder().id(id).email("u@x").passwordHash("x").fullName("U")
-                .role(role).tokenVersion(2).createdAt(Instant.now()).build();
+    private static UserAdminView view(Long id, Role role, Instant suspendedAt) {
+        return new UserAdminView(id, "u@x", role, suspendedAt, null);
     }
 
     private static RequestPostProcessor asPrincipal(Long userId, Role role) {

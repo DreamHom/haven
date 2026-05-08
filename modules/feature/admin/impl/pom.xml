@@ -14,13 +14,11 @@
     <artifactId>haven-feature-admin-impl</artifactId>
     <name>haven-feature-admin-impl</name>
     <description>Admin moderation implementation: AdminAuditLog entity, repo,
-        AdminAuditService (implements AdminAuditApi), per-track services
-        (AdminListing/User/Verification), controllers, AdminMetrics.
-
-        Admin is the platform-wide moderation surface — it legitimately needs broader
-        access than other features. Admin-impl depends on user-impl and verification-impl
-        (intra-aggregate exceptions) for direct entity reads + state mutations that
-        haven't been added to those features' APIs yet. Documented in TRADEOFFS.</description>
+        AdminAuditService (implements AdminAuditApi), per-track orchestrators
+        (AdminListing/User/Verification), controllers, AdminMetrics. User-state
+        moderation goes through UserAdminApi; verification decisions go through
+        VerificationAdminApi — admin-impl no longer compiles against user-impl or
+        verification-impl.</description>
 
     <dependencies>
         <dependency>
@@ -39,19 +37,9 @@
             <groupId>com.dreamhomes</groupId>
             <artifactId>haven-feature-user-api</artifactId>
         </dependency>
-        <!-- Intra-aggregate exception: admin user-suspension writes User.suspendedAt + tokenVersion. -->
-        <dependency>
-            <groupId>com.dreamhomes</groupId>
-            <artifactId>haven-feature-user-impl</artifactId>
-        </dependency>
         <dependency>
             <groupId>com.dreamhomes</groupId>
             <artifactId>haven-feature-verification-api</artifactId>
-        </dependency>
-        <!-- Intra-aggregate exception: admin verification decisions read + flip Verification rows. -->
-        <dependency>
-            <groupId>com.dreamhomes</groupId>
-            <artifactId>haven-feature-verification-impl</artifactId>
         </dependency>
         <dependency>
             <groupId>com.dreamhomes</groupId>
@@ -109,4 +97,15 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <!-- Ban cross-feature -impl leaks. The admin-impl exception was retired when
+         UserAdminApi + VerificationAdminApi landed. -->
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
 </project>

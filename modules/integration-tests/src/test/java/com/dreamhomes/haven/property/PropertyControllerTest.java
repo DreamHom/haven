@@ -4,7 +4,7 @@ import com.dreamhomes.haven.auth.JwtPrincipal;
 import com.dreamhomes.haven.auth.JwtService;
 import com.dreamhomes.haven.common.config.SecurityConfig;
 import com.dreamhomes.haven.user.Role;
-import com.dreamhomes.haven.user.UserRepository;
+import com.dreamhomes.haven.user.UserCredentialsApi;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -62,7 +62,7 @@ class PropertyControllerTest {
     JwtService jwtService;
 
     @MockBean
-    UserRepository userRepository;
+    UserCredentialsApi userCredentialsApi;
 
     @Test
     void ownerCreatingApartmentReturns201WithPropertySummary() throws Exception {

@@ -25,5 +25,12 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
+        <!-- VerificationAdminApi.listPending returns Page&lt;VerificationAdminView&gt;.
+             core already pulls spring-data-commons in for @EnableSpringDataWebSupport;
+             declaring it here makes the dep explicit at the api boundary. -->
+        <dependency>
+            <groupId>org.springframework.data</groupId>
+            <artifactId>spring-data-commons</artifactId>
+        </dependency>
     </dependencies>
 </project>

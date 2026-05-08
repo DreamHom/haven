@@ -19,11 +19,9 @@ public class AuthController {
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
     public UserResponse register(@Valid @RequestBody RegisterRequest request) {
-        com.dreamhomes.haven.user.User saved = authService.register(new RegisterCommand(
+        return authService.register(new RegisterCommand(
                 request.email(), request.password(), request.fullName(), request.phone(),
                 request.role(), request.licenseNumber()));
-        return new UserResponse(saved.getId(), saved.getEmail(), saved.getFullName(),
-                saved.getRole(), saved.getCreatedAt());
     }
 
     @PostMapping("/login")

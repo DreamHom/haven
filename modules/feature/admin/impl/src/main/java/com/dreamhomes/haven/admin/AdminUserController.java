@@ -1,7 +1,7 @@
 package com.dreamhomes.haven.admin;
 
 import com.dreamhomes.haven.auth.JwtPrincipal;
-import com.dreamhomes.haven.user.User;
+import com.dreamhomes.haven.user.UserAdminView;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -21,22 +21,17 @@ public class AdminUserController {
     private final AdminUserService adminUserService;
 
     @PostMapping("/{id}/suspend")
-    public AdminUserResponse suspend(
+    public UserAdminView suspend(
             @AuthenticationPrincipal JwtPrincipal principal,
             @PathVariable Long id,
             @Valid @RequestBody SuspendUserRequest request) {
-        return toResponse(adminUserService.suspend(principal.userId(), id, request.reason()));
+        return adminUserService.suspend(principal.userId(), id, request.reason());
     }
 
     @PostMapping("/{id}/reactivate")
-    public AdminUserResponse reactivate(
+    public UserAdminView reactivate(
             @AuthenticationPrincipal JwtPrincipal principal,
             @PathVariable Long id) {
-        return toResponse(adminUserService.reactivate(principal.userId(), id));
-    }
-
-    static AdminUserResponse toResponse(User u) {
-        return new AdminUserResponse(u.getId(), u.getEmail(), u.getRole(),
-                u.getSuspendedAt(), u.getIdentityVerifiedAt());
+        return adminUserService.reactivate(principal.userId(), id);
     }
 }
