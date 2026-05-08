@@ -37,6 +37,13 @@
             <groupId>org.springframework</groupId>
             <artifactId>spring-orm</artifactId>
         </dependency>
+        <!-- spring-data-commons: WebConfig uses @EnableSpringDataWebSupport to lock the
+             Page JSON shape (VIA_DTO). Pulled directly so core can host the cross-cutting
+             web config without depending on a JPA starter. -->
+        <dependency>
+            <groupId>org.springframework.data</groupId>
+            <artifactId>spring-data-commons</artifactId>
+        </dependency>
         <!-- validation: StrictEmail / NotCommonPassword constraints + validators -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -52,11 +59,28 @@
             <groupId>com.bucket4j</groupId>
             <artifactId>bucket4j_jdk17-core</artifactId>
         </dependency>
+        <!-- springdoc: serves /v3/api-docs and the swagger-ui assets. Lives in core so every
+             Spring web boot (production app + ITs in integration-tests) auto-exposes the
+             OpenAPI surface; springdoc registers itself via classpath autodetection. -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <optional>true</optional>
+        </dependency>
+
+        <!-- Tests in core are pure JUnit/Mockito unit tests against the validation
+             annotations, the request-id filter, and the global exception handler.
+             No Spring context, no test-support dependency (which would form a reactor
+             cycle since test-support already depends on core). -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 </project>

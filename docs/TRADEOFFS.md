@@ -583,6 +583,70 @@ Last updated after Phase 13 (photos + review takedown + counter-offers).
 
 ---
 
+## Modular monolith restructure (Phase 14: P1–P5)
+
+### Maven multi-module with `feature/<name>/<api|impl>` per-feature pairs
+- **Why**: build-level enforcement of public/private boundaries. Each feature exports a thin `-api` (interfaces + DTOs + enums + exceptions) and an opaque `-impl` (entity + repo + service + controller). Cross-feature consumers compile against `-api` only — they physically cannot import another feature's entity, repo, or service impl. The legacy single-module layout had the same package-by-feature shape but no enforced isolation; a contributor could `import com.dreamhomes.haven.user.UserRepository` from anywhere.
+- **Cost**: 33 modules vs 1. ~30 poms to maintain. Each `*Response.from(Entity)` factory dropped (DTO-in-api can't see entity-in-impl) — construction inlined in controllers / services. Slightly longer `mvn` reactor build: ~30s cold vs ~15s before.
+- **Revisit**: never going back. The principle is sound and the build is fast enough.
+
+### Folder layout: `modules/feature/<name>/<api|impl>` (nested) over flat `feature-<name>-<api|impl>`
+- **Why**: visual grouping. Each feature is one folder; `cd feature/listing/` shows api + impl side by side. The `modules/` wrapper keeps the repo root clean (5 entries: `docs/`, `pom.xml`, `LICENSE`, `README.md`, `modules/`).
+- **Cost**: artifactId still `haven-feature-listing-api` (kept descriptive for `mvn -pl :artifact` invocations and error messages); the artifactId-vs-folder mismatch is a known minor friction. Same pattern Spring Boot itself ships (`spring-boot-starter-web` artifact lives under `spring-boot-project/spring-boot-starters/spring-boot-starter-web/`).
+- **Revisit**: never.
+
+### Explicit `<relativePath>../../pom.xml</relativePath>` over self-closing `<relativePath/>`
+- **Why**: self-closing form makes Maven resolve the parent through the local repo only. Mid-edit changes to the parent's `<dependencyManagement>` don't propagate until `mvn install -N` runs first, which interrupts incremental work. Explicit on-disk paths read the parent fresh from the filesystem every build.
+- **Cost**: visual noise (nested feature poms have `../../../../pom.xml`). Acceptable — `<relativePath>` is read once per pom, never on the hot path.
+- **Revisit**: never.
+
+### Cross-aggregate reads through `*Api` interfaces, never repositories
+- **Why**: the user's principle — "payment imports account.service, never account.repository." After P3, every cross-feature read goes through one of `ListingApi`, `PropertyApi`, `UserApi`, `OfferApi`, `ReviewApi`, `NotificationApi`, `AdminAuditApi`. Repositories are package-internal to their `-impl` modules.
+- **Cost**: 7 interface modules to design + maintain. Each new cross-feature read needs an Api method; can't just reach into the other repo. That's the discipline tax — and it's the point.
+- **Revisit**: never.
+
+### `Role` enum stays in `core` (not `feature/user/api`)
+- **Why**: Role is a security primitive used in JWT claims, `@PreAuthorize` annotations across every controller, and `JwtPrincipal`. Putting it in `feature/user/api` would force `core` (which holds JwtPrincipal) to depend on user-api, polluting the dependency graph for a transitive enum. Same reasoning applies to `JwtPrincipal` — it lives in `core` even though its package is `com.dreamhomes.haven.auth`.
+- **Cost**: split-package — `core` and `feature/user/impl` both contribute classes to `com.dreamhomes.haven.user`. Maven handles split packages fine; IDE may warn cosmetically.
+- **Revisit**: never.
+
+### Two intra-aggregate exceptions: `auth-impl → user-impl` + `admin-impl → user-impl + verification-impl`
+- **Why**: auth and user share a bounded context — `AuthService` reads `User.passwordHash` and writes `tokenVersion`; that's not a cross-feature read, it's the same aggregate. Admin moderation similarly mutates `User.suspendedAt` and `Verification.status` directly because those are admin-track-specific fields better managed in admin's flow than exposed as bloated UserApi/VerificationApi methods.
+- **Cost**: two narrow violations of the "no impl-impl deps" rule. Documented in each module's pom description and excluded from the `BannedDependencies` enforcer (the plugin simply isn't activated in those two modules).
+- **Revisit when**: either feature grows enough to justify a full UserCredentialsApi / VerificationDecisionApi extraction.
+
+### `BannedDependencies` enforcer over ArchUnit tests
+- **Why**: build-time (validate phase) enforcement is faster + closer to the violation than a test-time assertion. A future contributor who tries to add `feature-X-impl` as a dep to another feature's impl gets a clear message at `mvn validate`, before any code compiles. ArchUnit would only fire during the test phase and adds a test dependency to every module.
+- **Cost**: per-module `<plugin>` activation (4 lines × 12 modules). Two modules (auth-impl, admin-impl) opt out via simply not declaring the plugin.
+- **Revisit**: never. Optionally add ArchUnit later as a complementary in-test check.
+
+### `ReviewAggregate` + `ReviewApi.aggregateForUser` split early into `feature/review/api`
+- **Why**: `UserProfileService` (in feature/user/impl) embeds the review average + count on every public profile. Without `ReviewApi`, user-impl would have to depend on review-impl, which would block user splitting in P3c (review hadn't been split yet). The thin api-only slice broke the chicken-and-egg: review-api shipped before review-impl.
+- **Cost**: review feature was split across two phases (api in P3c, impl in P3k) instead of one.
+- **Revisit**: never.
+
+### `legacy-features` retired; tests live with the code they test
+- **Why**: `legacy-features` was a transitional catchall during P1–P3 that held everything not yet split (resources, `HavenTestApplication`, every test). With every feature now split, the module had no reason to exist — and "legacy" is a smell, since a new feature would never ship its tests there. So the migration that the original Phase 14 plan deferred actually got done: every test moved to where it belongs (see the "Tests layout" table in STATE-OF-THE-SYSTEM.md), `app-shared` was created as a pure-resources leaf to break the cycle, `HavenTestApplication` moved to `test-support`, and `legacy-features` was deleted from the reactor. 363 tests pass in their new homes.
+- **Cost**: ~80 test files relocated; one test-support pom hadn't been re-installed in `~/.m2` so a stale POM masked a missing JDBC driver dep until reinstalled. The `BannedDependencies` rule pushed many controller `@WebMvcTest` files into `integration-tests` (they all import `SecurityConfig` + `JwtService`, which they can't legally see from a feature-impl whose only auth touchpoint is `*Api`). Fine — it captures the real architectural fact that those tests aren't single-feature.
+- **Revisit**: never. The split rule is now mechanical: a test stays in its feature-impl iff its imports satisfy the feature-impl's legal compile classpath. New features write `*ServiceTest` against `*Api` mocks locally and `*FlowEndToEndIT` in `integration-tests`.
+
+### `app-shared` as a zero-dep resources module
+- **Why**: `test-support` (which provides `AbstractPostgresIT`) needs to bring `application.yml`, Flyway migrations, `logback-spring.xml`, and `static/scalar.html` onto the classpath of every IT. Originally those resources lived in `app`, but `test-support` can't depend on `app` (cycle: app → every -impl → test-support). The fix is to extract the resources into a leaf module (`app-shared`) with **zero dependencies** that both `app` and `test-support` consume — it's the bottom of the DAG.
+- **Cost**: extra module that only ships an empty jar with resources. Worth it — the cycle was real and `app-shared` is the smallest module that breaks it.
+- **Revisit**: never.
+
+### `WebConfig` lives in `core`, `SecurityConfig` in `feature/auth/impl`
+- **Why**: `WebConfig` (Spring Data Web `Page` mode + the `PublicCacheHeadersInterceptor` registration) is cross-cutting and needed by every Spring Boot context (production + every IT that boots `HavenTestApplication`). It was briefly in `app` but ITs in `integration-tests` boot `HavenTestApplication` from `test-support`, which doesn't see `app` — so `WebConfig` had to go down to `core` (which already hosts the interceptor itself). `SecurityConfig` stays in `feature/auth/impl` because it's the auth feature's wiring; nothing else needs to see it.
+- **Cost**: `core` now depends on `spring-data-commons` (for `@EnableSpringDataWebSupport`) and `springdoc-openapi-starter-webmvc-ui` (so `/v3/api-docs` is exposed by every web boot, prod and test alike). Both are tiny starters that auto-detect on classpath.
+- **Revisit**: if any module needs Spring web *without* `Page` DTO serialization or cache headers (none today).
+
+### Move sites' DTO factories (`Response.from(Entity)`, `Request.toCommand()`) deleted, construction inlined in -impl
+- **Why**: factories in -api couldn't see -impl entities. Inlining the construction in controllers / services keeps DTOs in -api as pure data shapes.
+- **Cost**: 12+ inlined `toResponse(Entity)` static helpers in controllers (one per impl module). Boilerplate but explicit.
+- **Revisit**: when MapStruct or similar gets adopted; right now manual construction is fine.
+
+---
+
 ## Deferred (not built — explicit Phase 14+ scope)
 
 - `ListingPhoto`, `ListingSave`, `ListingLike`, `ListingReview` (engagement)

@@ -45,5 +45,14 @@
             <artifactId>lombok</artifactId>
             <optional>true</optional>
         </dependency>
+
+        <!-- OutboxRelayTest is a pure Mockito unit test (no DB, no Kafka). The
+             repository and metrics ITs that need a real Postgres live in
+             integration-tests so we don't form a reactor cycle through test-support. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 </project>

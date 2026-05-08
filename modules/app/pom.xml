@@ -139,10 +139,6 @@
             <groupId>com.dreamhomes</groupId>
             <artifactId>haven-feature-review-impl</artifactId>
         </dependency>
-        <dependency>
-            <groupId>com.dreamhomes</groupId>
-            <artifactId>haven-legacy-features</artifactId>
-        </dependency>
 
         <dependency>
             <groupId>com.dreamhomes</groupId>

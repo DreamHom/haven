@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.dreamhomes</groupId>
+        <artifactId>dreamhomes-haven-parent</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>haven-integration-tests</artifactId>
+    <name>haven-integration-tests</name>
+    <description>Cross-feature flow ITs that bring up a full Spring context spanning
+        multiple features. Depends on every feature-impl (legitimately — its job is to
+        exercise them together) and houses JwtTestSupport (which needs both UserRepository
+        + JwtService and would create a cycle if placed in test-support). No production
+        code — only @SpringBootTest classes that drive end-to-end flows.
+
+        Single-feature tests (unit, controller, repository IT) live in their own
+        feature-impl module's src/test/java instead — those don't need cross-feature
+        wiring and shouldn't pull in the full reactor.</description>
+
+    <dependencies>
+        <!-- Every feature-impl: this module's job is full-stack wiring -->
+        <dependency>
+            <groupId>com.dreamhomes</groupId>
+            <artifactId>haven-feature-notification-impl</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.dreamhomes</groupId>
+            <artifactId>haven-feature-property-impl</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.dreamhomes</groupId>
+            <artifactId>haven-feature-listing-impl</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.dreamhomes</groupId>
+            <artifactId>haven-feature-user-impl</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.dreamhomes</groupId>
+            <artifactId>haven-feature-review-impl</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.dreamhomes</groupId>
+            <artifactId>haven-feature-auth-impl</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.dreamhomes</groupId>
+            <artifactId>haven-feature-inspection-impl</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.dreamhomes</groupId>
+            <artifactId>haven-feature-offer-impl</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.dreamhomes</groupId>
+            <artifactId>haven-feature-comment-impl</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.dreamhomes</groupId>
+            <artifactId>haven-feature-agentlisting-impl</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.dreamhomes</groupId>
+            <artifactId>haven-feature-photo-impl</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.dreamhomes</groupId>
+            <artifactId>haven-feature-engagement-impl</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.dreamhomes</groupId>
+            <artifactId>haven-feature-verification-impl</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.dreamhomes</groupId>
+            <artifactId>haven-feature-admin-impl</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.dreamhomes</groupId>
+            <artifactId>haven-test-support</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+</project>

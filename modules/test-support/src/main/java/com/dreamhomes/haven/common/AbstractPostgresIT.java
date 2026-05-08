@@ -1,5 +1,6 @@
 package com.dreamhomes.haven.common;
 
+import com.dreamhomes.haven.HavenTestApplication;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.kafka.test.context.EmbeddedKafka;
@@ -16,12 +17,16 @@ import org.testcontainers.containers.PostgreSQLContainer;
  *   <li>Embedded Kafka starts once per JVM, exposing its bootstrap servers via the
  *       {@code spring.kafka.bootstrap-servers} property — so any production
  *       {@code @KafkaListener} or {@code KafkaTemplate} bean works against this in tests.</li>
+ *   <li>{@code classes = HavenTestApplication.class} pins the Spring Boot configuration
+ *       explicitly. Without this, modules with {@code DreamhomesHavenApplication} on
+ *       their classpath (just {@code app}) would see two {@code @SpringBootConfiguration}
+ *       candidates; explicit {@code classes=} resolves the ambiguity.</li>
  * </ul>
  *
  * <p>If a future test genuinely doesn't want Kafka along for the ride, exclude the autoconfig
  * locally with {@code @TestPropertySource}. Default for ITs is "everything wired."
  */
-@SpringBootTest
+@SpringBootTest(classes = HavenTestApplication.class)
 @EmbeddedKafka(
         partitions = 1,
         bootstrapServersProperty = "spring.kafka.bootstrap-servers"

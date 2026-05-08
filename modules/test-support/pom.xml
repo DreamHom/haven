@@ -13,12 +13,27 @@
 
     <artifactId>haven-test-support</artifactId>
     <name>haven-test-support</name>
-    <description>Shared test-only infrastructure: Postgres testcontainer, embedded Kafka,
-        JWT helpers, FK-ordered cleanup. Empty in P1 — populated in P2/P3 once features
-        start splitting and need cross-module test fixtures.</description>
+    <description>Shared test infrastructure pulled in by every feature-impl as a test-scope
+        dependency. Provides AbstractPostgresIT (Testcontainers + EmbeddedKafka, pinned to
+        HavenTestApplication via explicit classes=) and HavenTestApplication itself
+        (a bare @SpringBootApplication for tests). Deliberately has zero feature-impl
+        deps to avoid reactor cycles. Tests that need access to feature aggregates
+        (User entity, JwtService, etc.) get them through a higher-level test-fixtures
+        / integration-tests module instead.</description>
 
-    <!-- compile-scope deps so consumers can declare us as `<scope>test</scope>` -->
     <dependencies>
+        <dependency>
+            <groupId>com.dreamhomes</groupId>
+            <artifactId>haven-core</artifactId>
+        </dependency>
+        <!-- Resources (application.yml, Flyway migrations, logback) for any test
+             that brings up a Spring context. app-shared is a leaf module by design —
+             see TRADEOFFS for the cycle constraint that forced its existence. -->
+        <dependency>
+            <groupId>com.dreamhomes</groupId>
+            <artifactId>haven-app-shared</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
@@ -42,6 +57,20 @@
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>junit-jupiter</artifactId>
+        </dependency>
+        <!-- Postgres JDBC driver for the Testcontainers @ServiceConnection. -->
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+        </dependency>
+        <!-- Flyway runs at Spring Boot startup against the testcontainer DB. -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
         </dependency>
     </dependencies>
 </project>
