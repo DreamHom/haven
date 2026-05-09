@@ -4,4 +4,3 @@ public enum NotificationType {
     INSPECTION_REQUESTED,
     OFFER_SUBMITTED
 }
-

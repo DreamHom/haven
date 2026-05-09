@@ -5,6 +5,7 @@ import com.dreamhomes.haven.domain.user.dto.LoginRequest;
 import com.dreamhomes.haven.domain.user.dto.RegisterRequest;
 import com.dreamhomes.haven.domain.user.service.AuthService;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -14,13 +15,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/auth")
+@RequiredArgsConstructor
 public class AuthController {
 
     private final AuthService authService;
-
-    public AuthController(AuthService authService) {
-        this.authService = authService;
-    }
 
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)

@@ -1,10 +1,10 @@
 package com.dreamhomes.haven.domain.comment.model;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 import java.time.Instant;
 import lombok.Getter;
@@ -25,7 +25,7 @@ public class Comment {
     private Long listingId;
     private Long userId; 
 
-    @Lob
+    @Column(columnDefinition = "TEXT")
     private String body;
 
     private Instant createdAt = Instant.now();

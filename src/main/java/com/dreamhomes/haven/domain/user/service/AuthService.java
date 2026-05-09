@@ -5,20 +5,17 @@ import com.dreamhomes.haven.domain.user.dto.RegisterRequest;
 import com.dreamhomes.haven.domain.user.model.User;
 import com.dreamhomes.haven.domain.user.repository.UserRepository;
 import com.dreamhomes.haven.exception.ConflictException;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@RequiredArgsConstructor
 public class AuthService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-
-    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
-        this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
-    }
 
     @Transactional
     public User register(RegisterRequest req) {

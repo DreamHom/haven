@@ -4,16 +4,14 @@ import com.dreamhomes.haven.domain.notification.model.Notification;
 import com.dreamhomes.haven.domain.notification.model.NotificationType;
 import com.dreamhomes.haven.domain.notification.repository.NotificationRepository;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@RequiredArgsConstructor
 public class NotificationService {
     private final NotificationRepository notificationRepository;
-
-    public NotificationService(NotificationRepository notificationRepository) {
-        this.notificationRepository = notificationRepository;
-    }
 
     @Transactional
     public Notification create(Long userId, NotificationType type, String payload) {
