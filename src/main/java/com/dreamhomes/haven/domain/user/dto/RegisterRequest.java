@@ -6,9 +6,20 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 public record RegisterRequest(
-        @Email @NotBlank String email,
-        @NotBlank String password,
-        @NotNull Role role,
-        String displayName
+        @Email 
+        @NotBlank 
+        String email,
+
+        @NotBlank 
+        String password,
+        
+        @NotNull 
+        Role role,
+
+        @NotBlank 
+        String firstName,
+        
+        @NotBlank 
+        String lastName
 ) {}
 

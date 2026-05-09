@@ -24,13 +24,13 @@ public class UserController {
     @GetMapping("/{id}")
     public UserResponse get(@PathVariable Long id) {
         var u = userService.getById(id);
-        return new UserResponse(u.getId(), u.getEmail(), u.getRole(), u.getDisplayName());
+        return new UserResponse(u.getId(), u.getEmail(), u.getRole(), u.getFirstName(), u.getLastName(), u.getDisplayName());
     }
 
     @PutMapping("/{id}/profile")
     public UserResponse updateProfile(@PathVariable Long id, @Valid @RequestBody UpdateProfileRequest req) {
         var u = userService.updateProfile(id, req);
-        return new UserResponse(u.getId(), u.getEmail(), u.getRole(), u.getDisplayName());
+        return new UserResponse(u.getId(), u.getEmail(), u.getRole(), u.getFirstName(), u.getLastName(), u.getDisplayName());
     }
 }
 

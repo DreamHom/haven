@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -43,6 +44,7 @@ public class GlobalExceptionHandler {
                 message,
                 req.getRequestURI()
         );
+
         return ResponseEntity.status(status).body(body);
     }
 }
