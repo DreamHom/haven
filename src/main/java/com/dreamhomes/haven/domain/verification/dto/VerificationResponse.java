@@ -13,4 +13,3 @@ public record VerificationResponse(
         String documentUrl,
         Instant createdAt
 ) {}
-

@@ -5,16 +5,14 @@ import com.dreamhomes.haven.domain.verification.dto.SubmitVerificationRequest;
 import com.dreamhomes.haven.domain.verification.model.Verification;
 import com.dreamhomes.haven.domain.verification.repository.VerificationRepository;
 import com.dreamhomes.haven.exception.ResourceNotFoundException;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@RequiredArgsConstructor
 public class VerificationService {
     private final VerificationRepository verificationRepository;
-
-    public VerificationService(VerificationRepository verificationRepository) {
-        this.verificationRepository = verificationRepository;
-    }
 
     @Transactional
     public Verification submit(SubmitVerificationRequest req) {
@@ -28,14 +26,17 @@ public class VerificationService {
 
     @Transactional
     public Verification review(Long id, ReviewVerificationRequest req) {
-        var v = verificationRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Verification not found"));
+        var v = verificationRepository.findById(id)
+        .orElseThrow(() -> new ResourceNotFoundException("Verification not found"));
+        
         v.setStatus(req.status());
         return verificationRepository.save(v);
     }
 
     @Transactional(readOnly = true)
     public Verification get(Long id) {
-        return verificationRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Verification not found"));
+        return verificationRepository.findById(id)
+        .orElseThrow(() -> new ResourceNotFoundException("Verification not found"));
     }
 }
 
