@@ -9,9 +9,15 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.Instant;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(name = "offers")
+@Getter
+@Setter
+@NoArgsConstructor
 public class Offer {
 
     @Id
@@ -26,45 +32,4 @@ public class Offer {
     private OfferStatus status = OfferStatus.PENDING;
 
     private Instant createdAt = Instant.now();
-
-    public Long getId() {
-        return id;
-    }
-
-    public Long getListingId() {
-        return listingId;
-    }
-
-    public void setListingId(Long listingId) {
-        this.listingId = listingId;
-    }
-
-    public Long getApplicantId() {
-        return applicantId;
-    }
-
-    public void setApplicantId(Long applicantId) {
-        this.applicantId = applicantId;
-    }
-
-    public BigDecimal getAmount() {
-        return amount;
-    }
-
-    public void setAmount(BigDecimal amount) {
-        this.amount = amount;
-    }
-
-    public OfferStatus getStatus() {
-        return status;
-    }
-
-    public void setStatus(OfferStatus status) {
-        this.status = status;
-    }
-
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
 }
-

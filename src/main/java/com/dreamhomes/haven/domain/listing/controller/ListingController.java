@@ -5,6 +5,7 @@ import com.dreamhomes.haven.domain.listing.dto.ListingResponse;
 import com.dreamhomes.haven.domain.listing.dto.UpdateListingRequest;
 import com.dreamhomes.haven.domain.listing.service.ListingService;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -17,12 +18,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/listings")
+@RequiredArgsConstructor
 public class ListingController {
     private final ListingService listingService;
-
-    public ListingController(ListingService listingService) {
-        this.listingService = listingService;
-    }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -43,4 +41,3 @@ public class ListingController {
         return new ListingResponse(l.getId(), l.getPropertyId(), l.getType(), l.getStatus(), l.getPrice(), l.getTitle());
     }
 }
-

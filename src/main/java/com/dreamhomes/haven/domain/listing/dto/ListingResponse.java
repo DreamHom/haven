@@ -12,4 +12,3 @@ public record ListingResponse(
         BigDecimal price,
         String title
 ) {}
-

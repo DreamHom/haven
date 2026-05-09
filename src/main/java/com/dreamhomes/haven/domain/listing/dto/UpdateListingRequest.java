@@ -8,4 +8,3 @@ public record UpdateListingRequest(
         BigDecimal price,
         ListingStatus status
 ) {}
-

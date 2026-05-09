@@ -5,6 +5,7 @@ import com.dreamhomes.haven.domain.offer.dto.OfferResponse;
 import com.dreamhomes.haven.domain.offer.dto.SubmitOfferRequest;
 import com.dreamhomes.haven.domain.offer.service.OfferService;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -16,13 +17,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/offers")
+@RequiredArgsConstructor
 public class OfferController {
 
     private final OfferService offerService;
-
-    public OfferController(OfferService offerService) {
-        this.offerService = offerService;
-    }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)

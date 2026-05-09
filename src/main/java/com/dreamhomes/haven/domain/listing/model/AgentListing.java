@@ -5,9 +5,15 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(name = "agent_listings")
+@Getter
+@Setter
+@NoArgsConstructor
 public class AgentListing {
 
     @Id
@@ -16,25 +22,4 @@ public class AgentListing {
 
     private Long agentId;
     private Long listingId;
-
-    public Long getId() {
-        return id;
-    }
-
-    public Long getAgentId() {
-        return agentId;
-    }
-
-    public void setAgentId(Long agentId) {
-        this.agentId = agentId;
-    }
-
-    public Long getListingId() {
-        return listingId;
-    }
-
-    public void setListingId(Long listingId) {
-        this.listingId = listingId;
-    }
 }
-
