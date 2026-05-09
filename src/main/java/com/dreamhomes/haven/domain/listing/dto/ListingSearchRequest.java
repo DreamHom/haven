@@ -11,4 +11,3 @@ public record ListingSearchRequest(
         BigDecimal maxPrice,
         String query
 ) {}
-

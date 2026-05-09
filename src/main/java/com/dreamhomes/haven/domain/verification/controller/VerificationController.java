@@ -5,6 +5,7 @@ import com.dreamhomes.haven.domain.verification.dto.SubmitVerificationRequest;
 import com.dreamhomes.haven.domain.verification.dto.VerificationResponse;
 import com.dreamhomes.haven.domain.verification.service.VerificationService;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -17,12 +18,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/verifications")
+@RequiredArgsConstructor
 public class VerificationController {
     private final VerificationService verificationService;
-
-    public VerificationController(VerificationService verificationService) {
-        this.verificationService = verificationService;
-    }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)

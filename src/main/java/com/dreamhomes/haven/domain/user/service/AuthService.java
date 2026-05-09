@@ -25,11 +25,14 @@ public class AuthService {
         if (userRepository.existsByEmail(req.email())) {
             throw new ConflictException("Email already registered");
         }
+        
         var user = new User();
         user.setEmail(req.email());
         user.setPasswordHash(passwordEncoder.encode(req.password()));
         user.setRole(req.role());
-        user.setDisplayName(req.displayName());
+        user.setFirstName(req.firstName());
+        user.setLastName(req.lastName());
+        user.setDisplayName(req.firstName());
         return userRepository.save(user);
     }
 

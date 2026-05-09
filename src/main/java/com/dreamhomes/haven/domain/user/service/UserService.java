@@ -17,13 +17,16 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public User getById(Long id) {
-        return userRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        return userRepository.findById(id)
+        .orElseThrow(() -> new ResourceNotFoundException("User not found"));
     }
 
     @Transactional
     public User updateProfile(Long userId, UpdateProfileRequest req) {
         var user = getById(userId);
-        user.setDisplayName(req.displayName());
+        user.setFirstName(req.firstName());
+        user.setLastName(req.lastName());
+        user.setDisplayName(req.firstName());
         return userRepository.save(user);
     }
 }

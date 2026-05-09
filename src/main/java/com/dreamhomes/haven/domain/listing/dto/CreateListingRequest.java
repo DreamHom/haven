@@ -11,4 +11,3 @@ public record CreateListingRequest(
         @NotNull BigDecimal price,
         @NotBlank String title
 ) {}
-

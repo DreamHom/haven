@@ -6,9 +6,15 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(name = "inspection_slots")
+@Getter
+@Setter
+@NoArgsConstructor
 public class InspectionSlot {
 
     @Id
@@ -20,41 +26,5 @@ public class InspectionSlot {
 
     private Instant startAt;
     private Instant endAt;
-
-    public Long getId() {
-        return id;
-    }
-
-    public Long getListingId() {
-        return listingId;
-    }
-
-    public void setListingId(Long listingId) {
-        this.listingId = listingId;
-    }
-
-    public Long getAgentId() {
-        return agentId;
-    }
-
-    public void setAgentId(Long agentId) {
-        this.agentId = agentId;
-    }
-
-    public Instant getStartAt() {
-        return startAt;
-    }
-
-    public void setStartAt(Instant startAt) {
-        this.startAt = startAt;
-    }
-
-    public Instant getEndAt() {
-        return endAt;
-    }
-
-    public void setEndAt(Instant endAt) {
-        this.endAt = endAt;
-    }
 }
 

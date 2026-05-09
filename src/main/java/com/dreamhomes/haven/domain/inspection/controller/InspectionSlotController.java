@@ -4,6 +4,7 @@ import com.dreamhomes.haven.domain.inspection.dto.CreateSlotRequest;
 import com.dreamhomes.haven.domain.inspection.dto.InspectionSlotResponse;
 import com.dreamhomes.haven.domain.inspection.service.InspectionSlotService;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -15,13 +16,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/inspection-slots")
+@RequiredArgsConstructor
 public class InspectionSlotController {
 
     private final InspectionSlotService slotService;
-
-    public InspectionSlotController(InspectionSlotService slotService) {
-        this.slotService = slotService;
-    }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -36,4 +34,3 @@ public class InspectionSlotController {
         return new InspectionSlotResponse(s.getId(), s.getListingId(), s.getAgentId(), s.getStartAt(), s.getEndAt());
     }
 }
-

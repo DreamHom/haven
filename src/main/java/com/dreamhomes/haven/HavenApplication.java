@@ -10,4 +10,3 @@ public class HavenApplication {
         SpringApplication.run(HavenApplication.class, args);
     }
 }
-

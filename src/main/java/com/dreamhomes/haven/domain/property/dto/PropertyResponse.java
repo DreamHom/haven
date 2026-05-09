@@ -7,6 +7,7 @@ public record PropertyResponse(
         Long ownerId,
         String addressLine1,
         String city,
+        String state,
+        String country,
         PropertyStatus status
 ) {}
-

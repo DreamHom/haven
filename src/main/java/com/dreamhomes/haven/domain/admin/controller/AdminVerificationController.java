@@ -4,6 +4,7 @@ import com.dreamhomes.haven.domain.verification.dto.ReviewVerificationRequest;
 import com.dreamhomes.haven.domain.verification.dto.VerificationResponse;
 import com.dreamhomes.haven.domain.verification.service.VerificationService;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -12,13 +13,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/admin/verifications")
+@RequiredArgsConstructor
 public class AdminVerificationController {
 
     private final VerificationService verificationService;
-
-    public AdminVerificationController(VerificationService verificationService) {
-        this.verificationService = verificationService;
-    }
 
     @PutMapping("/{id}/review")
     public VerificationResponse review(@PathVariable Long id, @Valid @RequestBody ReviewVerificationRequest req) {

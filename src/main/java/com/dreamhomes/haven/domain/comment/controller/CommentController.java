@@ -5,6 +5,7 @@ import com.dreamhomes.haven.domain.comment.dto.CreateCommentRequest;
 import com.dreamhomes.haven.domain.comment.service.CommentService;
 import jakarta.validation.Valid;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -16,13 +17,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/comments")
+@RequiredArgsConstructor
 public class CommentController {
 
     private final CommentService commentService;
-
-    public CommentController(CommentService commentService) {
-        this.commentService = commentService;
-    }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -32,8 +30,11 @@ public class CommentController {
     }
 
     @GetMapping
-    public List<CommentResponse> list(@RequestParam Long listingId) {
-        return commentService.listByListing(listingId).stream()
+    public List<CommentResponse> list(
+            @RequestParam Long listingId,
+            @RequestParam(defaultValue = "desc") String order
+    ) {
+        return commentService.listByListing(listingId, order).stream()
                 .map(c -> new CommentResponse(c.getId(), c.getListingId(), c.getUserId(), c.getBody(), c.getCreatedAt()))
                 .toList();
     }
