@@ -12,48 +12,10 @@
     </parent>
 
     <groupId>com.dreamhomes</groupId>
-    <artifactId>dreamhomes-haven-parent</artifactId>
+    <artifactId>haven</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>dreamhomes-haven-parent</name>
-    <description>Parent POM for DreamHomes Haven multi-module backend.</description>
-    <packaging>pom</packaging>
-
-    <modules>
-        <module>modules/core</module>
-        <module>modules/core-events</module>
-        <module>modules/app-shared</module>
-        <module>modules/test-support</module>
-        <module>modules/feature/notification/api</module>
-        <module>modules/feature/notification/impl</module>
-        <module>modules/feature/property/api</module>
-        <module>modules/feature/property/impl</module>
-        <module>modules/feature/listing/api</module>
-        <module>modules/feature/listing/impl</module>
-        <module>modules/feature/user/api</module>
-        <module>modules/feature/user/impl</module>
-        <module>modules/feature/review/api</module>
-        <module>modules/feature/review/impl</module>
-        <module>modules/feature/auth/api</module>
-        <module>modules/feature/auth/impl</module>
-        <module>modules/feature/inspection/api</module>
-        <module>modules/feature/inspection/impl</module>
-        <module>modules/feature/offer/api</module>
-        <module>modules/feature/offer/impl</module>
-        <module>modules/feature/comment/api</module>
-        <module>modules/feature/comment/impl</module>
-        <module>modules/feature/agentlisting/api</module>
-        <module>modules/feature/agentlisting/impl</module>
-        <module>modules/feature/photo/api</module>
-        <module>modules/feature/photo/impl</module>
-        <module>modules/feature/engagement/api</module>
-        <module>modules/feature/engagement/impl</module>
-        <module>modules/feature/verification/api</module>
-        <module>modules/feature/verification/impl</module>
-        <module>modules/feature/admin/api</module>
-        <module>modules/feature/admin/impl</module>
-        <module>modules/integration-tests</module>
-        <module>modules/app</module>
-    </modules>
+    <name>haven</name>
+    <description>DreamHomes Haven backend — single-module Spring Boot application.</description>
 
     <properties>
         <java.version>21</java.version>
@@ -71,169 +33,6 @@
 
     <dependencyManagement>
         <dependencies>
-            <!-- Internal modules -->
-            <dependency>
-                <groupId>com.dreamhomes</groupId>
-                <artifactId>haven-core</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.dreamhomes</groupId>
-                <artifactId>haven-core-events</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.dreamhomes</groupId>
-                <artifactId>haven-test-support</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.dreamhomes</groupId>
-                <artifactId>haven-app-shared</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.dreamhomes</groupId>
-                <artifactId>haven-feature-notification-api</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.dreamhomes</groupId>
-                <artifactId>haven-feature-notification-impl</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.dreamhomes</groupId>
-                <artifactId>haven-feature-property-api</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.dreamhomes</groupId>
-                <artifactId>haven-feature-property-impl</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.dreamhomes</groupId>
-                <artifactId>haven-feature-listing-api</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.dreamhomes</groupId>
-                <artifactId>haven-feature-listing-impl</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.dreamhomes</groupId>
-                <artifactId>haven-feature-user-api</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.dreamhomes</groupId>
-                <artifactId>haven-feature-user-impl</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.dreamhomes</groupId>
-                <artifactId>haven-feature-review-api</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.dreamhomes</groupId>
-                <artifactId>haven-feature-auth-api</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.dreamhomes</groupId>
-                <artifactId>haven-feature-auth-impl</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.dreamhomes</groupId>
-                <artifactId>haven-feature-inspection-api</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.dreamhomes</groupId>
-                <artifactId>haven-feature-inspection-impl</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.dreamhomes</groupId>
-                <artifactId>haven-feature-offer-api</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.dreamhomes</groupId>
-                <artifactId>haven-feature-offer-impl</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.dreamhomes</groupId>
-                <artifactId>haven-feature-comment-api</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.dreamhomes</groupId>
-                <artifactId>haven-feature-comment-impl</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.dreamhomes</groupId>
-                <artifactId>haven-feature-agentlisting-api</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.dreamhomes</groupId>
-                <artifactId>haven-feature-agentlisting-impl</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.dreamhomes</groupId>
-                <artifactId>haven-feature-photo-api</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.dreamhomes</groupId>
-                <artifactId>haven-feature-photo-impl</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.dreamhomes</groupId>
-                <artifactId>haven-feature-engagement-api</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.dreamhomes</groupId>
-                <artifactId>haven-feature-engagement-impl</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.dreamhomes</groupId>
-                <artifactId>haven-feature-verification-api</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.dreamhomes</groupId>
-                <artifactId>haven-feature-verification-impl</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.dreamhomes</groupId>
-                <artifactId>haven-feature-admin-api</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.dreamhomes</groupId>
-                <artifactId>haven-feature-admin-impl</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.dreamhomes</groupId>
-                <artifactId>haven-feature-review-impl</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <!-- Third-party version pins -->
             <dependency>
                 <groupId>org.testcontainers</groupId>
                 <artifactId>testcontainers-bom</artifactId>
@@ -241,148 +40,182 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
-            <dependency>
-                <groupId>io.jsonwebtoken</groupId>
-                <artifactId>jjwt-api</artifactId>
-                <version>${jjwt.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.jsonwebtoken</groupId>
-                <artifactId>jjwt-impl</artifactId>
-                <version>${jjwt.version}</version>
-                <scope>runtime</scope>
-            </dependency>
-            <dependency>
-                <groupId>io.jsonwebtoken</groupId>
-                <artifactId>jjwt-jackson</artifactId>
-                <version>${jjwt.version}</version>
-                <scope>runtime</scope>
-            </dependency>
-            <dependency>
-                <groupId>com.bucket4j</groupId>
-                <artifactId>bucket4j_jdk17-core</artifactId>
-                <version>${bucket4j.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.springdoc</groupId>
-                <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-                <version>${springdoc.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>net.logstash.logback</groupId>
-                <artifactId>logstash-logback-encoder</artifactId>
-                <version>${logstash-encoder.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.projectlombok</groupId>
-                <artifactId>lombok</artifactId>
-                <version>${lombok.version}</version>
-                <optional>true</optional>
-            </dependency>
         </dependencies>
     </dependencyManagement>
 
+    <dependencies>
+        <!-- Spring Boot starters -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.kafka</groupId>
+            <artifactId>spring-kafka</artifactId>
+        </dependency>
+
+        <!-- Database + migrations -->
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
+        </dependency>
+
+        <!-- JWT -->
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-api</artifactId>
+            <version>${jjwt.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-impl</artifactId>
+            <version>${jjwt.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-jackson</artifactId>
+            <version>${jjwt.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- Rate limiting + observability + docs -->
+        <dependency>
+            <groupId>com.bucket4j</groupId>
+            <artifactId>bucket4j_jdk17-core</artifactId>
+            <version>${bucket4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>${springdoc.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>net.logstash.logback</groupId>
+            <artifactId>logstash-logback-encoder</artifactId>
+            <version>${logstash-encoder.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- Lombok -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- Tests -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.kafka</groupId>
+            <artifactId>spring-kafka-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-testcontainers</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
     <build>
-        <pluginManagement>
-            <plugins>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-compiler-plugin</artifactId>
-                    <configuration>
-                        <annotationProcessorPaths>
-                            <path>
-                                <groupId>org.projectlombok</groupId>
-                                <artifactId>lombok</artifactId>
-                                <version>${lombok.version}</version>
-                            </path>
-                        </annotationProcessorPaths>
-                    </configuration>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-surefire-plugin</artifactId>
-                    <configuration>
-                        <!-- ByteBuddy (used by Mockito) needs experimental mode to instrument
-                             classes when running on a JDK newer than its officially-supported set. -->
-                        <argLine>-Dnet.bytebuddy.experimental=true</argLine>
-                    </configuration>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-failsafe-plugin</artifactId>
-                    <configuration>
-                        <argLine>-Dnet.bytebuddy.experimental=true</argLine>
-                    </configuration>
-                    <executions>
-                        <execution>
-                            <goals>
-                                <goal>integration-test</goal>
-                                <goal>verify</goal>
-                            </goals>
-                        </execution>
-                    </executions>
-                </plugin>
-                <plugin>
-                    <groupId>org.springframework.boot</groupId>
-                    <artifactId>spring-boot-maven-plugin</artifactId>
-                    <configuration>
-                        <excludes>
-                            <exclude>
-                                <groupId>org.projectlombok</groupId>
-                                <artifactId>lombok</artifactId>
-                            </exclude>
-                        </excludes>
-                    </configuration>
-                </plugin>
-                <!--
-                    BannedDependencies enforcer for cross-feature -impl leakage. Activated
-                    per-module by feature-*-impl poms that should never depend on another
-                    feature's -impl. The two documented exceptions (auth-impl → user-impl
-                    and admin-impl → user-impl + verification-impl) simply don't activate
-                    this plugin — see TRADEOFFS.md for rationale.
-
-                    Pattern: ANY direct dependency on an artifact matching
-                    com.dreamhomes:haven-feature-*-impl fails the build at validate-time.
-                    searchTransitive=false so transitive impl deps that come through
-                    legitimate paths (integration-tests depending on every -impl at test
-                    scope, app depending on every -impl for runtime) don't trigger.
-                -->
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-enforcer-plugin</artifactId>
-                    <executions>
-                        <execution>
-                            <id>ban-cross-feature-impl</id>
-                            <goals><goal>enforce</goal></goals>
-                            <configuration>
-                                <rules>
-                                    <bannedDependencies>
-                                        <searchTransitive>false</searchTransitive>
-                                        <excludes>
-                                            <exclude>com.dreamhomes:haven-feature-*-impl</exclude>
-                                        </excludes>
-                                    </bannedDependencies>
-                                </rules>
-                            </configuration>
-                        </execution>
-                    </executions>
-                </plugin>
-            </plugins>
-        </pluginManagement>
-
         <plugins>
-            <!-- Inherit annotationProcessorPaths in every module that has Lombok. -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>${lombok.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <!-- ByteBuddy (used by Mockito) needs experimental mode on JDKs newer than its
+                         officially-supported set. -->
+                    <argLine>-Dnet.bytebuddy.experimental=true</argLine>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
+                <configuration>
+                    <argLine>-Dnet.bytebuddy.experimental=true</argLine>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </exclude>
+                    </excludes>
+                </configuration>
             </plugin>
         </plugins>
     </build>

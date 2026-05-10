@@ -2,7 +2,7 @@
 
 Every "we chose X over Y" decision worth remembering. Append as new ones land; revise when a defer becomes a do. **Format: choice → why → cost → revisit signal.**
 
-Last updated after Phase 14 (modular monolith restructure + auth/admin api extraction that retired the impl-impl exceptions).
+Last updated after Phase 15 (consolidation back to single Maven module after the modular monolith experiment of Phase 14 proved heavier than the codebase warranted).
 
 ---
 
@@ -583,7 +583,33 @@ Last updated after Phase 14 (modular monolith restructure + auth/admin api extra
 
 ---
 
-## Modular monolith restructure (Phase 14: P1–P5)
+## Phase 15 — Consolidation back to a single module
+
+### Reverted Phase 14: 33 Maven modules → 1, package-by-feature kept
+- **Why**: Phase 14 split the codebase into per-feature `-api`/`-impl` Maven module pairs (33 modules total) with a `BannedDependencies` enforcer to prevent cross-feature impl reaches. After it shipped, a senior dev pointed out the obvious: this is a single-author capstone, not a 50-engineer codebase. Comparing to `origin/main` (silas's parallel implementation of the same PRD) confirmed it — silas shipped 9 features in 1 module, 1 pom, 119 files, no enforcer. Our `-api` modules averaged 9 files, one was empty (`engagement/api`), and the discipline the build enforced was a coordination problem we don't have. So Phase 14 got unwound: ~430 Java files moved back to a single `src/main/java` tree, 8 of the 10 `*Api` interfaces inlined back into normal service-to-service autowires, and the `BannedDependencies` plugin retired. **Same 389 tests pass, same wire contract, same database schema, ~80 lines of pom collapsed to one ~200-line single-module pom.** All entries below this one document Phase 14 as historical context — the *decisions* still capture genuine learnings (the `*Api` boundary discipline, the cross-aggregate ID-only reads), they just no longer manifest as Maven modules.
+- **Cost**: ~2 days of mechanical work. 8 `*Api` interfaces deleted (`ListingApi`, `PropertyApi`, `UserApi`, `OfferApi`, `ReviewApi`, `UserCredentialsApi`, `UserAdminApi`, `VerificationAdminApi`). The post-Phase-14 cleanup that retired the auth-impl→user-impl + admin-impl→user/verification-impl exceptions also unwinds — `AuthService` autowires `UserRepository` again, `AdminUserService` autowires `UserRepository` again. The `app-shared` cycle-breaker module dies (no cycle to break). `HavenTestApplication` dies (no longer needed; the production `DreamhomesHavenApplication` is the only `@SpringBootConfiguration` on the test classpath). The *narrative* "we have 33 modules with enforced boundaries" is replaced with "we tried it, measured the cost, and consolidated when the discipline wasn't pulling its weight."
+- **Revisit when**: another contributor joins the codebase and we need build-time enforcement of cross-feature boundaries. Or when the codebase grows past ~50k LOC and the package conventions stop catching boundary leaks.
+
+### Two `*Api` interfaces preserved: `NotificationApi` + `AdminAuditApi`
+- **Why**: not all of Phase 14's `*Api` work was waste. Two interfaces survive because they're genuinely cross-cutting:
+  - **`NotificationApi`** — many features write notifications (inspection requests, offer submissions, agent assignments, verification decisions, admin moderation, comments, listing reviews). The seam earns its keep: producers don't depend on the notification entity, just the contract.
+  - **`AdminAuditApi`** — many features need to record an audit log entry on admin actions. Same reasoning.
+- **Cost**: two interfaces. Negligible.
+- **Revisit**: never.
+
+### Folder layout: package-by-feature under `src/main/java/com/dreamhomes/haven/<feature>/`
+- **Why**: matches silas's structure (the parallel implementation of the same PRD), matches the codebase as it was before Phase 14, and is the natural shape for a Spring Boot capstone. Each feature is one folder; cross-feature wiring happens through normal `@Service` autowires.
+- **Cost**: package-private discipline is enforced by code review, not by the build. With one author, that's fine.
+- **Revisit**: never (at this scale).
+
+---
+
+## Modular monolith restructure (Phase 14: P1–P5) — *historical context, reverted in Phase 15*
+
+The entries below document the design decisions of the modular monolith experiment.
+The decisions themselves still capture real learnings (cross-aggregate reads via
+projections, ID-only foreign keys, the `*Api` boundary discipline). They just no
+longer manifest as Maven modules — the codebase consolidated back in Phase 15.
 
 ### Maven multi-module with `feature/<name>/<api|impl>` per-feature pairs
 - **Why**: build-level enforcement of public/private boundaries. Each feature exports a thin `-api` (interfaces + DTOs + enums + exceptions) and an opaque `-impl` (entity + repo + service + controller). Cross-feature consumers compile against `-api` only — they physically cannot import another feature's entity, repo, or service impl. The legacy single-module layout had the same package-by-feature shape but no enforced isolation; a contributor could `import com.dreamhomes.haven.user.UserRepository` from anywhere.
@@ -626,7 +652,7 @@ Last updated after Phase 14 (modular monolith restructure + auth/admin api extra
 - **Revisit**: never.
 
 ### `legacy-features` retired; tests live with the code they test
-- **Why**: `legacy-features` was a transitional catchall during P1–P3 that held everything not yet split (resources, `HavenTestApplication`, every test). With every feature now split, the module had no reason to exist — and "legacy" is a smell, since a new feature would never ship its tests there. So the migration that the original Phase 14 plan deferred actually got done: every test moved to where it belongs (see the "Tests layout" table in STATE-OF-THE-SYSTEM.md), `app-shared` was created as a pure-resources leaf to break the cycle, `HavenTestApplication` moved to `test-support`, and `legacy-features` was deleted from the reactor. 363 tests pass in their new homes.
+- **Why**: `legacy-features` was a transitional catchall during P1–P3 that held everything not yet split (resources, `HavenTestApplication`, every test). With every feature now split, the module had no reason to exist — and "legacy" is a smell, since a new feature would never ship its tests there. So the migration that the original Phase 14 plan deferred actually got done: every test moved to where it belongs (see the "Tests layout" table in STATE-OF-THE-SYSTEM.md), `app-shared` was created as a pure-resources leaf to break the cycle, `HavenTestApplication` moved to `test-support`, and `legacy-features` was deleted from the reactor. All tests pass in their new homes (389 total at the time of this writing — count grows as new features land).
 - **Cost**: ~80 test files relocated; one test-support pom hadn't been re-installed in `~/.m2` so a stale POM masked a missing JDBC driver dep until reinstalled. The `BannedDependencies` rule pushed many controller `@WebMvcTest` files into `integration-tests` (they all import `SecurityConfig` + `JwtService`, which they can't legally see from a feature-impl whose only auth touchpoint is `*Api`). Fine — it captures the real architectural fact that those tests aren't single-feature.
 - **Revisit**: never. The split rule is now mechanical: a test stays in its feature-impl iff its imports satisfy the feature-impl's legal compile classpath. New features write `*ServiceTest` against `*Api` mocks locally and `*FlowEndToEndIT` in `integration-tests`.
 

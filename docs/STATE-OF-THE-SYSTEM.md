@@ -14,9 +14,9 @@ review writeup. Pairs with `dreamhomes-prd.md` (the brief), `dreamhomes-userflow
 | **Stack** | Java 21 · Spring Boot 3.3.5 · Spring Security · Spring Data JPA · Hibernate 6 · Spring Kafka · JJWT 0.12.6 · Flyway · Lombok · Micrometer · springdoc-openapi · bucket4j · Testcontainers · `@EmbeddedKafka` |
 | **Migrations** | Flyway V1 → V18 (18 numbered SQLs, schema-validated by Hibernate at startup) |
 | **Tests** | **389 total** · **0 failures · 0 errors** at `mvn verify` |
-| **Source files** | ~222 across 14 features (each split into `-api` + `-impl` Maven modules) |
-| **Maven modules** | **33** (parent + core + core-events + test-support + app-shared + 28 feature `api`/`impl` halves + integration-tests + app) |
-| **Phases shipped** | 0 (foundation) → 14 (modular monolith restructure) |
+| **Source files** | ~222 across 14 features in one Maven module (package-by-feature) |
+| **Maven modules** | **1** (single-module Spring Boot app) |
+| **Phases shipped** | 0 (foundation) → 14 (modular monolith experiment) → 15 (consolidation back to single module) |
 
 ## What got built (by phase)
 
@@ -35,7 +35,8 @@ review writeup. Pairs with `dreamhomes-prd.md` (the brief), `dreamhomes-userflow
 | 9 | Notification reads + engagement | V14 | `/mine`, unread count, mark-read; saves; lock-free `view_count` |
 | 10 | Listing reviews | V15 | Post-deal reviews gated on CLOSED + ACCEPTED offer; profile aggregate |
 | 11–13 | Photos + review takedown + counter-offers | V16–V18 | Server-assigned `display_order`; soft-delete reviews; `parent_offer_id` chain |
-| 14 | Modular monolith restructure | (none) | Single Maven module → 33 modules; per-feature `api/impl` split; `BannedDependencies` enforced; cross-aggregate reads through `*Api` interfaces only |
+| 14 | Modular monolith experiment | (none) | Tried 33 Maven modules with `BannedDependencies` enforcement. Most `-api` modules were 3–9 files; one was empty. Build-time enforcement was solving a coordination problem that doesn't exist at single-author capstone scale. |
+| 15 | Consolidation back to single module | (none) | Reverted Phase 14: 33 modules → 1, ~430 files relocated under `src/main/java`, 8 trivial `*Api` interfaces inlined back into direct service-to-service autowires (`NotificationApi` + `AdminAuditApi` kept where they earn their keep), `app-shared` cycle-breaker module deleted (no cycle to break anymore). Same 389 tests pass; same wire contract; better-proportioned structure. |
 
 ## The reliability story (the part most worth defending)
 
@@ -183,75 +184,66 @@ demo scope.
 | `04-class-diagram.drawio` | Full layered application view: controllers → services → repos → entities + DomainException tree + Outbox cluster |
 | `05-entity-detail.drawio` | Domain entities only, with full attributes + methods + DB constraints |
 
-## Module topology (after Phase 14)
+## Project structure (after Phase 15 consolidation)
 
 ```
 haven/
 ├── docs/
-├── pom.xml                                            (parent reactor)
-└── modules/
-    ├── core/                                          DomainException, GlobalExceptionHandler, RequestIdFilter,
-    │                                                  validators, AuthRateLimitFilter, KafkaErrorHandlerConfig,
-    │                                                  Role enum, JwtPrincipal, WebConfig (cache-control + Page DTO),
-    │                                                  springdoc starter — used by every module
-    ├── core-events/                                   OutboxEvent + OutboxRelay — shared Kafka outbox infra
-    ├── app-shared/                                    Pure-resources leaf: application.yml, Flyway V1..V18,
-    │                                                  logback-spring.xml, static/scalar.html (zero deps to
-    │                                                  break the test-support → impl → test-support cycle)
-    ├── test-support/                                  HavenTestApplication, AbstractPostgresIT
-    │                                                  (Testcontainers + EmbeddedKafka)
-    ├── integration-tests/                             Cross-feature flow ITs + JwtTestSupport. Depends on every
-    │                                                  -impl at scope=test; nothing depends on it. Houses
-    │                                                  controller WebMvc tests that need cross-feature security.
-    ├── app/                                           SpringBootApplication entry-point. Wires every -impl on
-    │                                                  the runtime classpath; produces the executable fat jar.
-    └── feature/
-        ├── notification/api,impl                      NotificationApi (recordSync, recordAsync) +
-        │                                              InspectionRequestedListener + OfferSubmittedListener
-        ├── property/api,impl                          PropertyApi (5 methods)
-        ├── listing/api,impl                           ListingApi (7 methods); uses PropertyApi
-        ├── user/api,impl                              UserApi (3 methods); uses ReviewApi
-        ├── review/api,impl                            ReviewApi (1 method); uses Listing/Offer/Notification/AdminAuditApi
-        ├── auth/api,impl                              folds me/; SecurityConfig lives here
-        ├── inspection/api,impl                        InspectionRequestedEvent in -api; uses ListingApi
-        ├── offer/api,impl                             OfferSubmittedEvent in -api; OfferApi (1 method); uses ListingApi
-        ├── comment/api,impl                           uses ListingApi + NotificationApi
-        ├── agentlisting/api,impl                      uses ListingApi + UserApi + NotificationApi
-        ├── photo/api,impl                             uses ListingApi
-        ├── engagement/api,impl                        uses ListingApi
-        ├── verification/api,impl                      uses UserApi + PropertyApi
-        └── admin/api,impl                             AdminAuditApi for cross-feature audit log writes
+├── pom.xml                                              single Maven module
+└── src/
+    ├── main/
+    │   ├── java/com/dreamhomes/haven/
+    │   │   ├── DreamhomesHavenApplication.java
+    │   │   ├── common/                                  cross-cutting infra:
+    │   │   │   ├── DomainException, GlobalExceptionHandler, RequestIdFilter,
+    │   │   │   ├── validation/, ratelimit/, web/, config/
+    │   │   │   └── outbox/                              transactional outbox
+    │   │   │                                              (OutboxEvent, OutboxRelay,
+    │   │   │                                              OutboxMetrics, ...)
+    │   │   ├── auth/                                    AuthService, JwtService,
+    │   │   │                                              JwtAuthenticationFilter,
+    │   │   │                                              SecurityConfig, MeController
+    │   │   ├── user/                                    User, AgentProfile,
+    │   │   │                                              UserProfileService,
+    │   │   │                                              UserAdminService,
+    │   │   │                                              UserCredentialsService
+    │   │   ├── property/                                Property + service + controller
+    │   │   ├── listing/                                 Listing + service + controller
+    │   │   ├── photo/                                   ListingPhoto
+    │   │   ├── engagement/                              ListingSave
+    │   │   ├── agentlisting/                            owner ↔ agent handshake
+    │   │   ├── comment/                                 Q&A on listings
+    │   │   ├── inspection/                              slots + requests + events
+    │   │   ├── offer/                                   offers + counter-offers + events
+    │   │   ├── review/                                  ListingReview + ReviewAggregate
+    │   │   ├── verification/                            Verification + admin decisions
+    │   │   ├── notification/                            Notification + listeners +
+    │   │   │                                              NotificationApi (kept)
+    │   │   └── admin/                                   AdminAuditLog + facades +
+    │   │                                                  AdminAuditApi (kept)
+    │   └── resources/
+    │       ├── application.yml
+    │       ├── logback-spring.xml
+    │       ├── db/migration/V1..V18.sql
+    │       └── static/scalar.html
+    └── test/
+        └── java/com/dreamhomes/haven/
+            ├── support/                                 AbstractPostgresIT, JwtTestSupport
+            ├── auth/, user/, property/, ...             tests next to their code
+            └── ...
 ```
 
-### Allowed cross-feature edges
+### Cross-feature reads
 
-A `feature-X-impl` module can declare **`feature-Y-api`** as a dependency. It cannot
-declare another feature's `-impl` — `mvn validate` rejects the build. **Zero
-exceptions** as of the post-Phase-14 cleanup: the original auth-impl→user-impl and
-admin-impl→user/verification-impl edges were retired by extracting three new admin /
-credential APIs:
+Two `*Api` interfaces survive because they're genuinely cross-cutting:
 
-| API (in -api) | Owner impl | Replaces what direct edge |
-|---|---|---|
-| `UserCredentialsApi` | feature-user-impl | auth-impl reaching into `UserRepository` for login + register + tokenVersion bumps |
-| `UserAdminApi` | feature-user-impl | admin-impl writing `User.suspendedAt` + `tokenVersion` and stamping identity / agent-credential badges |
-| `VerificationAdminApi` | feature-verification-impl | admin-impl reading + writing `Verification.status` directly; the api now owns the badge-flip dispatch through `UserAdminApi` / `PropertyApi` |
+- **`NotificationApi`** — many features write notifications via this seam.
+- **`AdminAuditApi`** — many features write audit log entries on admin actions.
 
-The result: every `feature-impl` compiles against `*-api` only, including auth-impl
-and admin-impl, and the `BannedDependencies` enforcer activates uniformly across all
-14 feature-impl modules.
-
-### `BannedDependencies` enforcer
-
-The parent pom's `pluginManagement` declares the `maven-enforcer-plugin` rule that bans
-direct deps on any `com.dreamhomes:haven-feature-*-impl` artifact. **All 14
-feature-impl modules** activate the plugin (4-line declaration). `mvn -pl <module>
-validate` fails fast on violations:
-
-```
-[ERROR] Rule 0: org.apache.maven.enforcer.rules.dependency.BannedDependencies failed:
-[ERROR]   com.dreamhomes:haven-feature-user-impl:jar:0.0.1-SNAPSHOT <--- banned via the exclude/include list
-```
+Everything else is a direct service-to-service autowire — `OfferService` injects
+`ListingService`, `AdminUserService` injects `UserRepository`, and so on. There is
+no build-time cross-feature enforcement; the discipline is package conventions +
+code review, sized to a single-author codebase.
 
 ## How to read the codebase
 
@@ -270,29 +262,24 @@ If you're a reviewer with limited time:
 
 ---
 
-## Tests layout (Phase 14 — completed)
+## Tests layout (after Phase 15)
 
-Tests live with the code they exercise. The `legacy-features` module that held them
-during the restructure has been deleted.
+Tests live next to the code they exercise. There's only one source root, so the rule
+is simple: every `*Test.java` and `*IT.java` lives at
+`src/test/java/com/dreamhomes/haven/<feature>/`. Shared test fixtures
+(`AbstractPostgresIT`, `JwtTestSupport`) live in `src/test/java/com/dreamhomes/haven/support/`.
 
-| Test type | Lives in | Examples |
+| Test type | Lives at | Examples |
 |---|---|---|
-| Pure unit tests (Mockito, no Spring) | `feature-*-impl/src/test/java` | `ListingServiceCreateTest`, `OfferServiceSubmitTest`, `JwtServiceTest` |
-| Common util unit tests | `core/src/test/java` | `StrictEmailValidatorTest`, `RequestIdFilterTest`, `GlobalExceptionHandlerTest` |
-| Single-feature controller `@WebMvcTest` (only auth-impl + admin-impl, since they have legal cross-feature deps) | `feature-auth-impl`, `feature-admin-impl` | `AuthControllerLoginTest`, `AdminListingServiceTest`, `JwtAuthenticationFilterTest` |
-| Single-feature repository ITs | `integration-tests/src/test/java` | `ListingRepositoryIT`, `OfferRepositoryIT`, `UserRepositoryIT` |
-| Controller `@WebMvcTest` that imports auth/user infra (most features) | `integration-tests/src/test/java` | `OfferControllerTest`, `NotificationControllerTest`, `AdminListingControllerTest` |
-| Cross-feature flow ITs | `integration-tests/src/test/java` | `OfferFlowEndToEndIT`, `ReviewFlowEndToEndIT`, `AuthFlowEndToEndIT` |
-| Common-infra ITs (need full Spring context) | `integration-tests/src/test/java` | `PublicCacheHeadersIT`, `ObservabilityIT`, `AuthRateLimitIT`, `OutboxEventRepositoryIT` |
-
-The split rule: a test stays in its feature-impl module **only** if its imports are
-satisfied by that module's legal compile classpath. The moment it reaches into another
-feature's impl (via `SecurityConfig`, `JwtService`, `UserRepository`, etc.) it moves to
-`integration-tests`, which legitimately depends on every `-impl` at scope=test. This is
-exactly what a new feature would do today: write its `*ServiceTest` against `*Api` mocks
-locally, write its `*FlowEndToEndIT` in `integration-tests` where the wiring is real.
+| Mockito unit tests | `src/test/java/com/dreamhomes/haven/<feature>/` | `ListingServiceCreateTest`, `OfferServiceSubmitTest`, `JwtServiceTest` |
+| Common util unit tests | `src/test/java/com/dreamhomes/haven/common/` | `StrictEmailValidatorTest`, `RequestIdFilterTest`, `GlobalExceptionHandlerTest` |
+| Controller `@WebMvcTest` slices | `src/test/java/com/dreamhomes/haven/<feature>/` | `AuthControllerLoginTest`, `OfferControllerTest`, `AdminListingControllerTest` |
+| Repository ITs | `src/test/java/com/dreamhomes/haven/<feature>/` | `ListingRepositoryIT`, `OfferRepositoryIT`, `UserRepositoryIT` |
+| Cross-feature flow ITs | `src/test/java/com/dreamhomes/haven/<feature>/` | `OfferFlowEndToEndIT`, `ReviewFlowEndToEndIT`, `AuthFlowEndToEndIT` |
+| Common-infra ITs | `src/test/java/com/dreamhomes/haven/common/` | `PublicCacheHeadersIT`, `ObservabilityIT`, `AuthRateLimitIT`, `OutboxEventRepositoryIT` |
 
 ---
 
 *Living document. Update when phases land or major architectural choices change. Last
-updated end of Phase 14 (modular monolith restructure).*
+updated after Phase 15 (consolidation back to single Maven module after the modular
+monolith experiment in Phase 14 proved too heavy for capstone scale).*
