@@ -164,6 +164,16 @@
             <artifactId>junit-jupiter</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <!-- .env file support: makes the app read JWT_SECRET (and any other env vars)
+             from a .env file at the repo root if one exists. Same precedence as a
+             real env var, so prod (where you'd set JWT_SECRET in the actual environment)
+             still works exactly as before. -->
+        <dependency>
+            <groupId>me.paulschwarz</groupId>
+            <artifactId>spring-dotenv</artifactId>
+            <version>4.0.0</version>
+        </dependency>
     </dependencies>
 
     <build>

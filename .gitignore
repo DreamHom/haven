@@ -44,3 +44,6 @@ target/
 
 # OS
 .DS_Store
+
+# Local-dev secrets (loaded by spring-dotenv at boot)
+.env
