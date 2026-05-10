@@ -1,8 +1,8 @@
 package com.dreamhomes.haven.photo;
 
 import com.dreamhomes.haven.listing.ListingService;
-import com.dreamhomes.haven.listing.ListingNotFoundException;
-import com.dreamhomes.haven.listing.NotPropertyOwnerException;
+import com.dreamhomes.haven.listing.exception.ListingNotFoundException;
+import com.dreamhomes.haven.listing.exception.NotPropertyOwnerException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

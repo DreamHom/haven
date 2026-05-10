@@ -15,7 +15,18 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-
+import com.dreamhomes.haven.user.dto.UserAdminView;
+import com.dreamhomes.haven.user.exception.UserAlreadySuspendedException;
+import com.dreamhomes.haven.user.exception.UserNotFoundException;
+import com.dreamhomes.haven.user.exception.UserNotSuspendedException;
+import com.dreamhomes.haven.user.model.AgentProfile;
+import com.dreamhomes.haven.user.model.Role;
+import com.dreamhomes.haven.user.model.User;
+import com.dreamhomes.haven.user.service.UserAdminService;
+import com.dreamhomes.haven.auth.service.AuthService;
+import com.dreamhomes.haven.verification.service.VerificationAdminService;
+import com.dreamhomes.haven.user.repository.AgentProfileRepository;
+import com.dreamhomes.haven.user.repository.UserRepository;
 /**
  * UserAdminService owns the user-state mutations admin used to perform directly when
  * admin-impl had a compile dependency on user-impl. The exception was retired by routing

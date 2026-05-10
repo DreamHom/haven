@@ -6,7 +6,8 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-
+import com.dreamhomes.haven.listing.model.Listing;
+import com.dreamhomes.haven.offer.model.Offer;
 /**
  * Maps {@link DomainException} subclasses to RFC 7807 problem responses with the status
  * each exception declares. Validation (400) and authentication (401) are handled by

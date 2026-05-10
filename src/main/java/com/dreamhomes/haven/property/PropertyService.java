@@ -10,6 +10,12 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
+import com.dreamhomes.haven.property.dto.CreatePropertyCommand;
+import com.dreamhomes.haven.property.dto.PropertyResponse;
+import com.dreamhomes.haven.property.dto.PropertySummary;
+import com.dreamhomes.haven.property.exception.InvalidPropertyForTypeException;
+import com.dreamhomes.haven.property.exception.PropertyNotFoundException;
+import com.dreamhomes.haven.property.model.Property;
 
 /**
  * Implementation of {@link PropertyService}. The internal {@link #create} method is the

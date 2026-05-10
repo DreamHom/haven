@@ -1,6 +1,6 @@
 package com.dreamhomes.haven.auth;
 
-import com.dreamhomes.haven.user.Role;
+import com.dreamhomes.haven.user.model.Role;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -9,6 +9,7 @@ import java.time.Instant;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import com.dreamhomes.haven.auth.service.JwtService;
 
 /**
  * Covers what JwtService composes on top of JJWT — not JJWT itself.

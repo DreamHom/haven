@@ -2,9 +2,9 @@ package com.dreamhomes.haven.notification;
 
 import com.dreamhomes.haven.support.AbstractPostgresIT;
 import com.dreamhomes.haven.inspection.events.InspectionRequestedEvent;
-import com.dreamhomes.haven.user.Role;
-import com.dreamhomes.haven.user.User;
-import com.dreamhomes.haven.user.UserRepository;
+import com.dreamhomes.haven.user.model.Role;
+import com.dreamhomes.haven.user.model.User;
+import com.dreamhomes.haven.user.repository.UserRepository;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,6 +16,8 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import com.dreamhomes.haven.notification.model.Notification;
+import com.dreamhomes.haven.notification.model.NotificationKind;
 
 /**
  * Proves the wiring we own: when an {@link InspectionRequestedEvent} is published to

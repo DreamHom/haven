@@ -1,12 +1,12 @@
 package com.dreamhomes.haven.listing;
 
 import com.dreamhomes.haven.auth.JwtPrincipal;
-import com.dreamhomes.haven.auth.JwtService;
+import com.dreamhomes.haven.auth.service.JwtService;
 import com.dreamhomes.haven.common.config.SecurityConfig;
-import com.dreamhomes.haven.property.PropertySummary;
-import com.dreamhomes.haven.property.PropertyType;
-import com.dreamhomes.haven.user.Role;
-import com.dreamhomes.haven.user.UserCredentialsService;
+import com.dreamhomes.haven.property.dto.PropertySummary;
+import com.dreamhomes.haven.property.model.PropertyType;
+import com.dreamhomes.haven.user.model.Role;
+import com.dreamhomes.haven.user.service.UserCredentialsService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -36,6 +36,15 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import com.dreamhomes.haven.listing.dto.CreateListingCommand;
+import com.dreamhomes.haven.listing.dto.ListingWithProperty;
+import com.dreamhomes.haven.listing.dto.UpdateListingCommand;
+import com.dreamhomes.haven.listing.exception.InvalidListingTransitionException;
+import com.dreamhomes.haven.listing.exception.ListingNotFoundException;
+import com.dreamhomes.haven.listing.exception.NotPropertyOwnerException;
+import com.dreamhomes.haven.listing.model.Listing;
+import com.dreamhomes.haven.listing.model.ListingStatus;
+import com.dreamhomes.haven.listing.model.ListingType;
 
 /**
  * Controller-level contract for the listings endpoints. Verifies routing, response

@@ -1,16 +1,16 @@
 package com.dreamhomes.haven.offer;
 
 import com.dreamhomes.haven.support.AbstractPostgresIT;
-import com.dreamhomes.haven.listing.Listing;
+import com.dreamhomes.haven.listing.model.Listing;
 import com.dreamhomes.haven.listing.ListingRepository;
-import com.dreamhomes.haven.listing.ListingStatus;
-import com.dreamhomes.haven.listing.ListingType;
-import com.dreamhomes.haven.property.Property;
+import com.dreamhomes.haven.listing.model.ListingStatus;
+import com.dreamhomes.haven.listing.model.ListingType;
+import com.dreamhomes.haven.property.model.Property;
 import com.dreamhomes.haven.property.PropertyRepository;
-import com.dreamhomes.haven.property.PropertyType;
-import com.dreamhomes.haven.user.Role;
-import com.dreamhomes.haven.user.User;
-import com.dreamhomes.haven.user.UserRepository;
+import com.dreamhomes.haven.property.model.PropertyType;
+import com.dreamhomes.haven.user.model.Role;
+import com.dreamhomes.haven.user.model.User;
+import com.dreamhomes.haven.user.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +19,8 @@ import java.math.BigDecimal;
 import java.time.Instant;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import com.dreamhomes.haven.offer.model.Offer;
+import com.dreamhomes.haven.offer.model.OfferStatus;
 
 @Transactional
 class OfferRepositoryIT extends AbstractPostgresIT {

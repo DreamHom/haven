@@ -2,6 +2,8 @@ package com.dreamhomes.haven.notification;
 
 import java.util.Map;
 import java.util.UUID;
+import com.dreamhomes.haven.notification.model.Notification;
+import com.dreamhomes.haven.notification.model.NotificationKind;
 
 /**
  * Public contract for recording in-app notifications. Cross-feature consumers wire this

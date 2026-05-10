@@ -1,6 +1,6 @@
 package com.dreamhomes.haven.engagement;
 
-import com.dreamhomes.haven.listing.ListingNotFoundException;
+import com.dreamhomes.haven.listing.exception.ListingNotFoundException;
 import com.dreamhomes.haven.listing.ListingService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -17,6 +17,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import com.dreamhomes.haven.engagement.model.ListingSave;
+import com.dreamhomes.haven.engagement.model.ListingSaveId;
 
 @ExtendWith(MockitoExtension.class)
 class ListingSaveServiceTest {

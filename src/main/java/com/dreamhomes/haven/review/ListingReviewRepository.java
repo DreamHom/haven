@@ -5,6 +5,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import com.dreamhomes.haven.review.dto.ReviewAggregate;
 
 public interface ListingReviewRepository extends JpaRepository<ListingReview, Long> {
 
@@ -32,7 +33,7 @@ public interface ListingReviewRepository extends JpaRepository<ListingReview, Lo
      * average + count immediately. Single query so the public profile load doesn't
      * fan out to two GETs.
      */
-    @Query("SELECT new com.dreamhomes.haven.review.ReviewAggregate("
+    @Query("SELECT new com.dreamhomes.haven.review.dto.ReviewAggregate("
             + "AVG(r.rating), COUNT(r)) "
             + "FROM ListingReview r "
             + "WHERE r.revieweeUserId = :userId AND r.deletedAt IS NULL")

@@ -16,6 +16,11 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import com.dreamhomes.haven.user.service.UserCredentialsService;
+import com.dreamhomes.haven.auth.controller.AuthController;
+import com.dreamhomes.haven.auth.exception.InvalidCredentialsException;
+import com.dreamhomes.haven.auth.service.AuthService;
+import com.dreamhomes.haven.auth.service.JwtService;
 
 /**
  * Login is a thinner controller than register: success returns a token, the only
@@ -44,7 +49,7 @@ class AuthControllerLoginTest {
     JwtService jwtService;
 
     @MockBean
-    com.dreamhomes.haven.user.UserCredentialsService userCredentialsService;
+    com.dreamhomes.haven.user.service.UserCredentialsService userCredentialsService;
 
     @Test
     void successfulLoginReturns200WithTokenInBody() throws Exception {

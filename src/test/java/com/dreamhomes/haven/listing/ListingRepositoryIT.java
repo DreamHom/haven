@@ -1,12 +1,12 @@
 package com.dreamhomes.haven.listing;
 
 import com.dreamhomes.haven.support.AbstractPostgresIT;
-import com.dreamhomes.haven.property.Property;
+import com.dreamhomes.haven.property.model.Property;
 import com.dreamhomes.haven.property.PropertyRepository;
-import com.dreamhomes.haven.property.PropertyType;
-import com.dreamhomes.haven.user.Role;
-import com.dreamhomes.haven.user.User;
-import com.dreamhomes.haven.user.UserRepository;
+import com.dreamhomes.haven.property.model.PropertyType;
+import com.dreamhomes.haven.user.model.Role;
+import com.dreamhomes.haven.user.model.User;
+import com.dreamhomes.haven.user.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -19,6 +19,9 @@ import java.time.Instant;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import com.dreamhomes.haven.listing.model.Listing;
+import com.dreamhomes.haven.listing.model.ListingStatus;
+import com.dreamhomes.haven.listing.model.ListingType;
 
 @Transactional
 class ListingRepositoryIT extends AbstractPostgresIT {

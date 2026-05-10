@@ -4,10 +4,10 @@ import com.dreamhomes.haven.support.JwtTestSupport;
 import com.dreamhomes.haven.support.AbstractPostgresIT;
 import com.dreamhomes.haven.listing.ListingRepository;
 import com.dreamhomes.haven.property.PropertyRepository;
-import com.dreamhomes.haven.user.AgentProfileRepository;
-import com.dreamhomes.haven.user.Role;
-import com.dreamhomes.haven.user.User;
-import com.dreamhomes.haven.user.UserRepository;
+import com.dreamhomes.haven.user.repository.AgentProfileRepository;
+import com.dreamhomes.haven.user.model.Role;
+import com.dreamhomes.haven.user.model.User;
+import com.dreamhomes.haven.user.repository.UserRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,6 +24,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import com.dreamhomes.haven.inspection.repository.InspectionRequestRepository;
+import com.dreamhomes.haven.inspection.repository.InspectionSlotRepository;
+import com.dreamhomes.haven.notification.NotificationRepository;
+import com.dreamhomes.haven.offer.OfferRepository;
 
 /**
  * The full owner workflow against a real Postgres + the real security chain:
@@ -60,10 +64,10 @@ class ListingFlowEndToEndIT extends AbstractPostgresIT {
     com.dreamhomes.haven.notification.NotificationRepository notificationRepository;
 
     @Autowired
-    com.dreamhomes.haven.inspection.InspectionRequestRepository inspectionRequestRepository;
+    com.dreamhomes.haven.inspection.repository.InspectionRequestRepository inspectionRequestRepository;
 
     @Autowired
-    com.dreamhomes.haven.inspection.InspectionSlotRepository inspectionSlotRepository;
+    com.dreamhomes.haven.inspection.repository.InspectionSlotRepository inspectionSlotRepository;
 
     @Autowired
     com.dreamhomes.haven.offer.OfferRepository offerRepository;

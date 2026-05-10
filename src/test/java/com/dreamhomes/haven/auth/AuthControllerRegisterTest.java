@@ -1,7 +1,7 @@
 package com.dreamhomes.haven.auth;
 
 import com.dreamhomes.haven.common.config.SecurityConfig;
-import com.dreamhomes.haven.user.Role;
+import com.dreamhomes.haven.user.model.Role;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -24,6 +24,14 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import com.dreamhomes.haven.auth.dto.RegisterRequest;
+import com.dreamhomes.haven.auth.dto.UserResponse;
+import com.dreamhomes.haven.user.model.User;
+import com.dreamhomes.haven.user.service.UserCredentialsService;
+import com.dreamhomes.haven.auth.controller.AuthController;
+import com.dreamhomes.haven.auth.exception.EmailAlreadyRegisteredException;
+import com.dreamhomes.haven.auth.service.AuthService;
+import com.dreamhomes.haven.auth.service.JwtService;
 
 /**
  * Tests cover what the controller layer owns: response shape on success, exception
@@ -54,7 +62,7 @@ class AuthControllerRegisterTest {
     JwtService jwtService;
 
     @MockBean
-    com.dreamhomes.haven.user.UserCredentialsService userCredentialsService;
+    com.dreamhomes.haven.user.service.UserCredentialsService userCredentialsService;
 
     @Test
     void successfulRegistrationReturns201WithUserSummary() throws Exception {

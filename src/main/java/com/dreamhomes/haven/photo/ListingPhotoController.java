@@ -15,6 +15,8 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import com.dreamhomes.haven.photo.dto.AddPhotoRequest;
+import com.dreamhomes.haven.photo.dto.PhotoResponse;
 
 @RestController
 @RequiredArgsConstructor

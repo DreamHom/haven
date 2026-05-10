@@ -4,10 +4,10 @@ import com.dreamhomes.haven.support.JwtTestSupport;
 import com.dreamhomes.haven.support.AbstractPostgresIT;
 import com.dreamhomes.haven.notification.NotificationRepository;
 import com.dreamhomes.haven.property.PropertyRepository;
-import com.dreamhomes.haven.user.AgentProfileRepository;
-import com.dreamhomes.haven.user.Role;
-import com.dreamhomes.haven.user.User;
-import com.dreamhomes.haven.user.UserRepository;
+import com.dreamhomes.haven.user.repository.AgentProfileRepository;
+import com.dreamhomes.haven.user.model.Role;
+import com.dreamhomes.haven.user.model.User;
+import com.dreamhomes.haven.user.repository.UserRepository;
 import com.dreamhomes.haven.verification.VerificationRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,7 +21,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
+import com.dreamhomes.haven.admin.model.AdminAction;
+import com.dreamhomes.haven.auth.service.AuthService;
 /**
  * End-to-end suspend → revoked-token → re-login-blocked → reactivate flow:
  *

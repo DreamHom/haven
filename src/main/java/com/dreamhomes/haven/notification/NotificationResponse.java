@@ -2,6 +2,9 @@ package com.dreamhomes.haven.notification;
 
 import java.time.Instant;
 import java.util.UUID;
+import com.dreamhomes.haven.notification.model.Notification;
+import com.dreamhomes.haven.notification.model.NotificationKind;
+import com.dreamhomes.haven.notification.model.NotificationSource;
 
 public record NotificationResponse(
         Long id,

@@ -1,11 +1,11 @@
 package com.dreamhomes.haven.comment;
 
 import com.dreamhomes.haven.listing.ListingService;
-import com.dreamhomes.haven.listing.ListingNotFoundException;
-import com.dreamhomes.haven.listing.ListingResponse;
+import com.dreamhomes.haven.listing.exception.ListingNotFoundException;
+import com.dreamhomes.haven.listing.dto.ListingResponse;
 import com.dreamhomes.haven.notification.NotificationApi;
-import com.dreamhomes.haven.notification.NotificationKind;
-import com.dreamhomes.haven.user.Role;
+import com.dreamhomes.haven.notification.model.NotificationKind;
+import com.dreamhomes.haven.user.model.Role;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -16,6 +16,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import com.dreamhomes.haven.comment.exception.CommentAlreadyDeletedException;
+import com.dreamhomes.haven.comment.exception.CommentNotFoundException;
+import com.dreamhomes.haven.comment.exception.NotAuthorisedToDeleteCommentException;
+import com.dreamhomes.haven.listing.model.Listing;
 
 /**
  * Public Q&A on listings (PRD §4.9). Posts are sync; deletes are soft. Owner of the

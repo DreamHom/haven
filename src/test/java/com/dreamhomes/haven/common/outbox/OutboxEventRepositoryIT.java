@@ -11,6 +11,8 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import com.dreamhomes.haven.inspection.model.InspectionRequest;
+import com.dreamhomes.haven.inspection.events.InspectionRequestedEvent;
 
 /**
  * Covers what we own: round-trip through the schema, and that

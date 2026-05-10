@@ -1,6 +1,6 @@
 package com.dreamhomes.haven.auth;
 
-import com.dreamhomes.haven.user.Role;
+import com.dreamhomes.haven.user.model.Role;
 
 /**
  * The information the auth chain trusts from a verified JWT, before any DB lookup.

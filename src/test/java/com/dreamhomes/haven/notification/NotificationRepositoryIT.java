@@ -1,9 +1,9 @@
 package com.dreamhomes.haven.notification;
 
 import com.dreamhomes.haven.support.AbstractPostgresIT;
-import com.dreamhomes.haven.user.Role;
-import com.dreamhomes.haven.user.User;
-import com.dreamhomes.haven.user.UserRepository;
+import com.dreamhomes.haven.user.model.Role;
+import com.dreamhomes.haven.user.model.User;
+import com.dreamhomes.haven.user.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,6 +12,8 @@ import java.time.Instant;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import com.dreamhomes.haven.notification.model.Notification;
+import com.dreamhomes.haven.notification.model.NotificationKind;
 
 @Transactional
 class NotificationRepositoryIT extends AbstractPostgresIT {

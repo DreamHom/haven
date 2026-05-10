@@ -17,6 +17,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import com.dreamhomes.haven.listing.dto.CreateListingRequest;
+import com.dreamhomes.haven.listing.dto.ListingResponse;
+import com.dreamhomes.haven.listing.dto.ListingWithProperty;
+import com.dreamhomes.haven.listing.dto.UpdateListingRequest;
 
 @RestController
 @RequestMapping("/api/listings")

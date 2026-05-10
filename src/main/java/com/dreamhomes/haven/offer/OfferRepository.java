@@ -1,6 +1,9 @@
 package com.dreamhomes.haven.offer;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import com.dreamhomes.haven.review.ReviewService;
+import com.dreamhomes.haven.offer.model.Offer;
+import com.dreamhomes.haven.offer.model.OfferStatus;
 
 public interface OfferRepository extends JpaRepository<Offer, Long> {
 

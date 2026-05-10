@@ -18,6 +18,16 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import com.dreamhomes.haven.user.dto.NewUser;
+import com.dreamhomes.haven.user.dto.RegisteredUser;
+import com.dreamhomes.haven.user.dto.UserCredentials;
+import com.dreamhomes.haven.user.exception.EmailAlreadyTakenException;
+import com.dreamhomes.haven.user.model.AgentProfile;
+import com.dreamhomes.haven.user.model.Role;
+import com.dreamhomes.haven.user.model.User;
+import com.dreamhomes.haven.user.service.UserCredentialsService;
+import com.dreamhomes.haven.user.repository.AgentProfileRepository;
+import com.dreamhomes.haven.user.repository.UserRepository;
 
 /**
  * UserCredentialsService is the user-side facade that auth-impl now talks to instead of

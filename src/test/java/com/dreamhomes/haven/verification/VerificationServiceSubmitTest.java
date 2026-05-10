@@ -1,9 +1,9 @@
 package com.dreamhomes.haven.verification;
 
 import com.dreamhomes.haven.property.PropertyService;
-import com.dreamhomes.haven.property.PropertyNotFoundException;
-import com.dreamhomes.haven.user.Role;
-import com.dreamhomes.haven.user.UserProfileService;
+import com.dreamhomes.haven.property.exception.PropertyNotFoundException;
+import com.dreamhomes.haven.user.model.Role;
+import com.dreamhomes.haven.user.service.UserProfileService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,6 +22,13 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import com.dreamhomes.haven.verification.dto.SubmitVerificationCommand;
+import com.dreamhomes.haven.verification.exception.DuplicatePendingVerificationException;
+import com.dreamhomes.haven.verification.exception.VerificationRoleMismatchException;
+import com.dreamhomes.haven.verification.model.Verification;
+import com.dreamhomes.haven.verification.model.VerificationStatus;
+import com.dreamhomes.haven.verification.model.VerificationType;
+import com.dreamhomes.haven.verification.service.VerificationService;
 
 @ExtendWith(MockitoExtension.class)
 class VerificationServiceSubmitTest {

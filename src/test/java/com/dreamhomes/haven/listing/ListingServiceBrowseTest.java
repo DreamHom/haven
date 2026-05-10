@@ -1,8 +1,8 @@
 package com.dreamhomes.haven.listing;
 
 import com.dreamhomes.haven.property.PropertyService;
-import com.dreamhomes.haven.property.PropertySummary;
-import com.dreamhomes.haven.property.PropertyType;
+import com.dreamhomes.haven.property.dto.PropertySummary;
+import com.dreamhomes.haven.property.model.PropertyType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -26,6 +26,10 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import com.dreamhomes.haven.listing.dto.ListingWithProperty;
+import com.dreamhomes.haven.listing.model.Listing;
+import com.dreamhomes.haven.listing.model.ListingStatus;
+import com.dreamhomes.haven.listing.model.ListingType;
 
 @ExtendWith(MockitoExtension.class)
 class ListingServiceBrowseTest {

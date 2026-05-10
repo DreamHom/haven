@@ -5,6 +5,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import com.dreamhomes.haven.user.dto.PublicUserProfile;
+import com.dreamhomes.haven.user.service.UserProfileService;
 
 /**
  * Public profile endpoint — no JWT required. Cached at the gateway / CDN layer via

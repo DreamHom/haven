@@ -1,12 +1,12 @@
 package com.dreamhomes.haven.admin;
 
 import com.dreamhomes.haven.listing.ListingService;
-import com.dreamhomes.haven.listing.ListingNotFoundException;
-import com.dreamhomes.haven.listing.ListingResponse;
-import com.dreamhomes.haven.listing.ListingStatus;
-import com.dreamhomes.haven.listing.ListingType;
+import com.dreamhomes.haven.listing.exception.ListingNotFoundException;
+import com.dreamhomes.haven.listing.dto.ListingResponse;
+import com.dreamhomes.haven.listing.model.ListingStatus;
+import com.dreamhomes.haven.listing.model.ListingType;
 import com.dreamhomes.haven.notification.NotificationApi;
-import com.dreamhomes.haven.notification.NotificationKind;
+import com.dreamhomes.haven.notification.model.NotificationKind;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,6 +28,12 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import com.dreamhomes.haven.admin.exception.ListingAlreadyApprovedException;
+import com.dreamhomes.haven.admin.exception.ListingAlreadyClosedException;
+import com.dreamhomes.haven.admin.model.AdminAction;
+import com.dreamhomes.haven.admin.model.AdminAuditLog;
+import com.dreamhomes.haven.admin.model.AuditTargetType;
+import com.dreamhomes.haven.admin.service.AdminListingService;
 
 @ExtendWith(MockitoExtension.class)
 class AdminListingServiceTest {

@@ -14,7 +14,8 @@ import lombok.Setter;
 
 import java.time.Instant;
 import java.util.UUID;
-
+import com.dreamhomes.haven.inspection.model.InspectionRequest;
+import com.dreamhomes.haven.offer.model.Offer;
 /**
  * One row per cross-service event. Written in the same transaction as the domain row
  * that produced it; a scheduled {@link OutboxRelay} ships it to Kafka later and marks

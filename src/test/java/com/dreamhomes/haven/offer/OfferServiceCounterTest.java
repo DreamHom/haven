@@ -1,8 +1,8 @@
 package com.dreamhomes.haven.offer;
 
-import com.dreamhomes.haven.listing.NotPropertyOwnerException;
+import com.dreamhomes.haven.listing.exception.NotPropertyOwnerException;
 import com.dreamhomes.haven.notification.NotificationApi;
-import com.dreamhomes.haven.notification.NotificationKind;
+import com.dreamhomes.haven.notification.model.NotificationKind;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,6 +23,11 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import com.dreamhomes.haven.offer.exception.CannotActOnOwnOfferException;
+import com.dreamhomes.haven.offer.exception.InvalidOfferTransitionException;
+import com.dreamhomes.haven.offer.exception.OfferNotFoundException;
+import com.dreamhomes.haven.offer.model.Offer;
+import com.dreamhomes.haven.offer.model.OfferStatus;
 
 /**
  * Phase 13 — counter-offer chain. Submit + respond logic lives in their own test files;

@@ -1,6 +1,6 @@
 package com.dreamhomes.haven.auth;
 
-import com.dreamhomes.haven.user.UserCredentialsService;
+import com.dreamhomes.haven.user.service.UserCredentialsService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -18,6 +18,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.List;
 import java.util.OptionalInt;
+import com.dreamhomes.haven.user.model.Role;
+import com.dreamhomes.haven.auth.service.JwtService;
 
 /**
  * Reads the {@code Authorization: Bearer <jwt>} header on every request, validates the

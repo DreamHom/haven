@@ -1,7 +1,7 @@
 package com.dreamhomes.haven.user;
 
-import com.dreamhomes.haven.user.UserNotFoundException;
-import com.dreamhomes.haven.review.ReviewAggregate;
+import com.dreamhomes.haven.user.exception.UserNotFoundException;
+import com.dreamhomes.haven.review.dto.ReviewAggregate;
 import com.dreamhomes.haven.review.ReviewService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -17,6 +17,13 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import com.dreamhomes.haven.user.dto.PublicUserProfile;
+import com.dreamhomes.haven.user.model.AgentProfile;
+import com.dreamhomes.haven.user.model.Role;
+import com.dreamhomes.haven.user.model.User;
+import com.dreamhomes.haven.user.service.UserProfileService;
+import com.dreamhomes.haven.user.repository.AgentProfileRepository;
+import com.dreamhomes.haven.user.repository.UserRepository;
 
 @ExtendWith(MockitoExtension.class)
 class UserProfileServiceTest {

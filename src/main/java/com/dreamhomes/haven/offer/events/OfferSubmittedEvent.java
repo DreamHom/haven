@@ -3,6 +3,7 @@ package com.dreamhomes.haven.offer.events;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
+import com.dreamhomes.haven.notification.model.Notification;
 
 /**
  * Cross-service event: an applicant has submitted a formal offer. Highest-stakes event

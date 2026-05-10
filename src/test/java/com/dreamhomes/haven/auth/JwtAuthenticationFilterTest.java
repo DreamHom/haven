@@ -1,7 +1,7 @@
 package com.dreamhomes.haven.auth;
 
-import com.dreamhomes.haven.user.Role;
-import com.dreamhomes.haven.user.UserCredentialsService;
+import com.dreamhomes.haven.user.model.Role;
+import com.dreamhomes.haven.user.service.UserCredentialsService;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import org.junit.jupiter.api.AfterEach;
@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import com.dreamhomes.haven.auth.service.JwtService;
 
 @ExtendWith(MockitoExtension.class)
 class JwtAuthenticationFilterTest {

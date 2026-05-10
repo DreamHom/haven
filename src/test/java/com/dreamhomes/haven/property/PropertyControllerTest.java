@@ -1,10 +1,10 @@
 package com.dreamhomes.haven.property;
 
 import com.dreamhomes.haven.auth.JwtPrincipal;
-import com.dreamhomes.haven.auth.JwtService;
+import com.dreamhomes.haven.auth.service.JwtService;
 import com.dreamhomes.haven.common.config.SecurityConfig;
-import com.dreamhomes.haven.user.Role;
-import com.dreamhomes.haven.user.UserCredentialsService;
+import com.dreamhomes.haven.user.model.Role;
+import com.dreamhomes.haven.user.service.UserCredentialsService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -30,6 +30,10 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import com.dreamhomes.haven.property.dto.CreatePropertyCommand;
+import com.dreamhomes.haven.property.exception.InvalidPropertyForTypeException;
+import com.dreamhomes.haven.property.model.Property;
+import com.dreamhomes.haven.property.model.PropertyType;
 
 /**
  * Covers the controller-layer contract for property creation:

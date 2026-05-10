@@ -3,6 +3,8 @@ package com.dreamhomes.haven.engagement;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import com.dreamhomes.haven.engagement.model.ListingSave;
+import com.dreamhomes.haven.engagement.model.ListingSaveId;
 
 public interface ListingSaveRepository extends JpaRepository<ListingSave, ListingSaveId> {
 

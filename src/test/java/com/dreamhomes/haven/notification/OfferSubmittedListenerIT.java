@@ -2,9 +2,9 @@ package com.dreamhomes.haven.notification;
 
 import com.dreamhomes.haven.support.AbstractPostgresIT;
 import com.dreamhomes.haven.offer.events.OfferSubmittedEvent;
-import com.dreamhomes.haven.user.Role;
-import com.dreamhomes.haven.user.User;
-import com.dreamhomes.haven.user.UserRepository;
+import com.dreamhomes.haven.user.model.Role;
+import com.dreamhomes.haven.user.model.User;
+import com.dreamhomes.haven.user.repository.UserRepository;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,6 +18,8 @@ import java.time.Instant;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import com.dreamhomes.haven.notification.model.Notification;
+import com.dreamhomes.haven.notification.model.NotificationKind;
 
 /**
  * Proves the wiring we own: an {@link OfferSubmittedEvent} on the topic results in a

@@ -1,6 +1,8 @@
 package com.dreamhomes.haven.admin;
 
 import java.util.Map;
+import com.dreamhomes.haven.admin.model.AdminAction;
+import com.dreamhomes.haven.admin.model.AuditTargetType;
 
 /**
  * Public contract for writing rows to the admin audit log. Used by features that perform

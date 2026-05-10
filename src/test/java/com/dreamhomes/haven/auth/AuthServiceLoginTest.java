@@ -1,8 +1,8 @@
 package com.dreamhomes.haven.auth;
 
-import com.dreamhomes.haven.user.Role;
-import com.dreamhomes.haven.user.UserCredentials;
-import com.dreamhomes.haven.user.UserCredentialsService;
+import com.dreamhomes.haven.user.model.Role;
+import com.dreamhomes.haven.user.dto.UserCredentials;
+import com.dreamhomes.haven.user.service.UserCredentialsService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -18,6 +18,10 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import com.dreamhomes.haven.auth.dto.LoginCommand;
+import com.dreamhomes.haven.auth.exception.InvalidCredentialsException;
+import com.dreamhomes.haven.auth.service.AuthService;
+import com.dreamhomes.haven.auth.service.JwtService;
 
 @ExtendWith(MockitoExtension.class)
 class AuthServiceLoginTest {

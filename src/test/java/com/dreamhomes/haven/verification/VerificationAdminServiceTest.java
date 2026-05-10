@@ -1,7 +1,7 @@
 package com.dreamhomes.haven.verification;
 
 import com.dreamhomes.haven.property.PropertyService;
-import com.dreamhomes.haven.user.UserAdminService;
+import com.dreamhomes.haven.user.service.UserAdminService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,6 +20,12 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import com.dreamhomes.haven.verification.exception.VerificationAlreadyDecidedException;
+import com.dreamhomes.haven.verification.exception.VerificationNotFoundException;
+import com.dreamhomes.haven.verification.model.Verification;
+import com.dreamhomes.haven.verification.model.VerificationStatus;
+import com.dreamhomes.haven.verification.model.VerificationType;
+import com.dreamhomes.haven.verification.service.VerificationAdminService;
 
 /**
  * VerificationAdminService owns the decision write that admin-impl used to perform

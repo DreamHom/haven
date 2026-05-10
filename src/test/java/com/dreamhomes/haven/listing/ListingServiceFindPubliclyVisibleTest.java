@@ -1,8 +1,8 @@
 package com.dreamhomes.haven.listing;
 
 import com.dreamhomes.haven.property.PropertyService;
-import com.dreamhomes.haven.property.PropertySummary;
-import com.dreamhomes.haven.property.PropertyType;
+import com.dreamhomes.haven.property.dto.PropertySummary;
+import com.dreamhomes.haven.property.model.PropertyType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -16,6 +16,11 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
+import com.dreamhomes.haven.listing.dto.ListingWithProperty;
+import com.dreamhomes.haven.listing.exception.ListingNotFoundException;
+import com.dreamhomes.haven.listing.model.Listing;
+import com.dreamhomes.haven.listing.model.ListingStatus;
+import com.dreamhomes.haven.listing.model.ListingType;
 
 /**
  * Covers the public-visibility rule we wrote in {@code findPubliclyVisible}:

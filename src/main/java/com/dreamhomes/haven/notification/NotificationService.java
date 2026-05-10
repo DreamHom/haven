@@ -12,6 +12,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
+import com.dreamhomes.haven.notification.model.Notification;
+import com.dreamhomes.haven.notification.model.NotificationKind;
+import com.dreamhomes.haven.notification.model.NotificationSource;
+import com.dreamhomes.haven.notification.exception.NotMyNotificationException;
+import com.dreamhomes.haven.notification.exception.NotificationNotFoundException;
 
 /**
  * Implementation of {@link NotificationApi}. Persists notification rows for both

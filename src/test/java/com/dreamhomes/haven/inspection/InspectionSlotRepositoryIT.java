@@ -1,16 +1,16 @@
 package com.dreamhomes.haven.inspection;
 
 import com.dreamhomes.haven.support.AbstractPostgresIT;
-import com.dreamhomes.haven.listing.Listing;
+import com.dreamhomes.haven.listing.model.Listing;
 import com.dreamhomes.haven.listing.ListingRepository;
-import com.dreamhomes.haven.listing.ListingStatus;
-import com.dreamhomes.haven.listing.ListingType;
-import com.dreamhomes.haven.property.Property;
+import com.dreamhomes.haven.listing.model.ListingStatus;
+import com.dreamhomes.haven.listing.model.ListingType;
+import com.dreamhomes.haven.property.model.Property;
 import com.dreamhomes.haven.property.PropertyRepository;
-import com.dreamhomes.haven.property.PropertyType;
-import com.dreamhomes.haven.user.Role;
-import com.dreamhomes.haven.user.User;
-import com.dreamhomes.haven.user.UserRepository;
+import com.dreamhomes.haven.property.model.PropertyType;
+import com.dreamhomes.haven.user.model.Role;
+import com.dreamhomes.haven.user.model.User;
+import com.dreamhomes.haven.user.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +21,11 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import com.dreamhomes.haven.inspection.model.InspectionRequest;
+import com.dreamhomes.haven.inspection.model.InspectionRequestStatus;
+import com.dreamhomes.haven.inspection.model.InspectionSlot;
+import com.dreamhomes.haven.inspection.repository.InspectionRequestRepository;
+import com.dreamhomes.haven.inspection.repository.InspectionSlotRepository;
 
 @Transactional
 class InspectionSlotRepositoryIT extends AbstractPostgresIT {

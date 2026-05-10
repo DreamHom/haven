@@ -7,6 +7,7 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import com.dreamhomes.haven.listing.model.Listing;
 
 /**
  * Direct unit tests of the mappings we own. The Spring-driven exception-resolution path

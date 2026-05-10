@@ -4,11 +4,11 @@ import com.dreamhomes.haven.common.outbox.OutboxEvent;
 import com.dreamhomes.haven.common.outbox.OutboxEventRepository;
 import com.dreamhomes.haven.common.outbox.OutboxRowReadyEvent;
 import com.dreamhomes.haven.listing.ListingService;
-import com.dreamhomes.haven.listing.ListingResponse;
-import com.dreamhomes.haven.listing.ListingStatus;
-import com.dreamhomes.haven.listing.NotPropertyOwnerException;
+import com.dreamhomes.haven.listing.dto.ListingResponse;
+import com.dreamhomes.haven.listing.model.ListingStatus;
+import com.dreamhomes.haven.listing.exception.NotPropertyOwnerException;
 import com.dreamhomes.haven.notification.NotificationApi;
-import com.dreamhomes.haven.notification.NotificationKind;
+import com.dreamhomes.haven.notification.model.NotificationKind;
 import com.dreamhomes.haven.offer.events.OfferSubmittedEvent;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -23,7 +23,15 @@ import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
-
+import com.dreamhomes.haven.listing.exception.ListingNotFoundException;
+import com.dreamhomes.haven.offer.dto.SubmitOfferCommand;
+import com.dreamhomes.haven.offer.exception.CannotActOnOwnOfferException;
+import com.dreamhomes.haven.offer.exception.InvalidOfferTransitionException;
+import com.dreamhomes.haven.offer.exception.ListingNotOpenForOffersException;
+import com.dreamhomes.haven.offer.exception.OfferNotFoundException;
+import com.dreamhomes.haven.inspection.service.InspectionService;
+import com.dreamhomes.haven.offer.model.Offer;
+import com.dreamhomes.haven.offer.model.OfferStatus;
 @Service
 @Slf4j
 @RequiredArgsConstructor

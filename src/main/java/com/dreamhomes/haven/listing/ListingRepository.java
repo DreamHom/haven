@@ -7,6 +7,8 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.transaction.annotation.Transactional;
+import com.dreamhomes.haven.listing.model.Listing;
+import com.dreamhomes.haven.listing.model.ListingStatus;
 
 public interface ListingRepository extends JpaRepository<Listing, Long> {
 

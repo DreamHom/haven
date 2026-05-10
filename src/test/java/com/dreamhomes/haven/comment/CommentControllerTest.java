@@ -1,10 +1,10 @@
 package com.dreamhomes.haven.comment;
 
 import com.dreamhomes.haven.auth.JwtPrincipal;
-import com.dreamhomes.haven.auth.JwtService;
+import com.dreamhomes.haven.auth.service.JwtService;
 import com.dreamhomes.haven.common.config.SecurityConfig;
-import com.dreamhomes.haven.user.Role;
-import com.dreamhomes.haven.user.UserCredentialsService;
+import com.dreamhomes.haven.user.model.Role;
+import com.dreamhomes.haven.user.service.UserCredentialsService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;

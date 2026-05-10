@@ -1,13 +1,13 @@
 package com.dreamhomes.haven.admin;
 
 import com.dreamhomes.haven.notification.NotificationApi;
-import com.dreamhomes.haven.notification.NotificationKind;
-import com.dreamhomes.haven.verification.VerificationAdminService;
-import com.dreamhomes.haven.verification.VerificationAdminView;
-import com.dreamhomes.haven.verification.VerificationAlreadyDecidedException;
-import com.dreamhomes.haven.verification.VerificationNotFoundException;
-import com.dreamhomes.haven.verification.VerificationStatus;
-import com.dreamhomes.haven.verification.VerificationType;
+import com.dreamhomes.haven.notification.model.NotificationKind;
+import com.dreamhomes.haven.verification.service.VerificationAdminService;
+import com.dreamhomes.haven.verification.dto.VerificationAdminView;
+import com.dreamhomes.haven.verification.exception.VerificationAlreadyDecidedException;
+import com.dreamhomes.haven.verification.exception.VerificationNotFoundException;
+import com.dreamhomes.haven.verification.model.VerificationStatus;
+import com.dreamhomes.haven.verification.model.VerificationType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,6 +27,10 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import com.dreamhomes.haven.admin.model.AdminAction;
+import com.dreamhomes.haven.admin.model.AdminAuditLog;
+import com.dreamhomes.haven.admin.model.AuditTargetType;
+import com.dreamhomes.haven.admin.service.AdminVerificationService;
 
 /**
  * AdminVerificationService is a thin orchestrator after the VerificationAdminService

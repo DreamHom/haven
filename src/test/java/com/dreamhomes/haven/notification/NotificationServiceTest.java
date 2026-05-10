@@ -17,6 +17,9 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import com.dreamhomes.haven.notification.model.Notification;
+import com.dreamhomes.haven.notification.model.NotificationKind;
+import com.dreamhomes.haven.notification.model.NotificationSource;
 
 /**
  * Unit tests for {@link NotificationService} as the implementation of {@link NotificationApi}.

@@ -15,6 +15,10 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import com.dreamhomes.haven.property.dto.CreatePropertyCommand;
+import com.dreamhomes.haven.property.exception.InvalidPropertyForTypeException;
+import com.dreamhomes.haven.property.model.Property;
+import com.dreamhomes.haven.property.model.PropertyType;
 
 @ExtendWith(MockitoExtension.class)
 class PropertyServiceCreateTest {

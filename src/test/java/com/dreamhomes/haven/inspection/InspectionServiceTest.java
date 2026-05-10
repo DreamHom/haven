@@ -5,10 +5,10 @@ import com.dreamhomes.haven.common.outbox.OutboxEventRepository;
 import com.dreamhomes.haven.common.outbox.OutboxRowReadyEvent;
 import com.dreamhomes.haven.inspection.events.InspectionRequestedEvent;
 import com.dreamhomes.haven.listing.ListingService;
-import com.dreamhomes.haven.listing.ListingNotFoundException;
-import com.dreamhomes.haven.listing.ListingResponse;
-import com.dreamhomes.haven.listing.ListingStatus;
-import com.dreamhomes.haven.listing.ListingType;
+import com.dreamhomes.haven.listing.exception.ListingNotFoundException;
+import com.dreamhomes.haven.listing.dto.ListingResponse;
+import com.dreamhomes.haven.listing.model.ListingStatus;
+import com.dreamhomes.haven.listing.model.ListingType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,6 +29,14 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import com.dreamhomes.haven.inspection.dto.RequestInspectionCommand;
+import com.dreamhomes.haven.inspection.exception.SlotAlreadyClaimedException;
+import com.dreamhomes.haven.inspection.exception.SlotNotFoundException;
+import com.dreamhomes.haven.inspection.model.InspectionRequest;
+import com.dreamhomes.haven.inspection.model.InspectionSlot;
+import com.dreamhomes.haven.inspection.service.InspectionService;
+import com.dreamhomes.haven.inspection.repository.InspectionRequestRepository;
+import com.dreamhomes.haven.inspection.repository.InspectionSlotRepository;
 
 @ExtendWith(MockitoExtension.class)
 class InspectionServiceTest {

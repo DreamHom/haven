@@ -1,12 +1,12 @@
 package com.dreamhomes.haven.agentlisting;
 
 import com.dreamhomes.haven.listing.ListingService;
-import com.dreamhomes.haven.listing.ListingNotFoundException;
-import com.dreamhomes.haven.listing.NotPropertyOwnerException;
+import com.dreamhomes.haven.listing.exception.ListingNotFoundException;
+import com.dreamhomes.haven.listing.exception.NotPropertyOwnerException;
 import com.dreamhomes.haven.notification.NotificationApi;
-import com.dreamhomes.haven.notification.NotificationKind;
-import com.dreamhomes.haven.user.Role;
-import com.dreamhomes.haven.user.UserProfileService;
+import com.dreamhomes.haven.notification.model.NotificationKind;
+import com.dreamhomes.haven.user.model.Role;
+import com.dreamhomes.haven.user.service.UserProfileService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,6 +25,15 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import com.dreamhomes.haven.agentlisting.exception.AgentListingAlreadyDecidedException;
+import com.dreamhomes.haven.agentlisting.exception.AgentListingNotActiveException;
+import com.dreamhomes.haven.agentlisting.exception.AgentNotFoundOrWrongRoleException;
+import com.dreamhomes.haven.agentlisting.exception.ListingAlreadyHasActiveAgentException;
+import com.dreamhomes.haven.agentlisting.exception.ListingAlreadyHasPendingInviteException;
+import com.dreamhomes.haven.agentlisting.exception.NotAuthorisedToRevokeException;
+import com.dreamhomes.haven.agentlisting.exception.NotTargetedAgentException;
+import com.dreamhomes.haven.agentlisting.model.AgentListing;
+import com.dreamhomes.haven.agentlisting.model.AgentListingStatus;
 
 @ExtendWith(MockitoExtension.class)
 class AgentListingServiceTest {

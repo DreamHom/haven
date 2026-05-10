@@ -3,6 +3,9 @@ package com.dreamhomes.haven.verification;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import com.dreamhomes.haven.verification.model.Verification;
+import com.dreamhomes.haven.verification.model.VerificationStatus;
+import com.dreamhomes.haven.verification.model.VerificationType;
 
 public interface VerificationRepository extends JpaRepository<Verification, Long> {
 

@@ -4,10 +4,10 @@ import com.dreamhomes.haven.common.outbox.OutboxEvent;
 import com.dreamhomes.haven.common.outbox.OutboxEventRepository;
 import com.dreamhomes.haven.common.outbox.OutboxRowReadyEvent;
 import com.dreamhomes.haven.listing.ListingService;
-import com.dreamhomes.haven.listing.ListingNotFoundException;
-import com.dreamhomes.haven.listing.ListingResponse;
-import com.dreamhomes.haven.listing.ListingStatus;
-import com.dreamhomes.haven.listing.ListingType;
+import com.dreamhomes.haven.listing.exception.ListingNotFoundException;
+import com.dreamhomes.haven.listing.dto.ListingResponse;
+import com.dreamhomes.haven.listing.model.ListingStatus;
+import com.dreamhomes.haven.listing.model.ListingType;
 import com.dreamhomes.haven.offer.events.OfferSubmittedEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,6 +27,11 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import com.dreamhomes.haven.offer.dto.SubmitOfferCommand;
+import com.dreamhomes.haven.offer.exception.ListingNotOpenForOffersException;
+import com.dreamhomes.haven.notification.NotificationApi;
+import com.dreamhomes.haven.offer.model.Offer;
+import com.dreamhomes.haven.offer.model.OfferStatus;
 
 @ExtendWith(MockitoExtension.class)
 class OfferServiceSubmitTest {

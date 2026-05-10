@@ -1,9 +1,9 @@
 package com.dreamhomes.haven.property;
 
 import com.dreamhomes.haven.support.AbstractPostgresIT;
-import com.dreamhomes.haven.user.Role;
-import com.dreamhomes.haven.user.User;
-import com.dreamhomes.haven.user.UserRepository;
+import com.dreamhomes.haven.user.model.Role;
+import com.dreamhomes.haven.user.model.User;
+import com.dreamhomes.haven.user.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,6 +13,8 @@ import java.time.Instant;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import com.dreamhomes.haven.property.model.Property;
+import com.dreamhomes.haven.property.model.PropertyType;
 
 @Transactional
 class PropertyRepositoryIT extends AbstractPostgresIT {

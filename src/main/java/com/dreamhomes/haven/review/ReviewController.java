@@ -16,6 +16,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import com.dreamhomes.haven.review.dto.DeleteReviewRequest;
+import com.dreamhomes.haven.review.dto.PostReviewRequest;
+import com.dreamhomes.haven.review.dto.ReviewResponse;
 
 @RestController
 @RequiredArgsConstructor

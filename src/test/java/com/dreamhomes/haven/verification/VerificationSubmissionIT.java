@@ -2,13 +2,13 @@ package com.dreamhomes.haven.verification;
 
 import com.dreamhomes.haven.support.JwtTestSupport;
 import com.dreamhomes.haven.support.AbstractPostgresIT;
-import com.dreamhomes.haven.property.Property;
+import com.dreamhomes.haven.property.model.Property;
 import com.dreamhomes.haven.property.PropertyRepository;
-import com.dreamhomes.haven.property.PropertyType;
-import com.dreamhomes.haven.user.AgentProfileRepository;
-import com.dreamhomes.haven.user.Role;
-import com.dreamhomes.haven.user.User;
-import com.dreamhomes.haven.user.UserRepository;
+import com.dreamhomes.haven.property.model.PropertyType;
+import com.dreamhomes.haven.user.repository.AgentProfileRepository;
+import com.dreamhomes.haven.user.model.Role;
+import com.dreamhomes.haven.user.model.User;
+import com.dreamhomes.haven.user.repository.UserRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,6 +24,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import com.dreamhomes.haven.verification.model.Verification;
+import com.dreamhomes.haven.verification.model.VerificationStatus;
+import com.dreamhomes.haven.verification.model.VerificationType;
 
 /**
  * End-to-end submission across HTTP, Spring Security, JPA, and Postgres. Covers the

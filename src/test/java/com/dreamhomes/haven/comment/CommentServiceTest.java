@@ -1,13 +1,13 @@
 package com.dreamhomes.haven.comment;
 
 import com.dreamhomes.haven.listing.ListingService;
-import com.dreamhomes.haven.listing.ListingNotFoundException;
-import com.dreamhomes.haven.listing.ListingResponse;
-import com.dreamhomes.haven.listing.ListingStatus;
-import com.dreamhomes.haven.listing.ListingType;
+import com.dreamhomes.haven.listing.exception.ListingNotFoundException;
+import com.dreamhomes.haven.listing.dto.ListingResponse;
+import com.dreamhomes.haven.listing.model.ListingStatus;
+import com.dreamhomes.haven.listing.model.ListingType;
 import com.dreamhomes.haven.notification.NotificationApi;
-import com.dreamhomes.haven.notification.NotificationKind;
-import com.dreamhomes.haven.user.Role;
+import com.dreamhomes.haven.notification.model.NotificationKind;
+import com.dreamhomes.haven.user.model.Role;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -28,6 +28,9 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import com.dreamhomes.haven.comment.exception.CommentAlreadyDeletedException;
+import com.dreamhomes.haven.comment.exception.CommentNotFoundException;
+import com.dreamhomes.haven.comment.exception.NotAuthorisedToDeleteCommentException;
 
 @ExtendWith(MockitoExtension.class)
 class CommentServiceTest {

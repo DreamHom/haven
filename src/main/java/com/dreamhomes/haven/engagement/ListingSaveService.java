@@ -1,7 +1,7 @@
 package com.dreamhomes.haven.engagement;
 
 import com.dreamhomes.haven.listing.ListingService;
-import com.dreamhomes.haven.listing.ListingNotFoundException;
+import com.dreamhomes.haven.listing.exception.ListingNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -10,6 +10,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import com.dreamhomes.haven.user.model.User;
+import com.dreamhomes.haven.engagement.model.ListingSave;
+import com.dreamhomes.haven.engagement.model.ListingSaveId;
 
 /**
  * Save / unsave a listing for later. Both operations are idempotent — re-saving an

@@ -11,6 +11,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import com.dreamhomes.haven.verification.dto.SubmitVerificationCommand;
+import com.dreamhomes.haven.verification.dto.SubmitVerificationRequest;
+import com.dreamhomes.haven.verification.dto.VerificationResponse;
+import com.dreamhomes.haven.verification.model.Verification;
+import com.dreamhomes.haven.verification.service.VerificationService;
 
 /**
  * Submission endpoint for the four verification tracks. Admin queue + decision endpoints

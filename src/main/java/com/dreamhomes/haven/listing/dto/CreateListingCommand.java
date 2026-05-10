@@ -1,0 +1,15 @@
+package com.dreamhomes.haven.listing.dto;
+
+import java.math.BigDecimal;
+import com.dreamhomes.haven.listing.model.ListingType;
+
+public record CreateListingCommand(
+        Long propertyId,
+        ListingType listingType,
+        BigDecimal askingPrice,
+        String currency,
+        BigDecimal cautionFee,
+        BigDecimal serviceCharge,
+        BigDecimal agencyFee
+) {
+}

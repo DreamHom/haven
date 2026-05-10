@@ -13,6 +13,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
 
 import java.time.Instant;
 import java.util.List;
+import com.dreamhomes.haven.notification.NotificationService;
 
 /**
  * Reads unpublished outbox rows, publishes each to its declared topic, and stamps

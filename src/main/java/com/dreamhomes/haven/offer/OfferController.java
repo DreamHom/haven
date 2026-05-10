@@ -13,6 +13,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import com.dreamhomes.haven.offer.dto.CounterOfferRequest;
+import com.dreamhomes.haven.offer.dto.OfferResponse;
+import com.dreamhomes.haven.offer.dto.RespondToOfferRequest;
+import com.dreamhomes.haven.offer.dto.SubmitOfferCommand;
+import com.dreamhomes.haven.offer.dto.SubmitOfferRequest;
+import com.dreamhomes.haven.offer.model.Offer;
 
 @RestController
 @RequestMapping("/api/offers")

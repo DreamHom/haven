@@ -6,7 +6,7 @@ import org.springframework.kafka.test.context.EmbeddedKafka;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
-
+import com.dreamhomes.haven.auth.service.JwtService;
 /**
  * Base for integration tests that need a real Postgres database (and now Kafka).
  *

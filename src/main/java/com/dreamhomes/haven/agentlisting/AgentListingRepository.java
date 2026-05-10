@@ -3,6 +3,8 @@ package com.dreamhomes.haven.agentlisting;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import com.dreamhomes.haven.agentlisting.model.AgentListing;
+import com.dreamhomes.haven.agentlisting.model.AgentListingStatus;
 
 public interface AgentListingRepository extends JpaRepository<AgentListing, Long> {
 

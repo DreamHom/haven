@@ -11,6 +11,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import com.dreamhomes.haven.property.dto.CreatePropertyRequest;
+import com.dreamhomes.haven.property.dto.PropertyResponse;
+import com.dreamhomes.haven.property.model.Property;
 
 @RestController
 @RequestMapping("/api/properties")

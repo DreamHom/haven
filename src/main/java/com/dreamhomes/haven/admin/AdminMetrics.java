@@ -1,6 +1,6 @@
 package com.dreamhomes.haven.admin;
 
-import com.dreamhomes.haven.verification.VerificationType;
+import com.dreamhomes.haven.verification.model.VerificationType;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.EnumMap;
 import java.util.Map;
+import com.dreamhomes.haven.admin.model.AdminAction;
 
 /**
  * Per-action counters for admin moderation. Lets ops chart approval / rejection volume

@@ -1,10 +1,10 @@
 package com.dreamhomes.haven.auth;
 
-import com.dreamhomes.haven.user.EmailAlreadyTakenException;
-import com.dreamhomes.haven.user.NewUser;
-import com.dreamhomes.haven.user.RegisteredUser;
-import com.dreamhomes.haven.user.Role;
-import com.dreamhomes.haven.user.UserCredentialsService;
+import com.dreamhomes.haven.user.exception.EmailAlreadyTakenException;
+import com.dreamhomes.haven.user.dto.NewUser;
+import com.dreamhomes.haven.user.dto.RegisteredUser;
+import com.dreamhomes.haven.user.model.Role;
+import com.dreamhomes.haven.user.service.UserCredentialsService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -21,6 +21,13 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import com.dreamhomes.haven.auth.dto.RegisterCommand;
+import com.dreamhomes.haven.auth.dto.UserResponse;
+import com.dreamhomes.haven.user.model.AgentProfile;
+import com.dreamhomes.haven.user.model.User;
+import com.dreamhomes.haven.auth.exception.EmailAlreadyRegisteredException;
+import com.dreamhomes.haven.auth.service.AuthService;
+import com.dreamhomes.haven.auth.service.JwtService;
 
 /**
  * Auth's part of registration is small now: normalise email, pre-check duplicate,

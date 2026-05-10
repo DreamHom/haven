@@ -2,12 +2,11 @@ package com.dreamhomes.haven.auth;
 
 import com.dreamhomes.haven.support.AbstractPostgresIT;
 import com.dreamhomes.haven.support.JwtTestSupport;
-import com.dreamhomes.haven.user.AgentProfile;
-import com.dreamhomes.haven.user.AgentProfileRepository;
-import com.dreamhomes.haven.user.Role;
-import com.dreamhomes.haven.user.User;
-import com.dreamhomes.haven.user.UserRepository;
-
+import com.dreamhomes.haven.user.model.AgentProfile;
+import com.dreamhomes.haven.user.repository.AgentProfileRepository;
+import com.dreamhomes.haven.user.model.Role;
+import com.dreamhomes.haven.user.model.User;
+import com.dreamhomes.haven.user.repository.UserRepository;
 import java.util.Optional;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;

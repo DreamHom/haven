@@ -1,11 +1,11 @@
 package com.dreamhomes.haven.admin;
 
-import com.dreamhomes.haven.user.Role;
-import com.dreamhomes.haven.user.UserAdminService;
-import com.dreamhomes.haven.user.UserAdminView;
-import com.dreamhomes.haven.user.UserAlreadySuspendedException;
-import com.dreamhomes.haven.user.UserNotFoundException;
-import com.dreamhomes.haven.user.UserNotSuspendedException;
+import com.dreamhomes.haven.user.model.Role;
+import com.dreamhomes.haven.user.service.UserAdminService;
+import com.dreamhomes.haven.user.dto.UserAdminView;
+import com.dreamhomes.haven.user.exception.UserAlreadySuspendedException;
+import com.dreamhomes.haven.user.exception.UserNotFoundException;
+import com.dreamhomes.haven.user.exception.UserNotSuspendedException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,6 +24,11 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import com.dreamhomes.haven.admin.exception.CannotModerateSelfException;
+import com.dreamhomes.haven.admin.model.AdminAction;
+import com.dreamhomes.haven.admin.model.AdminAuditLog;
+import com.dreamhomes.haven.admin.model.AuditTargetType;
+import com.dreamhomes.haven.admin.service.AdminUserService;
 
 /**
  * AdminUserService is a thin orchestrator after the UserAdminService extraction:
