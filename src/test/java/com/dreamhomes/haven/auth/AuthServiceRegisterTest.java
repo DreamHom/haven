@@ -62,7 +62,7 @@ class AuthServiceRegisterTest {
         when(userCredentialsService.create(any(NewUser.class))).thenReturn(new RegisteredUser(42L, now));
 
         UserResponse result = authService.register(new RegisterCommand(
-                "ada@example.com", "plaintext-pw", "Ada Lovelace", "+2348012345678", Role.APPLICANT, null));
+                "ada@example.com", "plaintext-pw", "Ada Lovelace", "Display Name", "+2348012345678", Role.APPLICANT, null));
 
         ArgumentCaptor<NewUser> captor = ArgumentCaptor.forClass(NewUser.class);
         verify(userCredentialsService).create(captor.capture());
@@ -87,7 +87,7 @@ class AuthServiceRegisterTest {
         when(userCredentialsService.existsByEmail("dup@example.com")).thenReturn(true);
 
         RegisterCommand cmd = new RegisterCommand(
-                "dup@example.com", "pw", "Dup User", null, Role.APPLICANT, null);
+                "dup@example.com", "pw", "Dup User", "Display Name", null, Role.APPLICANT, null);
 
         assertThatThrownBy(() -> authService.register(cmd))
                 .isInstanceOf(EmailAlreadyRegisteredException.class);
@@ -107,7 +107,7 @@ class AuthServiceRegisterTest {
         when(userCredentialsService.create(any())).thenThrow(new EmailAlreadyTakenException());
 
         RegisterCommand cmd = new RegisterCommand(
-                "race@example.com", "secret-password", "Race", null, Role.APPLICANT, null);
+                "race@example.com", "secret-password", "Race", "Display Name", null, Role.APPLICANT, null);
 
         assertThatThrownBy(() -> authService.register(cmd))
                 .isInstanceOf(EmailAlreadyRegisteredException.class);
@@ -120,7 +120,7 @@ class AuthServiceRegisterTest {
         when(userCredentialsService.create(any())).thenReturn(new RegisteredUser(1L, Instant.now()));
 
         UserResponse result = authService.register(new RegisterCommand(
-                "Mixed@Example.COM", "secret-password", "Mixed Case", null, Role.APPLICANT, null));
+                "Mixed@Example.COM", "secret-password", "Mixed Case", "Display Name", null, Role.APPLICANT, null));
 
         ArgumentCaptor<NewUser> captor = ArgumentCaptor.forClass(NewUser.class);
         verify(userCredentialsService).create(captor.capture());
@@ -136,7 +136,7 @@ class AuthServiceRegisterTest {
         when(userCredentialsService.create(any())).thenReturn(new RegisteredUser(123L, Instant.now()));
 
         authService.register(new RegisterCommand(
-                "agent@example.com", "secret-password", "An Agent", null, Role.AGENT, "LIC-12345"));
+                "agent@example.com", "secret-password", "An Agent", "Display Name", null, Role.AGENT, "LIC-12345"));
 
         ArgumentCaptor<NewUser> captor = ArgumentCaptor.forClass(NewUser.class);
         verify(userCredentialsService).create(captor.capture());
@@ -155,7 +155,7 @@ class AuthServiceRegisterTest {
         when(userCredentialsService.create(any())).thenReturn(new RegisteredUser(7L, Instant.now()));
 
         UserResponse result = authService.register(new RegisterCommand(
-                "admin@example.com", "pw", "Admin", null, Role.ADMIN, null));
+                "admin@example.com", "pw", "Admin", "Display Name", null, Role.ADMIN, null));
         assertThat(result.role()).isEqualTo(Role.ADMIN);
     }
 }

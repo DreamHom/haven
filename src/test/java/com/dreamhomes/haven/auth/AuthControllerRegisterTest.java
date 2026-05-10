@@ -67,7 +67,7 @@ class AuthControllerRegisterTest {
     @Test
     void successfulRegistrationReturns201WithUserSummary() throws Exception {
         when(authService.register(any())).thenReturn(new UserResponse(
-                42L, "ada@example.com", "Ada Lovelace", Role.APPLICANT, Instant.now()));
+                42L, "ada@example.com", "Ada Lovelace", "Display Name", Role.APPLICANT, Instant.now()));
 
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -144,7 +144,7 @@ class AuthControllerRegisterTest {
     @Test
     void agentRoleWithLicenceNumberIsAccepted() throws Exception {
         when(authService.register(any())).thenReturn(new UserResponse(
-                99L, "agent@example.com", "An Agent", Role.AGENT, Instant.now()));
+                99L, "agent@example.com", "An Agent", "Display Name", Role.AGENT, Instant.now()));
 
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)

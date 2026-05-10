@@ -90,6 +90,7 @@ class ListingRepositoryIT extends AbstractPostgresIT {
         return userRepository.save(User.builder()
                 .email(email)
                 .passwordHash("hash").role(Role.OWNER).fullName("Owner")
+                .displayName("Owner")
                 .tokenVersion(1).createdAt(Instant.now()).build());
     }
 

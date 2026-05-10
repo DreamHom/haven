@@ -42,6 +42,15 @@ public class User {
     @Column(name = "full_name", nullable = false)
     private String fullName;
 
+    /**
+     * Short, mobile-friendly handle the UI renders on tight surfaces (cards, agent
+     * profile chips, comment author lines). Defaults to the first whitespace-delimited
+     * token of {@link #fullName} on register if the caller doesn't supply one — see
+     * {@code AuthService.register} and the {@code V19} backfill for existing rows.
+     */
+    @Column(name = "display_name", nullable = false)
+    private String displayName;
+
     @Column(length = 32)
     private String phone;
 

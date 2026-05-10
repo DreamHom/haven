@@ -56,6 +56,7 @@ class UserRepositoryIT extends AbstractPostgresIT {
                 .passwordHash("$2a$10$dummyhashfortestingonly")
                 .role(Role.APPLICANT)
                 .fullName("Ada Lovelace")
+                .displayName("Ada Lovelace")
                 .phone("+2348012345678")
                 .createdAt(Instant.now())
                 .build();

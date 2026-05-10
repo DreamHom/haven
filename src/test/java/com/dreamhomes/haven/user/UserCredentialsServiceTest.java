@@ -56,7 +56,8 @@ class UserCredentialsServiceTest {
     void loadByEmailMapsEntityToCredentialsProjectionWithoutLeakingPii() {
         User stored = User.builder()
                 .id(7L).email("ada@example.com").passwordHash("$2a$10$h")
-                .role(Role.OWNER).fullName("Ada").phone("+234")
+                .role(Role.OWNER).fullName("Ada")
+                .displayName("Ada").phone("+234")
                 .tokenVersion(3).createdAt(Instant.now()).build();
         when(userRepository.findByEmail("ada@example.com")).thenReturn(Optional.of(stored));
 
@@ -75,6 +76,7 @@ class UserCredentialsServiceTest {
         User stored = User.builder()
                 .id(7L).email("ada@example.com").passwordHash("$2a$10$h")
                 .role(Role.OWNER).fullName("Ada")
+                .displayName("Ada")
                 .tokenVersion(1).createdAt(Instant.now())
                 .suspendedAt(Instant.now()).build();
         when(userRepository.findByEmail("ada@example.com")).thenReturn(Optional.of(stored));
@@ -91,7 +93,8 @@ class UserCredentialsServiceTest {
     @Test
     void tokenVersionOfReturnsCurrentVersionWhenUserExists() {
         User stored = User.builder().id(7L).email("a@b").passwordHash("h")
-                .role(Role.OWNER).fullName("A").tokenVersion(5)
+                .role(Role.OWNER).fullName("A")
+                .displayName("A").tokenVersion(5)
                 .createdAt(Instant.now()).build();
         when(userRepository.findById(7L)).thenReturn(Optional.of(stored));
 
@@ -107,7 +110,8 @@ class UserCredentialsServiceTest {
     @Test
     void bumpTokenVersionIncrementsAndPersistsTheNewVersion() {
         User stored = User.builder().id(7L).email("a@b").passwordHash("h")
-                .role(Role.OWNER).fullName("A").tokenVersion(2)
+                .role(Role.OWNER).fullName("A")
+                .displayName("A").tokenVersion(2)
                 .createdAt(Instant.now()).build();
         when(userRepository.findById(7L)).thenReturn(Optional.of(stored));
 
@@ -142,7 +146,7 @@ class UserCredentialsServiceTest {
         });
 
         RegisteredUser result = service.create(new NewUser(
-                "ada@example.com", "$2a$10$h", Role.APPLICANT, "Ada", "+234", null));
+                "ada@example.com", "$2a$10$h", Role.APPLICANT, "Ada", "Display Name", "+234", null));
 
         ArgumentCaptor<User> cap = ArgumentCaptor.forClass(User.class);
         verify(userRepository).save(cap.capture());
@@ -165,7 +169,7 @@ class UserCredentialsServiceTest {
         });
 
         service.create(new NewUser(
-                "agent@example.com", "h", Role.AGENT, "An Agent", null, "LIC-1"));
+                "agent@example.com", "h", Role.AGENT, "An Agent", "Display Name", null, "LIC-1"));
 
         ArgumentCaptor<AgentProfile> cap = ArgumentCaptor.forClass(AgentProfile.class);
         verify(agentProfileRepository).save(cap.capture());
@@ -178,7 +182,7 @@ class UserCredentialsServiceTest {
         when(userRepository.existsByEmail("dup@example.com")).thenReturn(true);
 
         assertThatThrownBy(() -> service.create(new NewUser(
-                "dup@example.com", "h", Role.OWNER, "Dup", null, null)))
+                "dup@example.com", "h", Role.OWNER, "Dup", "Display Name", null, null)))
                 .isInstanceOf(EmailAlreadyTakenException.class);
 
         verify(userRepository, never()).save(any());
@@ -194,7 +198,7 @@ class UserCredentialsServiceTest {
                 .thenThrow(new DataIntegrityViolationException("dup"));
 
         assertThatThrownBy(() -> service.create(new NewUser(
-                "race@example.com", "h", Role.OWNER, "Race", null, null)))
+                "race@example.com", "h", Role.OWNER, "Race", "Display Name", null, null)))
                 .isInstanceOf(EmailAlreadyTakenException.class);
 
         verify(agentProfileRepository, never()).save(any());

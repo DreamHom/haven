@@ -16,6 +16,7 @@ import com.dreamhomes.haven.user.service.UserAdminService;
 public record UserAdminView(
         Long id,
         String email,
+        String displayName,
         Role role,
         Instant suspendedAt,
         Instant identityVerifiedAt) {

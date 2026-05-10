@@ -101,6 +101,7 @@ class InspectionRequestRepositoryIT extends AbstractPostgresIT {
         User owner = userRepository.save(User.builder()
                 .email("owner-reqrepo-" + System.nanoTime() + "@example.com")
                 .passwordHash("hash").role(Role.OWNER).fullName("Owner")
+                .displayName("Owner")
                 .tokenVersion(1).createdAt(Instant.now()).build());
         Property property = propertyRepository.save(Property.builder()
                 .ownerId(owner.getId()).type(PropertyType.HOUSE)
@@ -117,6 +118,7 @@ class InspectionRequestRepositoryIT extends AbstractPostgresIT {
         return userRepository.save(User.builder()
                 .email("applicant-reqrepo-" + System.nanoTime() + "@example.com")
                 .passwordHash("hash").role(Role.APPLICANT).fullName("Applicant")
+                .displayName("Applicant")
                 .tokenVersion(1).createdAt(Instant.now()).build());
     }
 }

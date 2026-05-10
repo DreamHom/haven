@@ -33,6 +33,7 @@ class AgentProfileRepositoryIT extends AbstractPostgresIT {
                 .passwordHash("hash")
                 .role(Role.AGENT)
                 .fullName("Agent One")
+                .displayName("Agent One")
                 .tokenVersion(1)
                 .createdAt(Instant.now())
                 .build());
@@ -54,10 +55,12 @@ class AgentProfileRepositoryIT extends AbstractPostgresIT {
         User a = userRepository.save(User.builder()
                 .email("agent-repo-2@example.com")
                 .passwordHash("hash").role(Role.AGENT).fullName("A")
+                .displayName("A")
                 .tokenVersion(1).createdAt(Instant.now()).build());
         User b = userRepository.save(User.builder()
                 .email("agent-repo-3@example.com")
                 .passwordHash("hash").role(Role.AGENT).fullName("B")
+                .displayName("B")
                 .tokenVersion(1).createdAt(Instant.now()).build());
 
         agentProfileRepository.saveAndFlush(AgentProfile.builder()

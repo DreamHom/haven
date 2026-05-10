@@ -89,7 +89,7 @@ public class UserAdminService {
 
     private static UserAdminView toView(User u) {
         return new UserAdminView(
-                u.getId(), u.getEmail(), u.getRole(),
+                u.getId(), u.getEmail(), u.getDisplayName(), u.getRole(),
                 u.getSuspendedAt(), u.getIdentityVerifiedAt());
     }
 }

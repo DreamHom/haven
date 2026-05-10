@@ -80,16 +80,19 @@ public class AuthService {
         if (userCredentialsService.existsByEmail(email)) {
             throw new EmailAlreadyRegisteredException();
         }
+        String displayName = defaultDisplayName(cmd.displayName(), cmd.fullName());
         try {
             RegisteredUser registered = userCredentialsService.create(new NewUser(
                     email,
                     passwordEncoder.encode(cmd.password()),
                     cmd.role(),
                     cmd.fullName(),
+                    displayName,
                     cmd.phone(),
                     cmd.licenseNumber()));
             log.info("Registered userId={} role={}", registered.id(), cmd.role());
-            return new UserResponse(registered.id(), email, cmd.fullName(), cmd.role(), registered.createdAt());
+            return new UserResponse(registered.id(), email, cmd.fullName(), displayName,
+                    cmd.role(), registered.createdAt());
         } catch (EmailAlreadyTakenException race) {
             // user-api signals the post-encode TOCTOU collision; remap to auth-api's
             // wire-stable exception so the controller layer / GlobalExceptionHandler
@@ -101,5 +104,21 @@ public class AuthService {
     /** Emails are case-insensitive identifiers — store and look them up in lowercase. */
     private static String normalize(String email) {
         return email.trim().toLowerCase(Locale.ROOT);
+    }
+
+    /**
+     * Pick a sensible displayName when the caller didn't supply one. First
+     * whitespace-delimited token of fullName works for the most common Nigerian-name
+     * shapes ("Amaka Chinwe Okafor" → "Amaka") and matches the V19 backfill rule
+     * applied to existing rows, so behaviour is consistent across registration paths
+     * and historical data.
+     */
+    private static String defaultDisplayName(String supplied, String fullName) {
+        if (supplied != null && !supplied.isBlank()) {
+            return supplied.trim();
+        }
+        String trimmed = fullName.trim();
+        int firstSpace = trimmed.indexOf(' ');
+        return firstSpace < 0 ? trimmed : trimmed.substring(0, firstSpace);
     }
 }

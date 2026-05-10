@@ -14,6 +14,7 @@ import com.dreamhomes.haven.user.model.Role;
 public record PublicUserProfile(
         Long id,
         String fullName,
+        String displayName,
         Role role,
         Instant identityVerifiedAt,
         Instant agentCredentialVerifiedAt,
