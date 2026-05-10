@@ -1,21 +1,24 @@
 package com.dreamhomes.haven.property.model;
 
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.math.BigDecimal;
+import java.time.Instant;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
-import java.math.BigDecimal;
-import java.time.Instant;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 /**
  * The physical property. Owned by a user (FK kept as a plain id — no @ManyToOne
@@ -23,6 +26,7 @@ import java.time.Instant;
  * we have so far).
  */
 @Entity
+@EntityListeners(AuditingEntityListener.class)
 @Table(name = "properties")
 @Getter
 @Setter
@@ -54,6 +58,8 @@ public class Property {
 
     @Column(columnDefinition = "TEXT")
     private String description;
+
+    @CreatedDate
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

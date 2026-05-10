@@ -133,6 +133,26 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- Local-dev hot reload: app restarts on classpath change instead of needing a
+             manual `Ctrl+C ; mvn spring-boot:run`. Marked optional so it's never on
+             the production classpath (Spring Boot's auto-config disables it in jars
+             launched via `java -jar`). Real productivity boost while iterating. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-devtools</artifactId>
+            <scope>runtime</scope>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- AWS SDK v2 S3 client. Cloudflare R2 is S3-compatible — point the client at
+             the R2 endpoint (haven.photos.r2.endpoint) with the R2-issued access key
+             and you get bucket put/get without any vendor-specific SDK. -->
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>s3</artifactId>
+            <version>2.30.5</version>
+        </dependency>
+
         <!-- Tests -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

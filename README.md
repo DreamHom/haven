@@ -25,13 +25,16 @@ For the design rationale + every "we chose X over Y" decision, see
 
 - **Java 21** (LTS) · **Spring Boot 3.3.5** (Web, Security, Data JPA, Validation, Actuator)
 - **PostgreSQL 16** + **Flyway** (V1..V18 migrations)
-- **Spring Kafka** + **Apache Kafka 3.7 (KRaft)** — transactional outbox, dead-letter topic
+- **Spring Kafka** + **Apache Kafka 3.7 (KRaft)** — transactional outbox, dead-letter topic, partition-pinned `NewTopic` beans
 - **JJWT 0.12.x** — JWT issuance + verification
 - **Bucket4j** — in-process auth rate limiting
 - **Micrometer** + **Prometheus** scrape endpoint
 - **springdoc-openapi** — `/v3/api-docs` and `/scalar.html` served at runtime
+- **AWS SDK v2 (S3)** — Cloudflare R2 image upload pipeline (pluggable `PhotoStorage` interface)
+- **Spring Data JPA auditing** — automatic `@CreatedDate` / `@LastModifiedDate` on entities
 - **JUnit 5** · **Mockito** · **Spring Security Test** · **Spring Kafka Test** (`@EmbeddedKafka`) · **Testcontainers** (Postgres) · **AssertJ**
 - **Lombok** — boilerplate
+- **Spring Boot DevTools** (dev only) — local hot reload
 - **Maven** (single module)
 
 ## Project structure
@@ -141,7 +144,7 @@ mvn verify   # surefire + failsafe — adds ITs (Testcontainers needs Docker run
 - Unit tests follow the `*Test` / `*Tests` naming convention and run via Surefire.
 - Integration tests follow the `*IT` convention, extend `AbstractPostgresIT`
   (Testcontainers Postgres + Embedded Kafka, started once per JVM), and run via Failsafe.
-- **Total today: 389 tests, 0 failures, 0 errors.** ~3 minutes wall-clock.
+- **Total today: 398 tests, 0 failures, 0 errors.** ~3 minutes wall-clock.
 
 To run a single test:
 

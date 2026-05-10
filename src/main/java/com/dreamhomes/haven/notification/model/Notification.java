@@ -1,21 +1,24 @@
 package com.dreamhomes.haven.notification.model;
 
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.time.Instant;
+import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
-import java.time.Instant;
-import java.util.UUID;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 /**
  * A notification persisted for one recipient. {@code payload} is JSON text whose
@@ -26,6 +29,7 @@ import java.util.UUID;
  * makes the second insert a no-op (we check {@code existsByEventId} in the service).
  */
 @Entity
+@EntityListeners(AuditingEntityListener.class)
 @Table(name = "notifications")
 @Getter
 @Setter
@@ -59,6 +63,8 @@ public class Notification {
 
     @Column(name = "read_at")
     private Instant readAt;
+
+    @CreatedDate
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

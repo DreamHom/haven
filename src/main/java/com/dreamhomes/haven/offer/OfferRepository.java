@@ -13,4 +13,7 @@ public interface OfferRepository extends JpaRepository<Offer, Long> {
      * signal that the deal happened.
      */
     boolean existsByListingIdAndApplicantIdAndStatus(Long listingId, Long applicantId, OfferStatus status);
+
+    /** Aggregate count by status — backs the admin analytics summary. */
+    long countByStatus(OfferStatus status);
 }

@@ -678,6 +678,35 @@ longer manifest as Maven modules — the codebase consolidated back in Phase 15.
 
 ---
 
+## Phase 16 — Post-audit improvements (gaps surfaced by silas's branch + the Kafka audit)
+
+### `NewTopic` beans pin partition count + replication factor
+- **Why**: partition count is the throughput knob you can't change later without operational pain (re-partitioning preserves neither order nor downstream consumer offsets). Auto-create at first publish would inherit broker defaults silently. `KafkaTopicConfig` declares one `NewTopic` bean per produced topic plus a sibling `.DLT` so spring-kafka's admin creates them with the shape we want on broker connect.
+- **Cost**: another two beans per topic, two new properties (`haven.kafka.topic-partitions`, `haven.kafka.replication-factor`). Trivial.
+- **Revisit**: when scaling the cluster — bump `replication-factor` to match the broker count.
+
+### `PhotoStorage` interface + `R2PhotoStorage` / `LocalPhotoStorage`
+- **Why**: needed real image hosting, not the URL-passing placeholder we shipped earlier. Cloudflare R2 is S3-compatible so the AWS SDK v2 client works against it with a custom endpoint — no Cloudflare-specific SDK lock-in. The pluggable interface lets dev + tests run with `LocalPhotoStorage` (synthesises a placeholder URL, no bytes persisted) so we don't need R2 credentials to exercise the upload pipeline. Production overrides `haven.photos.storage=r2` and supplies the credentials.
+- **Cost**: one new dependency (`software.amazon.awssdk:s3`), one wire-contract change on `POST /api/listings/{id}/photos` (now multipart instead of JSON), one new package `photo/storage/`. The endpoint change broke the existing IT — fixed by switching to `MockMultipartFile` + `multipart()` request builder.
+- **Revisit**: when we want CDN in front (Cloudflare Workers / R2 custom domain) — the URL the storage returns becomes the CDN-fronted URL, no app change needed.
+
+### JPA auditing as belt-and-suspenders for entity timestamps
+- **Why**: every entity used to set `createdAt = Instant.now()` either in its default initializer or in the service before save. Easy to forget on a new path. `@EnableJpaAuditing` + `@CreatedDate` / `@LastModifiedDate` makes the auditor populate them on persist/update if the field is null — a free safety net. The existing manual `Instant.now()` calls stay (so behaviour is unchanged) and auditing only fires when someone forgets.
+- **Cost**: one new config bean + one annotation per entity (12 entities) + import bookkeeping. Harmless if nobody ever forgets to set the timestamp manually; meaningful when somebody does.
+- **Revisit**: never. Could push further to delete the manual `Instant.now()` calls and rely only on auditing — defer until a future cleanup since the current shape is strictly safer.
+
+### `spring-boot-devtools` for local hot reload
+- **Why**: silas had it, we didn't. Iteration speed during local dev is real productivity. Marked `optional` so it never reaches the production classpath (Spring Boot's auto-config disables it in jars launched via `java -jar`).
+- **Cost**: one pom dependency, scope=runtime+optional. Zero impact in prod.
+- **Revisit**: never.
+
+### Admin analytics endpoint with real (not hardcoded) aggregates
+- **Why**: ops needs a one-shot platform-health view. Six counts: total users, suspended users, open listings, closed listings, pending verifications, pending offers. Each is a single index-backed query — endpoint runs O(1) regardless of table size.
+- **Cost**: one new controller, service, DTO + four `countBy...` repository methods. ~80 lines of source + 200 of tests.
+- **Revisit**: when the dashboard is polled aggressively or the field count grows (>10 fields) — back this with a Micrometer metric pipeline or a materialised view rather than per-request `count(*)`.
+
+---
+
 ## Deferred (not built — explicit Phase 14+ scope)
 
 - `ListingPhoto`, `ListingSave`, `ListingLike`, `ListingReview` (engagement)

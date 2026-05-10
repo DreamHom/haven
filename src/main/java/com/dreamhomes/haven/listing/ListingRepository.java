@@ -15,6 +15,9 @@ public interface ListingRepository extends JpaRepository<Listing, Long> {
     /** Backs the public browse endpoint — only LIVE listings are visible to anonymous callers. */
     Page<Listing> findByStatus(ListingStatus status, Pageable pageable);
 
+    /** Aggregate count by status — backs the admin analytics summary. */
+    long countByStatus(ListingStatus status);
+
     /**
      * Lock-free atomic increment of {@code view_count}. Bypasses Hibernate's first-level
      * cache + version check on purpose: a popular listing's @Version shouldn't churn on

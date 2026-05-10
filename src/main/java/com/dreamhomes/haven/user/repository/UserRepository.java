@@ -10,4 +10,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByEmail(String email);
 
     boolean existsByEmail(String email);
+
+    /** Backs the admin analytics summary — count of currently-suspended user accounts. */
+    long countBySuspendedAtIsNotNull();
 }

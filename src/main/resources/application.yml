@@ -79,6 +79,31 @@ cors:
 haven:
   errors:
     type-base: ${HAVEN_ERRORS_TYPE_BASE:https://github.com/DreamHom/haven/blob/main/docs/errors/}
+  kafka:
+    # Partition count for every topic this app produces (inspection.requested.v1,
+    # offer.submitted.v1, plus their .DLT siblings). Pinned via NewTopic beans in
+    # KafkaTopicConfig so brokers don't auto-create with wrong defaults. Re-partitioning
+    # an existing topic is operationally painful, so set this with intent.
+    topic-partitions: ${HAVEN_KAFKA_TOPIC_PARTITIONS:3}
+    # Replication factor. Default 1 is dev-safe (single-broker); production with a
+    # 3-broker cluster should set this to 3 via env override.
+    replication-factor: ${HAVEN_KAFKA_REPLICATION_FACTOR:1}
+  photos:
+    # PhotoStorage backend selector. Default `local` synthesises a placeholder URL
+    # without persisting bytes anywhere — fine for dev + test because the storage
+    # behaviour is what we test, not the bytes. Production overrides to `r2` and
+    # supplies the credentials below.
+    storage: ${HAVEN_PHOTOS_STORAGE:local}
+    r2:
+      # Cloudflare R2 endpoint URL — usually `https://<account-id>.r2.cloudflarestorage.com`.
+      endpoint: ${HAVEN_PHOTOS_R2_ENDPOINT:}
+      access-key-id: ${HAVEN_PHOTOS_R2_ACCESS_KEY_ID:}
+      secret-access-key: ${HAVEN_PHOTOS_R2_SECRET_ACCESS_KEY:}
+      bucket: ${HAVEN_PHOTOS_R2_BUCKET:}
+      # Public-facing URL the bucket serves under (R2 custom domain, R2.dev fallback,
+      # or a CDN in front). Combined with the object key to produce the URL recorded
+      # on the ListingPhoto row.
+      public-base-url: ${HAVEN_PHOTOS_R2_PUBLIC_BASE_URL:}
 
 # Actuator: expose only the endpoints we want to publicly probe.
 # health = liveness/readiness for k8s/load-balancer probes (PUBLIC — see SecurityConfig).

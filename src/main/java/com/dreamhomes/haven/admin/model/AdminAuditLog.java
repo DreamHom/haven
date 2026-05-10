@@ -1,13 +1,16 @@
 package com.dreamhomes.haven.admin.model;
 
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.time.Instant;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -15,8 +18,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
-
-import java.time.Instant;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 /**
  * Immutable audit row for every admin write (PRD §4.10: "Full audit trail of all admin
@@ -27,6 +30,7 @@ import java.time.Instant;
  * before a transition). Read in concert with {@link #action}.
  */
 @Entity
+@EntityListeners(AuditingEntityListener.class)
 @Table(name = "admin_audit_log")
 @Getter
 @Setter
@@ -56,6 +60,8 @@ public class AdminAuditLog {
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")
     private String metadata;
+
+    @CreatedDate
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
