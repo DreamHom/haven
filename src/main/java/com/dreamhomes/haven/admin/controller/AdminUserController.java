@@ -58,7 +58,7 @@ public class AdminUserController {
                     content = @Content(
                             schema = @Schema(implementation = UserAdminView.class),
                             examples = @ExampleObject(name = "SuspendedAgent", value = """
-                                    { "id": 23, "email": "emeka@example.com", "fullName": "Emeka Okonkwo",
+                                    { "id": 23, "email": "emeka@gmail.com", "fullName": "Emeka Okonkwo",
                                       "role": "AGENT",
                                       "suspendedAt": "2026-05-10T16:00:00Z",
                                       "createdAt": "2026-04-01T10:00:00Z" }

@@ -10,9 +10,9 @@ class StrictEmailValidatorTest {
 
     @Test
     void acceptsRealisticAddresses() {
-        assertThat(validator.isValid("ada@example.com", null)).isTrue();
-        assertThat(validator.isValid("a.b+tag@sub.example.co.uk", null)).isTrue();
-        assertThat(validator.isValid("user_name@example.io", null)).isTrue();
+        assertThat(validator.isValid("ada@gmail.com", null)).isTrue();
+        assertThat(validator.isValid("a.b+tag@mail.dreamhomes.co.uk", null)).isTrue();
+        assertThat(validator.isValid("user_name@dreamhomes.io", null)).isTrue();
     }
 
     @Test

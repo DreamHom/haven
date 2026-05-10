@@ -39,12 +39,12 @@ class ListingPhotoServiceTest {
         when(photoRepository.findMaxDisplayOrderForListing(7L)).thenReturn(null);
         when(photoRepository.save(any(ListingPhoto.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        ListingPhoto saved = service.add(/*callerId=*/50L, 7L, "https://cdn.example.com/a.jpg", "Front view");
+        ListingPhoto saved = service.add(/*callerId=*/50L, 7L, "https://media.dreamhomes.com/a.jpg", "Front view");
 
         ArgumentCaptor<ListingPhoto> cap = ArgumentCaptor.forClass(ListingPhoto.class);
         verify(photoRepository).save(cap.capture());
         assertThat(cap.getValue().getListingId()).isEqualTo(7L);
-        assertThat(cap.getValue().getUrl()).isEqualTo("https://cdn.example.com/a.jpg");
+        assertThat(cap.getValue().getUrl()).isEqualTo("https://media.dreamhomes.com/a.jpg");
         assertThat(cap.getValue().getCaption()).isEqualTo("Front view");
         assertThat(cap.getValue().getDisplayOrder()).isEqualTo(1);
         assertThat(saved).isSameAs(cap.getValue());
@@ -56,7 +56,7 @@ class ListingPhotoServiceTest {
         when(photoRepository.findMaxDisplayOrderForListing(7L)).thenReturn(4);
         when(photoRepository.save(any(ListingPhoto.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        service.add(50L, 7L, "https://cdn.example.com/b.jpg", null);
+        service.add(50L, 7L, "https://media.dreamhomes.com/b.jpg", null);
 
         ArgumentCaptor<ListingPhoto> cap = ArgumentCaptor.forClass(ListingPhoto.class);
         verify(photoRepository).save(cap.capture());

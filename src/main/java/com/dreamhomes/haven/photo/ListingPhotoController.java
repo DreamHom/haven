@@ -56,7 +56,7 @@ public class ListingPhotoController {
                             schema = @Schema(implementation = PhotoResponse.class),
                             examples = @ExampleObject(name = "AppendedPhoto", value = """
                                     { "id": 88, "listingId": 17,
-                                      "url": "https://r2.dreamhomes.example/listings/17/hero.jpg",
+                                      "url": "https://media.dreamhomes.com/listings/17/hero.jpg",
                                       "displayOrder": 3, "caption": "Living room",
                                       "uploadedAt": "2026-05-10T09:00:00Z" }
                                     """))),
@@ -120,15 +120,15 @@ public class ListingPhotoController {
                             examples = @ExampleObject(name = "ThreePhotos", value = """
                                     [
                                       { "id": 86, "listingId": 17,
-                                        "url": "https://r2.dreamhomes.example/listings/17/exterior.jpg",
+                                        "url": "https://media.dreamhomes.com/listings/17/exterior.jpg",
                                         "displayOrder": 0, "caption": "Building exterior",
                                         "uploadedAt": "2026-05-09T20:00:00Z" },
                                       { "id": 87, "listingId": 17,
-                                        "url": "https://r2.dreamhomes.example/listings/17/kitchen.jpg",
+                                        "url": "https://media.dreamhomes.com/listings/17/kitchen.jpg",
                                         "displayOrder": 1, "caption": "Kitchen",
                                         "uploadedAt": "2026-05-09T20:01:00Z" },
                                       { "id": 88, "listingId": 17,
-                                        "url": "https://r2.dreamhomes.example/listings/17/hero.jpg",
+                                        "url": "https://media.dreamhomes.com/listings/17/hero.jpg",
                                         "displayOrder": 2, "caption": "Living room",
                                         "uploadedAt": "2026-05-10T09:00:00Z" }
                                     ]

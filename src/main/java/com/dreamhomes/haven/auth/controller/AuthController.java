@@ -60,7 +60,7 @@ public class AuthController {
                     content = @Content(
                             schema = @Schema(implementation = UserResponse.class),
                             examples = @ExampleObject(name = "AmakaRegistered", value = """
-                                    { "id": 7, "email": "amaka@example.com", "fullName": "Amaka Okafor",
+                                    { "id": 7, "email": "amaka@gmail.com", "fullName": "Amaka Okafor",
                                       "role": "OWNER", "phone": "+2348012345678",
                                       "createdAt": "2026-05-10T08:30:00Z" }
                                     """))),

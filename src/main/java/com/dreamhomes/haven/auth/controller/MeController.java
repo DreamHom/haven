@@ -39,7 +39,7 @@ public class MeController {
                     content = @Content(
                             schema = @Schema(implementation = JwtPrincipal.class),
                             examples = @ExampleObject(name = "OwnerPrincipal", value = """
-                                    { "userId": 7, "email": "amaka@example.com",
+                                    { "userId": 7, "email": "amaka@gmail.com",
                                       "fullName": "Amaka Okafor", "role": "OWNER" }
                                     """))),
             @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthenticated")
