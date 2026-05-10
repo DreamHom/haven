@@ -53,6 +53,7 @@ public class JwtTestSupport {
                 .passwordHash(passwordEncoder.encode(DEFAULT_PASSWORD))
                 .role(role)
                 .fullName("Test " + role.name())
+                .displayName("Test " + role.name())
                 .tokenVersion(1)
                 .createdAt(Instant.now())
                 .build());

@@ -14,6 +14,7 @@ public record UserResponse(
         Long id,
         String email,
         String fullName,
+        String displayName,
         Role role,
         Instant createdAt
 ) {

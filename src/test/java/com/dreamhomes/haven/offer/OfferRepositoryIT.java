@@ -62,6 +62,7 @@ class OfferRepositoryIT extends AbstractPostgresIT {
         return userRepository.save(User.builder()
                 .email("offer-" + role.name().toLowerCase() + "-" + System.nanoTime() + "@example.com")
                 .passwordHash("hash").role(role).fullName("User")
+                .displayName("User")
                 .tokenVersion(1).createdAt(Instant.now()).build());
     }
 

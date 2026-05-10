@@ -49,6 +49,7 @@ public class UserProfileService {
         return new PublicUserProfile(
                 user.getId(),
                 user.getFullName(),
+                user.getDisplayName(),
                 user.getRole(),
                 user.getIdentityVerifiedAt(),
                 credentialVerifiedAt,

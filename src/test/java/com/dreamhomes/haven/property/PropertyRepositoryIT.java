@@ -30,6 +30,7 @@ class PropertyRepositoryIT extends AbstractPostgresIT {
         User owner = userRepository.save(User.builder()
                 .email("owner-prop-1@example.com")
                 .passwordHash("hash").role(Role.OWNER).fullName("Owner One")
+                .displayName("Owner One")
                 .tokenVersion(1).createdAt(Instant.now()).build());
 
         Property saved = propertyRepository.save(Property.builder()

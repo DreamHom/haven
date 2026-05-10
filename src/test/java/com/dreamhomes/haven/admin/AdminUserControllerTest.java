@@ -105,7 +105,7 @@ class AdminUserControllerTest {
     }
 
     private static UserAdminView view(Long id, Role role, Instant suspendedAt) {
-        return new UserAdminView(id, "u@x", role, suspendedAt, null);
+        return new UserAdminView(id, "u@x", "Display Name", role, suspendedAt, null);
     }
 
     private static RequestPostProcessor asPrincipal(Long userId, Role role) {

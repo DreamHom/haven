@@ -65,6 +65,7 @@ class NotificationRepositoryIT extends AbstractPostgresIT {
         return userRepository.save(User.builder()
                 .email("notif-recipient-" + System.nanoTime() + "@example.com")
                 .passwordHash("hash").role(Role.OWNER).fullName("Recipient")
+                .displayName("Recipient")
                 .tokenVersion(1).createdAt(Instant.now()).build());
     }
 }

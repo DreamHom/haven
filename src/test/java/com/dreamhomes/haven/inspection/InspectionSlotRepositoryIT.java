@@ -114,6 +114,7 @@ class InspectionSlotRepositoryIT extends AbstractPostgresIT {
         User owner = userRepository.save(User.builder()
                 .email("owner-slotrepo-" + System.nanoTime() + "@example.com")
                 .passwordHash("hash").role(Role.OWNER).fullName("Owner")
+                .displayName("Owner")
                 .tokenVersion(1).createdAt(Instant.now()).build());
         Property property = propertyRepository.save(Property.builder()
                 .ownerId(owner.getId()).type(PropertyType.HOUSE)
@@ -130,6 +131,7 @@ class InspectionSlotRepositoryIT extends AbstractPostgresIT {
         return userRepository.save(User.builder()
                 .email("applicant-slotrepo-" + System.nanoTime() + "@example.com")
                 .passwordHash("hash").role(Role.APPLICANT).fullName("Applicant")
+                .displayName("Applicant")
                 .tokenVersion(1).createdAt(Instant.now()).build());
     }
 }

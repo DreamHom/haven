@@ -78,6 +78,7 @@ public class UserCredentialsService {
                 .passwordHash(newUser.passwordHash())
                 .role(newUser.role())
                 .fullName(newUser.fullName())
+                .displayName(newUser.displayName())
                 .phone(newUser.phone())
                 .createdAt(now)
                 .build();

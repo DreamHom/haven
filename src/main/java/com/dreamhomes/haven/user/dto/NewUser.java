@@ -16,6 +16,10 @@ public record NewUser(
         String passwordHash,
         Role role,
         String fullName,
+        /** Required at this layer — {@code AuthService.register} computes a default
+         *  from {@code fullName} when the caller doesn't supply one, so by the time
+         *  the user-impl layer sees it, it's always set. */
+        String displayName,
         String phone,
         String licenseNumber) {
 }

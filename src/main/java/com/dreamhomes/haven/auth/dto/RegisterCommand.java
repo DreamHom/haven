@@ -10,6 +10,8 @@ public record RegisterCommand(
         String email,
         String password,
         String fullName,
+        /** Optional; service defaults to the first token of fullName when null/blank. */
+        String displayName,
         String phone,
         Role role,
         String licenseNumber

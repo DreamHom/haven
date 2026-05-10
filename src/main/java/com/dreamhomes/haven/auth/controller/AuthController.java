@@ -73,7 +73,8 @@ public class AuthController {
     @ResponseStatus(HttpStatus.CREATED)
     public UserResponse register(@Valid @RequestBody RegisterRequest request) {
         return authService.register(new RegisterCommand(
-                request.email(), request.password(), request.fullName(), request.phone(),
+                request.email(), request.password(), request.fullName(),
+                request.displayName(), request.phone(),
                 request.role(), request.licenseNumber()));
     }
 

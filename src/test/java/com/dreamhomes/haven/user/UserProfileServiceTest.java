@@ -46,6 +46,7 @@ class UserProfileServiceTest {
     void publicProfileForOwnerReturnsBadgeFieldsAndOmitsAgentSpecificData() {
         User owner = User.builder()
                 .id(50L).email("o@x").passwordHash("x").fullName("Ada Owner")
+                .displayName("Ada Owner")
                 .role(Role.OWNER).tokenVersion(1)
                 .identityVerifiedAt(Instant.parse("2026-04-01T10:00:00Z"))
                 .createdAt(Instant.parse("2026-01-01T00:00:00Z"))
@@ -68,6 +69,7 @@ class UserProfileServiceTest {
     void publicProfileForAgentIncludesCredentialVerifiedAt() {
         User agent = User.builder()
                 .id(60L).email("a@x").passwordHash("x").fullName("Bola Agent")
+                .displayName("Bola Agent")
                 .role(Role.AGENT).tokenVersion(1)
                 .createdAt(Instant.now()).build();
         AgentProfile profile = AgentProfile.builder()
@@ -89,6 +91,7 @@ class UserProfileServiceTest {
         User u = User.builder()
                 .id(50L).email("private@example.com").phone("0801-secret")
                 .passwordHash("x").fullName("Public Name")
+                .displayName("Public Name")
                 .role(Role.APPLICANT).tokenVersion(1).createdAt(Instant.now()).build();
         when(userRepository.findById(50L)).thenReturn(Optional.of(u));
 
@@ -113,6 +116,7 @@ class UserProfileServiceTest {
     void publicProfileSurfacesReviewAggregate() {
         User owner = User.builder()
                 .id(50L).email("o@x").passwordHash("x").fullName("Reviewed Owner")
+                .displayName("Reviewed Owner")
                 .role(Role.OWNER).tokenVersion(1).createdAt(Instant.now()).build();
         when(userRepository.findById(50L)).thenReturn(Optional.of(owner));
         when(reviewService.aggregateForUser(50L)).thenReturn(new ReviewAggregate(4.5, 12L));
@@ -131,6 +135,7 @@ class UserProfileServiceTest {
         // frontend render a muted/gone-fishing state.
         User u = User.builder()
                 .id(50L).email("o@x").passwordHash("x").fullName("Suspended Sam")
+                .displayName("Suspended Sam")
                 .role(Role.OWNER).tokenVersion(1)
                 .suspendedAt(Instant.parse("2026-05-01T00:00:00Z"))
                 .createdAt(Instant.now())

@@ -45,6 +45,7 @@ class InspectionRequestedListenerIT extends AbstractPostgresIT {
         User owner = userRepository.save(User.builder()
                 .email("listener-owner-" + System.nanoTime() + "@example.com")
                 .passwordHash("hash").role(Role.OWNER).fullName("Owner")
+                .displayName("Owner")
                 .tokenVersion(1).createdAt(Instant.now()).build());
 
         InspectionRequestedEvent event = new InspectionRequestedEvent(

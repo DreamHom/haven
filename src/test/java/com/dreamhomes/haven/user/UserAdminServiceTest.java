@@ -160,6 +160,7 @@ class UserAdminServiceTest {
 
     private static User active(Long id, Role role) {
         return User.builder().id(id).email("u@x").passwordHash("x").fullName("U")
+        .displayName("U")
                 .role(role).tokenVersion(1).createdAt(Instant.now()).build();
     }
 }
