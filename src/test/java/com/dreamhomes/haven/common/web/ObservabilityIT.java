@@ -49,12 +49,26 @@ class ObservabilityIT extends AbstractPostgresIT {
 
     @Test
     void openApiDocsArePublicAndDescribeOurEndpoints() throws Exception {
+        // OpenApiConfig hoists the /api prefix into the server URL and strips it
+        // from each path key, so paths in the spec read as `/auth/login` etc.
         mockMvc.perform(get("/v3/api-docs"))
                 .andExpect(status().isOk())
-                // The spec includes our actually-implemented routes — sanity-check a few.
-                .andExpect(jsonPath("$.paths['/api/auth/login']", is(notNullValue())))
-                .andExpect(jsonPath("$.paths['/api/listings']", is(notNullValue())))
-                .andExpect(jsonPath("$.paths['/api/admin/verifications']", is(notNullValue())));
+                .andExpect(jsonPath("$.paths['/auth/login']", is(notNullValue())))
+                .andExpect(jsonPath("$.paths['/listings']", is(notNullValue())))
+                .andExpect(jsonPath("$.paths['/admin/verifications']", is(notNullValue())));
+    }
+
+    @Test
+    void openApiDocsExposeActuatorEndpointsUnderObservabilityTag() throws Exception {
+        // springdoc.show-actuator=true surfaces /actuator/* paths in the spec.
+        // OpenApiConfig#reTagActuatorOperationsToObservability moves them from the
+        // auto-assigned "actuator" tag to the curated "Observability" tag so they
+        // appear under the right Scalar group.
+        mockMvc.perform(get("/v3/api-docs"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.paths['/actuator/health']", is(notNullValue())))
+                .andExpect(jsonPath("$.paths['/actuator/health'].get.tags",
+                        org.hamcrest.Matchers.hasItem("Observability")));
     }
 
     @Test

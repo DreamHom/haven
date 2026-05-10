@@ -16,7 +16,8 @@ import com.dreamhomes.haven.listing.model.Listing;
  */
 class GlobalExceptionHandlerTest {
 
-    private final GlobalExceptionHandler handler = new GlobalExceptionHandler();
+    private static final String TYPE_BASE = "https://github.com/DreamHom/haven/blob/main/docs/errors/";
+    private final GlobalExceptionHandler handler = new GlobalExceptionHandler(TYPE_BASE);
 
     @Test
     void domainExceptionMapsToTheStatusItDeclares() {
@@ -24,6 +25,8 @@ class GlobalExceptionHandlerTest {
 
         assertThat(result.getStatus()).isEqualTo(HttpStatus.I_AM_A_TEAPOT.value());
         assertThat(result.getDetail()).isEqualTo("teapot is short");
+        // Default-branch fallback in typeFor() — anything not in the family map gets "domain-error".
+        assertThat(result.getType().toString()).isEqualTo(TYPE_BASE + "domain-error");
     }
 
     @Test
@@ -33,6 +36,7 @@ class GlobalExceptionHandlerTest {
 
         assertThat(result.getStatus()).isEqualTo(HttpStatus.CONFLICT.value());
         assertThat(result.getDetail()).contains("modified by someone else");
+        assertThat(result.getType().toString()).isEqualTo(TYPE_BASE + "conflict");
     }
 
     private static final class SampleException extends DomainException {
