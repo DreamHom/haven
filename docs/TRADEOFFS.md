@@ -666,6 +666,11 @@ longer manifest as Maven modules — the codebase consolidated back in Phase 15.
 - **Cost**: `core` now depends on `spring-data-commons` (for `@EnableSpringDataWebSupport`) and `springdoc-openapi-starter-webmvc-ui` (so `/v3/api-docs` is exposed by every web boot, prod and test alike). Both are tiny starters that auto-detect on classpath.
 - **Revisit**: if any module needs Spring web *without* `Page` DTO serialization or cache headers (none today).
 
+### User-facing persona pages + hosted error reference are deferred
+- **Why**: today the persona docs ([`docs/users/`](users/)) and per-error explainers ([`docs/errors/`](errors/)) live as markdown in the repo. Scalar API descriptions reference the error pages via the configurable `haven.errors.type-base` URI; there are no public marketing pages for the personas. Hosting these on a real `dreamhomes.com` site is a follow-on once the backend is past capstone review — premature now.
+- **Cost**: the API's `ProblemDetail.type` URI today resolves to a GitHub markdown file rather than a polished docs page. Self-explanatory but not pretty. Persona references in API descriptions were stripped (the docs in `/docs/users/` are the source of truth, not the OpenAPI surface).
+- **Revisit when**: a hosted docs site exists. Override `HAVEN_ERRORS_TYPE_BASE` to point at the new origin (e.g. `https://docs.dreamhomes.com/errors/`); leave the markdown files in `docs/errors/` as the source the hosted pages render from. For personas, build `dreamhomes.com/personas` as a marketing surface and link from API docs / Scalar's "Description" markdown if useful.
+
 ### Move sites' DTO factories (`Response.from(Entity)`, `Request.toCommand()`) deleted, construction inlined in -impl
 - **Why**: factories in -api couldn't see -impl entities. Inlining the construction in controllers / services keeps DTOs in -api as pure data shapes.
 - **Cost**: 12+ inlined `toResponse(Entity)` static helpers in controllers (one per impl module). Boilerplate but explicit.
