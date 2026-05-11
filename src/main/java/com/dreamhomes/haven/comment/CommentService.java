@@ -47,12 +47,10 @@ public class CommentService {
         // Throws ListingNotFoundException if missing.
         ListingResponse listing = listingService.findById(listingId);
 
-        Instant now = Instant.now();
         Comment saved = commentRepository.save(Comment.builder()
                 .listingId(listing.id())
                 .authorUserId(authorId)
                 .body(body.trim())
-                .createdAt(now)
                 .build());
 
         // Self-comments don't notify — owners aren't surprised by their own posts.

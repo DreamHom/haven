@@ -25,13 +25,16 @@ For the design rationale + every "we chose X over Y" decision, see
 
 - **Java 21** (LTS) · **Spring Boot 3.3.5** (Web, Security, Data JPA, Validation, Actuator)
 - **PostgreSQL 16** + **Flyway** (V1..V18 migrations)
-- **Spring Kafka** + **Apache Kafka 3.7 (KRaft)** — transactional outbox, dead-letter topic
+- **Spring Kafka** + **Apache Kafka 3.7 (KRaft)** — transactional outbox, dead-letter topic, partition-pinned `NewTopic` beans
 - **JJWT 0.12.x** — JWT issuance + verification
 - **Bucket4j** — in-process auth rate limiting
 - **Micrometer** + **Prometheus** scrape endpoint
 - **springdoc-openapi** — `/v3/api-docs` and `/scalar.html` served at runtime
+- **AWS SDK v2 (S3)** — Cloudflare R2 image upload pipeline (pluggable `PhotoStorage` interface)
+- **Spring Data JPA auditing** — automatic `@CreatedDate` / `@LastModifiedDate` on entities
 - **JUnit 5** · **Mockito** · **Spring Security Test** · **Spring Kafka Test** (`@EmbeddedKafka`) · **Testcontainers** (Postgres) · **AssertJ**
 - **Lombok** — boilerplate
+- **Spring Boot DevTools** (dev only) — local hot reload
 - **Maven** (single module)
 
 ## Project structure
@@ -107,9 +110,17 @@ Requires Java 21 and Docker (Docker Desktop on macOS).
 docker compose up -d
 
 # 2. Configure environment.
-#    JWT_SECRET is required (no fallback) and must be >= 32 bytes. The app refuses
-#    to start if it looks like a placeholder ("change-me", "DEV_ONLY", etc.).
-export JWT_SECRET="$(openssl rand -hex 32)"
+#    (a) JWT now uses RS256 — generate a 2048-bit RSA keypair and export the PEMs.
+#        The app refuses to start if either is missing or not a valid RSA key (>= 2048 bits).
+openssl genpkey -algorithm RSA -out jwt-private.pem -pkeyopt rsa_keygen_bits:2048
+openssl rsa     -in jwt-private.pem -pubout -out jwt-public.pem
+export HAVEN_JWT_PRIVATE_KEY="$(cat jwt-private.pem)"
+export HAVEN_JWT_PUBLIC_KEY="$(cat jwt-public.pem)"
+
+#    (b) Seeded platform admin — also required at startup, no defaults.
+#        Generate a bcrypt-10 hash for your chosen admin password.
+export ADMIN_EMAIL="admin@dreamhomes.local"
+export ADMIN_PASSWORD_HASH="$(htpasswd -nbBC 10 '' 'ChangeMeNow!' | tail -c +2)"
 
 # 3. Run the app
 mvn spring-boot:run
@@ -141,7 +152,7 @@ mvn verify   # surefire + failsafe — adds ITs (Testcontainers needs Docker run
 - Unit tests follow the `*Test` / `*Tests` naming convention and run via Surefire.
 - Integration tests follow the `*IT` convention, extend `AbstractPostgresIT`
   (Testcontainers Postgres + Embedded Kafka, started once per JVM), and run via Failsafe.
-- **Total today: 389 tests, 0 failures, 0 errors.** ~3 minutes wall-clock.
+- **Total today: 398 tests, 0 failures, 0 errors.** ~3 minutes wall-clock.
 
 To run a single test:
 

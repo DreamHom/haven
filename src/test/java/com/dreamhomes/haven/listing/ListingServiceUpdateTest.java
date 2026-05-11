@@ -40,13 +40,12 @@ class ListingServiceUpdateTest {
     void setUp() {
         // propertyService is unused by update() — passing a mock instead of null so
         // the dependency injection looks honest and a future call would surface, not NPE.
-        listingService = new ListingService(listingRepository, propertyService);
+        listingService = new ListingService(listingRepository, propertyService, new com.dreamhomes.haven.listing.ListingMapperImpl());
     }
 
     @Test
-    void updatesAskingPriceAndStatusForOwnerAndStampsUpdatedAt() {
+    void updatesAskingPriceAndStatusForOwner() {
         Listing existing = liveListingOwnedBy(99L);
-        Instant beforeUpdate = existing.getUpdatedAt();
         when(listingRepository.findById(50L)).thenReturn(Optional.of(existing));
         when(listingRepository.save(any(Listing.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -55,7 +54,8 @@ class ListingServiceUpdateTest {
 
         assertThat(result.getAskingPrice()).isEqualByComparingTo("2000000.00");
         assertThat(result.getStatus()).isEqualTo(ListingStatus.PAUSED);
-        assertThat(result.getUpdatedAt()).isAfter(beforeUpdate);
+        // updatedAt is bumped by JPA auditing on save (Listing has @LastModifiedDate);
+        // not the service's responsibility. ListingFlowEndToEndIT exercises the persisted bump.
     }
 
     @Test

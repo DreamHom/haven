@@ -47,3 +47,8 @@ target/
 
 # Local-dev secrets (loaded by spring-dotenv at boot)
 .env
+
+# RSA keypairs generated for local dev (see README — do not commit)
+*.pem
+!src/test/resources/jwt/*.pem
+

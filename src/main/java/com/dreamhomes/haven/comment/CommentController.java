@@ -43,6 +43,7 @@ public class CommentController {
     private static final int MAX_PAGE_SIZE = 100;
 
     private final CommentService commentService;
+    private final CommentMapper commentMapper;
 
     @Operation(
             summary = "List comments on a listing",
@@ -76,7 +77,7 @@ public class CommentController {
             @Parameter(description = "Page size, capped at 100.", example = "20")
             @RequestParam(defaultValue = "20") int size) {
         Pageable pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), MAX_PAGE_SIZE));
-        return commentService.list(listingId, pageable).map(CommentController::toResponse);
+        return commentService.list(listingId, pageable).map(commentMapper::toResponse);
     }
 
     @Operation(
@@ -112,12 +113,7 @@ public class CommentController {
             @Parameter(description = "Listing ID.", example = "17")
             @PathVariable Long listingId,
             @Valid @RequestBody PostCommentRequest request) {
-        return toResponse(commentService.post(principal.userId(), listingId, request.body()));
-    }
-
-    static CommentResponse toResponse(Comment c) {
-        return new CommentResponse(c.getId(), c.getListingId(), c.getAuthorUserId(),
-                c.getBody(), c.getCreatedAt());
+        return commentMapper.toResponse(commentService.post(principal.userId(), listingId, request.body()));
     }
 
     @Operation(

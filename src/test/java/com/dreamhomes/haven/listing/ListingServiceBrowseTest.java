@@ -44,7 +44,7 @@ class ListingServiceBrowseTest {
 
     @BeforeEach
     void setUp() {
-        listingService = new ListingService(listingRepository, propertyService);
+        listingService = new ListingService(listingRepository, propertyService, new com.dreamhomes.haven.listing.ListingMapperImpl());
     }
 
     @Test

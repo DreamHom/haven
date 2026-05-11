@@ -1,30 +1,33 @@
 package com.dreamhomes.haven.photo;
 
 import com.dreamhomes.haven.auth.JwtPrincipal;
-import com.dreamhomes.haven.photo.dto.AddPhotoRequest;
 import com.dreamhomes.haven.photo.dto.PhotoResponse;
+import com.dreamhomes.haven.photo.storage.PhotoStorage;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Encoding;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -34,29 +37,43 @@ import java.util.List;
 public class ListingPhotoController {
 
     private final ListingPhotoService listingPhotoService;
+    private final ListingPhotoMapper listingPhotoMapper;
+    private final PhotoStorage photoStorage;
 
     @Operation(
-            summary = "Attach a photo to a listing",
+            summary = "Upload a photo to a listing",
             description = """
-                    Records a `ListingPhoto` row pointing at an externally-hosted image URL \
-                    (R2-uploaded image when the upload pipeline lands; for now, any URL the \
-                    caller supplies). Server assigns the next `displayOrder` so the most \
-                    recent photo is appended at the end of the gallery.
+                    Multipart upload. The `file` part is sent to the configured \
+                    {@code PhotoStorage} backend (Cloudflare R2 in production via \
+                    {@code haven.photos.storage=r2}; a no-bytes synthesised URL for \
+                    dev / test). The hosted URL is then recorded against a new \
+                    `ListingPhoto` row and `displayOrder` assigned server-side so the \
+                    most recent upload appends to the end of the gallery.
 
-                    **Ownership**: only the listing's owner can attach photos today. \
+                    **Ownership**: only the listing's owner can upload photos today. \
                     Assigned-agent upload is a likely future enhancement.
 
                     **Role gate**: `OWNER`.
-                    """
+                    """,
+            requestBody = @RequestBody(
+                    required = true,
+                    content = @Content(
+                            mediaType = MediaType.MULTIPART_FORM_DATA_VALUE,
+                            encoding = {
+                                    @Encoding(name = "file", contentType = "image/jpeg, image/png, image/webp"),
+                                    @Encoding(name = "caption", contentType = MediaType.TEXT_PLAIN_VALUE)
+                            }
+                    )
+            )
     )
     @ApiResponses({
             @ApiResponse(responseCode = "201",
-                    description = "Photo recorded; `displayOrder` assigned by the server.",
+                    description = "Photo uploaded; `displayOrder` assigned by the server.",
                     content = @Content(
                             schema = @Schema(implementation = PhotoResponse.class),
                             examples = @ExampleObject(name = "AppendedPhoto", value = """
                                     { "id": 88, "listingId": 17,
-                                      "url": "https://media.dreamhomes.com/listings/17/hero.jpg",
+                                      "url": "https://media.dreamhomes.com/listings/17/abc-uuid.jpg",
                                       "displayOrder": 3, "caption": "Living room",
                                       "uploadedAt": "2026-05-10T09:00:00Z" }
                                     """))),
@@ -66,16 +83,21 @@ public class ListingPhotoController {
             @ApiResponse(responseCode = "404", ref = "#/components/responses/NotFound")
     })
     @SecurityRequirement(name = "bearerAuth")
-    @PostMapping("/api/listings/{listingId}/photos")
+    @PostMapping(value = "/api/listings/{listingId}/photos",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasRole('OWNER')")
     public PhotoResponse add(
             @AuthenticationPrincipal JwtPrincipal principal,
             @Parameter(description = "Listing to attach the photo to.", example = "17")
             @PathVariable Long listingId,
-            @Valid @RequestBody AddPhotoRequest request) {
-        return toResponse(listingPhotoService.add(
-                principal.userId(), listingId, request.url(), request.caption()));
+            @Parameter(description = "Image file (jpeg/png/webp).")
+            @RequestPart("file") MultipartFile file,
+            @Parameter(description = "Optional human-readable caption.", required = false, example = "Living room")
+            @RequestPart(value = "caption", required = false) String caption) {
+        String hostedUrl = photoStorage.upload(file, listingId);
+        return listingPhotoMapper.toResponse(listingPhotoService.add(
+                principal.userId(), listingId, hostedUrl, caption));
     }
 
     @Operation(
@@ -141,11 +163,7 @@ public class ListingPhotoController {
             @Parameter(description = "Listing ID.", example = "17")
             @PathVariable Long listingId) {
         return listingPhotoService.list(listingId).stream()
-                .map(ListingPhotoController::toResponse).toList();
+                .map(listingPhotoMapper::toResponse).toList();
     }
 
-    static PhotoResponse toResponse(ListingPhoto p) {
-        return new PhotoResponse(p.getId(), p.getListingId(), p.getUrl(),
-                p.getDisplayOrder(), p.getCaption(), p.getUploadedAt());
-    }
 }

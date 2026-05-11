@@ -21,11 +21,6 @@ class OutboxMetricsIT extends AbstractPostgresIT {
     @Autowired MeterRegistry meterRegistry;
     @Autowired OutboxEventRepository outboxRepository;
 
-    @BeforeEach
-    @AfterEach
-    void clean() {
-        outboxRepository.deleteAll();
-    }
 
     @Test
     void exposesUnpublishedCountUnderHavenOutboxUnpublished() {
@@ -46,6 +41,19 @@ class OutboxMetricsIT extends AbstractPostgresIT {
         Double value = meterRegistry.find("haven.outbox.unpublished").gauge().value();
 
         assertThat(value).isEqualTo(1.0);
+    }
+
+    @Test
+    void exposesOneHavenOutboxDltGaugePerDltTopic() {
+        // The depth value depends on broker state and is asserted in the listener ITs;
+        // here we only confirm the gauge family is registered for both expected topics
+        // so a future code change can't silently drop it.
+        var dltGauges = meterRegistry.find("haven.outbox.dlt").gauges();
+
+        assertThat(dltGauges).extracting(g -> g.getId().getTag("topic"))
+                .containsExactlyInAnyOrder(
+                        "inspection.requested.v1.DLT",
+                        "offer.submitted.v1.DLT");
     }
 
     private static OutboxEvent unpublishedRow() {

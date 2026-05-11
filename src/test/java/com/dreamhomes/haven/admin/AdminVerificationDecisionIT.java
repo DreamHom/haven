@@ -57,16 +57,6 @@ class AdminVerificationDecisionIT extends AbstractPostgresIT {
     @Autowired NotificationRepository notificationRepository;
     @Autowired AdminAuditLogRepository auditLogRepository;
 
-    @BeforeEach
-    @AfterEach
-    void clean() {
-        auditLogRepository.deleteAll();
-        notificationRepository.deleteAll();
-        verificationRepository.deleteAll();
-        propertyRepository.deleteAll();
-        agentProfileRepository.deleteAll();
-        userRepository.deleteAll();
-    }
 
     @Test
     void adminApprovesOwnerIdentityFlipsBadgeWritesAuditAndNotifiesSubmitter() throws Exception {

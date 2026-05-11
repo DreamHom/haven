@@ -38,6 +38,7 @@ public class ListingService {
 
     private final ListingRepository listingRepository;
     private final PropertyService propertyService;
+    private final ListingMapper listingMapper;
 
     @Transactional
     public Listing create(Long callerId, CreateListingCommand cmd) {
@@ -47,7 +48,6 @@ public class ListingService {
             throw new NotPropertyOwnerException();
         }
 
-        Instant now = Instant.now();
         Listing saved = listingRepository.save(Listing.builder()
                 .propertyId(cmd.propertyId())
                 .ownerId(callerId)
@@ -58,8 +58,6 @@ public class ListingService {
                 .serviceCharge(cmd.serviceCharge())
                 .agencyFee(cmd.agencyFee())
                 .status(ListingStatus.LIVE)
-                .createdAt(now)
-                .updatedAt(now)
                 .build());
         log.info("Created listingId={} propertyId={} ownerId={} type={}",
                 saved.getId(), saved.getPropertyId(), callerId, saved.getListingType());
@@ -118,7 +116,7 @@ public class ListingService {
         if (cmd.status() != null) {
             listing.setStatus(cmd.status());
         }
-        listing.setUpdatedAt(Instant.now());
+        // updatedAt is bumped by JPA auditing on save (entity has @LastModifiedDate).
         Listing saved = listingRepository.save(listing);
         log.info("Updated listingId={} ownerId={} status={} price={}",
                 saved.getId(), callerId, saved.getStatus(), saved.getAskingPrice());
@@ -137,7 +135,7 @@ public class ListingService {
         Listing listing = listingRepository.findById(listingId)
                 .orElseThrow(() -> new ListingNotFoundException(listingId));
         PropertySummary summary = propertyService.findSummary(listing.getPropertyId()).orElse(null);
-        return toResponse(listing, summary);
+        return listingMapper.toResponse(listing, summary);
     }
 
     @Transactional(readOnly = true)
@@ -178,13 +176,4 @@ public class ListingService {
         listingRepository.save(listing);
     }
 
-    /** Internal entity → DTO mapper; package-private so {@link ListingController} can reuse. */
-    static ListingResponse toResponse(Listing l, PropertySummary p) {
-        return new ListingResponse(
-                l.getId(), l.getPropertyId(), l.getOwnerId(), l.getListingType(),
-                l.getAskingPrice(), l.getCurrency(),
-                l.getCautionFee(), l.getServiceCharge(), l.getAgencyFee(),
-                l.getStatus(), l.getApprovedAt(), l.getViewCount(),
-                l.getCreatedAt(), l.getUpdatedAt(), p);
-    }
 }

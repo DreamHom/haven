@@ -83,7 +83,6 @@ public class AdminUserService {
                 .targetType(AuditTargetType.USER)
                 .targetId(userId)
                 .metadata(metadata.isEmpty() ? null : serialize(metadata))
-                .createdAt(Instant.now())
                 .build());
     }
 

@@ -29,6 +29,7 @@
              bytecode. Mockito uses ByteBuddy at runtime to mock concrete classes; without
              this, every @MockBean against a concrete class blows up the application context. -->
         <byte-buddy.version>1.15.11</byte-buddy.version>
+        <mapstruct.version>1.6.3</mapstruct.version>
     </properties>
 
     <dependencyManagement>
@@ -133,6 +134,35 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- MapStruct: compile-time bean mapping. Replaces hand-written static toResponse /
+             toView methods scattered across controllers + services. Spring component model
+             so generated mappers are injectable as beans. -->
+        <dependency>
+            <groupId>org.mapstruct</groupId>
+            <artifactId>mapstruct</artifactId>
+            <version>${mapstruct.version}</version>
+        </dependency>
+
+        <!-- Local-dev hot reload: app restarts on classpath change instead of needing a
+             manual `Ctrl+C ; mvn spring-boot:run`. Marked optional so it's never on
+             the production classpath (Spring Boot's auto-config disables it in jars
+             launched via `java -jar`). Real productivity boost while iterating. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-devtools</artifactId>
+            <scope>runtime</scope>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- AWS SDK v2 S3 client. Cloudflare R2 is S3-compatible — point the client at
+             the R2 endpoint (haven.photos.r2.endpoint) with the R2-issued access key
+             and you get bucket put/get without any vendor-specific SDK. -->
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>s3</artifactId>
+            <version>2.30.5</version>
+        </dependency>
+
         <!-- Tests -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -187,6 +217,18 @@
                             <groupId>org.projectlombok</groupId>
                             <artifactId>lombok</artifactId>
                             <version>${lombok.version}</version>
+                        </path>
+                        <path>
+                            <groupId>org.mapstruct</groupId>
+                            <artifactId>mapstruct-processor</artifactId>
+                            <version>${mapstruct.version}</version>
+                        </path>
+                        <!-- Lombok-MapStruct binding so MapStruct can see Lombok-generated
+                             accessors on entity Builders during processor pass. -->
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok-mapstruct-binding</artifactId>
+                            <version>0.2.0</version>
                         </path>
                     </annotationProcessorPaths>
                 </configuration>

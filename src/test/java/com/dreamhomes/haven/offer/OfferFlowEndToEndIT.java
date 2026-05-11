@@ -66,16 +66,6 @@ class OfferFlowEndToEndIT extends AbstractPostgresIT {
     @Autowired OfferRepository offerRepository;
     @Autowired NotificationRepository notificationRepository;
 
-    @BeforeEach
-    @AfterEach
-    void clean() {
-        notificationRepository.deleteAll();
-        offerRepository.deleteAll();
-        listingRepository.deleteAll();
-        propertyRepository.deleteAll();
-        agentProfileRepository.deleteAll();
-        userRepository.deleteAll();
-    }
 
     @Test
     void applicantSubmitsOfferOwnerGetsNotifiedThenAcceptsAndCannotChangeAgain() throws Exception {

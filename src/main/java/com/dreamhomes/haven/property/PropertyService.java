@@ -29,6 +29,7 @@ import com.dreamhomes.haven.property.model.Property;
 public class PropertyService {
 
     private final PropertyRepository propertyRepository;
+    private final PropertyMapper propertyMapper;
 
     @Transactional
     public Property create(Long ownerId, CreatePropertyCommand cmd) {
@@ -44,7 +45,6 @@ public class PropertyService {
                 .bathrooms(cmd.bathrooms())
                 .sizeSqm(cmd.sizeSqm())
                 .description(cmd.description())
-                .createdAt(Instant.now())
                 .build());
         log.info("Created propertyId={} ownerId={} type={}", saved.getId(), ownerId, saved.getType());
         return saved;
@@ -53,13 +53,13 @@ public class PropertyService {
     @Transactional(readOnly = true)
     public PropertyResponse findById(Long propertyId) {
         return propertyRepository.findById(propertyId)
-                .map(PropertyService::toResponse)
+                .map(propertyMapper::toResponse)
                 .orElseThrow(() -> new PropertyNotFoundException(propertyId));
     }
 
     @Transactional(readOnly = true)
     public Optional<PropertySummary> findSummary(Long propertyId) {
-        return propertyRepository.findById(propertyId).map(PropertyService::toSummary);
+        return propertyRepository.findById(propertyId).map(propertyMapper::toSummary);
     }
 
     @Transactional(readOnly = true)
@@ -69,21 +69,9 @@ public class PropertyService {
         }
         Map<Long, PropertySummary> out = new LinkedHashMap<>();
         for (Property p : propertyRepository.findAllById(propertyIds)) {
-            out.put(p.getId(), toSummary(p));
+            out.put(p.getId(), propertyMapper.toSummary(p));
         }
         return out;
-    }
-
-    /** Internal entity → API DTO mappers. Kept private to this module. */
-    static PropertySummary toSummary(Property p) {
-        return new PropertySummary(p.getId(), p.getType(), p.getAddress(),
-                p.getBedrooms(), p.getBathrooms(), p.getSizeSqm(), p.getDocumentsVerifiedAt());
-    }
-
-    static PropertyResponse toResponse(Property p) {
-        return new PropertyResponse(p.getId(), p.getOwnerId(), p.getType(), p.getAddress(),
-                p.getBedrooms(), p.getBathrooms(), p.getSizeSqm(), p.getDescription(),
-                p.getCreatedAt());
     }
 
     @Transactional(readOnly = true)

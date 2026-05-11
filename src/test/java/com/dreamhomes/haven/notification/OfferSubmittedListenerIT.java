@@ -31,12 +31,6 @@ class OfferSubmittedListenerIT extends AbstractPostgresIT {
     @Autowired NotificationRepository notificationRepository;
     @Autowired UserRepository userRepository;
 
-    @BeforeEach
-    @AfterEach
-    void clean() {
-        notificationRepository.deleteAll();
-        userRepository.deleteAll();
-    }
 
     @Test
     void eventOnTopicResultsInNotificationRowForOwner() {

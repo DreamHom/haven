@@ -72,21 +72,6 @@ class ListingFlowEndToEndIT extends AbstractPostgresIT {
     @Autowired
     com.dreamhomes.haven.offer.OfferRepository offerRepository;
 
-    @BeforeEach
-    @org.junit.jupiter.api.AfterEach
-    void clean() {
-        // Run before AND after each test so we never leak state to a sibling IT
-        // that uses @DataJpaTest-style transactional rollback (those tests still
-        // see committed rows from other tests' transactions). FK order matters.
-        notificationRepository.deleteAll();
-        offerRepository.deleteAll();
-        inspectionRequestRepository.deleteAll();
-        inspectionSlotRepository.deleteAll();
-        listingRepository.deleteAll();
-        propertyRepository.deleteAll();
-        agentProfileRepository.deleteAll();
-        userRepository.deleteAll();
-    }
 
     @Test
     void ownerLifecycleFromCreateToCloseWithPublicVisibilityFollowing() throws Exception {

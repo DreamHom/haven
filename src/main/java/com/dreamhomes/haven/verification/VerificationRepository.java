@@ -23,4 +23,7 @@ public interface VerificationRepository extends JpaRepository<Verification, Long
 
     boolean existsByTypeAndTargetPropertyIdAndStatus(
             VerificationType type, Long targetPropertyId, VerificationStatus status);
+
+    /** Aggregate count by status — backs the admin analytics summary. */
+    long countByStatus(VerificationStatus status);
 }

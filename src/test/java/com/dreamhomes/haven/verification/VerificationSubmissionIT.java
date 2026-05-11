@@ -43,14 +43,6 @@ class VerificationSubmissionIT extends AbstractPostgresIT {
     @Autowired PropertyRepository propertyRepository;
     @Autowired VerificationRepository verificationRepository;
 
-    @BeforeEach
-    @AfterEach
-    void clean() {
-        verificationRepository.deleteAll();
-        propertyRepository.deleteAll();
-        agentProfileRepository.deleteAll();
-        userRepository.deleteAll();
-    }
 
     @Test
     void ownerPostsIdentityVerificationLandsAsPendingRowOwnedBySubmitter() throws Exception {

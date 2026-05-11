@@ -6,13 +6,13 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
 import java.util.Optional;
 import java.util.OptionalInt;
 import com.dreamhomes.haven.user.dto.NewUser;
 import com.dreamhomes.haven.user.dto.RegisteredUser;
 import com.dreamhomes.haven.user.dto.UserCredentials;
 import com.dreamhomes.haven.user.exception.EmailAlreadyTakenException;
+import com.dreamhomes.haven.user.mapping.UserCredentialsMapper;
 import com.dreamhomes.haven.user.model.AgentProfile;
 import com.dreamhomes.haven.user.model.Role;
 import com.dreamhomes.haven.user.model.User;
@@ -33,10 +33,11 @@ public class UserCredentialsService {
 
     private final UserRepository userRepository;
     private final AgentProfileRepository agentProfileRepository;
+    private final UserCredentialsMapper userCredentialsMapper;
 
     @Transactional(readOnly = true)
     public Optional<UserCredentials> loadByEmail(String email) {
-        return userRepository.findByEmail(email).map(UserCredentialsService::toCredentials);
+        return userRepository.findByEmail(email).map(userCredentialsMapper::toCredentials);
     }
 
     @Transactional(readOnly = true)
@@ -72,7 +73,6 @@ public class UserCredentialsService {
         if (userRepository.existsByEmail(newUser.email())) {
             throw new EmailAlreadyTakenException();
         }
-        Instant now = Instant.now();
         User user = User.builder()
                 .email(newUser.email())
                 .passwordHash(newUser.passwordHash())
@@ -80,7 +80,6 @@ public class UserCredentialsService {
                 .fullName(newUser.fullName())
                 .displayName(newUser.displayName())
                 .phone(newUser.phone())
-                .createdAt(now)
                 .build();
         User saved;
         try {
@@ -96,7 +95,6 @@ public class UserCredentialsService {
             agentProfileRepository.save(AgentProfile.builder()
                     .userId(saved.getId())
                     .licenseNumber(newUser.licenseNumber())
-                    .createdAt(now)
                     .build());
         }
 
@@ -104,13 +102,4 @@ public class UserCredentialsService {
         return new RegisteredUser(saved.getId(), saved.getCreatedAt());
     }
 
-    private static UserCredentials toCredentials(User user) {
-        return new UserCredentials(
-                user.getId(),
-                user.getEmail(),
-                user.getPasswordHash(),
-                user.getRole(),
-                user.getTokenVersion(),
-                user.getSuspendedAt() != null);
-    }
 }

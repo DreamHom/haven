@@ -2,6 +2,7 @@ package com.dreamhomes.haven.common.outbox;
 
 import com.dreamhomes.haven.inspection.events.InspectionRequestedEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -10,9 +11,15 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.support.SimpleTransactionStatus;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -29,12 +36,14 @@ import com.dreamhomes.haven.inspection.model.InspectionRequest;
  * <ul>
  *   <li>Each claimed row is deserialised back to its typed event and shipped to Kafka
  *       with the topic + key recorded on the outbox row.</li>
- *   <li>Successfully-shipped rows have {@code publishedAt} stamped.</li>
- *   <li>If Kafka throws on a row, that row is left unpublished — the next tick will retry.</li>
+ *   <li>Successfully-shipped rows have {@code publishedAt} stamped (in a fresh tx).</li>
+ *   <li>If Kafka fails the future, that row is left unpublished — the next tick retries.</li>
+ *   <li>The {@code haven.kafka.publish.duration} timer records each attempt with the
+ *       right {@code outcome} tag.</li>
  * </ul>
  *
  * <p>SKIP LOCKED, polling cadence, and the {@code @Scheduled} fire schedule are all
- * Spring/Postgres concerns — covered in their own tests, not here.
+ * Spring/Postgres concerns — covered in their own tests, not here.</p>
  */
 @ExtendWith(MockitoExtension.class)
 class OutboxRelayTest {
@@ -42,11 +51,24 @@ class OutboxRelayTest {
     @Mock OutboxEventRepository outboxRepository;
     @Mock KafkaTemplate<String, Object> kafkaTemplate;
 
+    SimpleMeterRegistry meterRegistry;
+    TransactionTemplate transactionTemplate;
     OutboxRelay relay;
 
     @BeforeEach
     void setUp() {
-        relay = new OutboxRelay(outboxRepository, kafkaTemplate, new ObjectMapper().findAndRegisterModules());
+        meterRegistry = new SimpleMeterRegistry();
+        // Lightweight tx manager that just runs the callback — adequate for unit tests.
+        transactionTemplate = new TransactionTemplate(new PlatformTransactionManager() {
+            @Override public TransactionStatus getTransaction(TransactionDefinition def) {
+                return new SimpleTransactionStatus();
+            }
+            @Override public void commit(TransactionStatus status) {}
+            @Override public void rollback(TransactionStatus status) {}
+        });
+        relay = new OutboxRelay(outboxRepository, kafkaTemplate,
+                new ObjectMapper().findAndRegisterModules(),
+                transactionTemplate, meterRegistry);
     }
 
     @Test
@@ -67,6 +89,7 @@ class OutboxRelayTest {
                 .createdAt(Instant.now())
                 .build();
         when(outboxRepository.claimBatchForPublishing(50)).thenReturn(List.of(row));
+        when(outboxRepository.findById(123L)).thenReturn(Optional.of(row));
         when(kafkaTemplate.send(any(String.class), any(String.class), any(Object.class)))
                 .thenReturn(CompletableFuture.completedFuture(stubSendResult()));
 
@@ -80,6 +103,13 @@ class OutboxRelayTest {
         ArgumentCaptor<OutboxEvent> savedRow = ArgumentCaptor.forClass(OutboxEvent.class);
         verify(outboxRepository).save(savedRow.capture());
         assertThat(savedRow.getValue().getPublishedAt()).isNotNull();
+
+        // Timer fires once per publish, tagged with topic + outcome=success.
+        long successCount = meterRegistry.find("haven.kafka.publish.duration")
+                .tag("topic", InspectionRequestedEvent.TOPIC)
+                .tag("outcome", "success")
+                .timer().count();
+        assertThat(successCount).isEqualTo(1L);
     }
 
     @Test
@@ -92,6 +122,13 @@ class OutboxRelayTest {
         relay.publishPending();
 
         verify(outboxRepository, never()).save(any());
+
+        // Timer still records the attempt — just with outcome=failure.
+        long failureCount = meterRegistry.find("haven.kafka.publish.duration")
+                .tag("topic", InspectionRequestedEvent.TOPIC)
+                .tag("outcome", "failure")
+                .timer().count();
+        assertThat(failureCount).isEqualTo(1L);
     }
 
     @Test
