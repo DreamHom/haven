@@ -1,0 +1,30 @@
+meta {
+  name: 26 Try to reopen a CLOSED listing — should be rejected
+  type: http
+  seq: 26
+}
+
+patch {
+  url: {{host}}/listings/{{listingId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{jwt}}
+}
+
+body:json {
+  {
+    "status": "LIVE"
+  }
+}
+
+assert {
+  res.status: eq 409
+}
+
+docs {
+  Quick sanity: per the spec, CLOSED → LIVE is forbidden by the state
+  machine. I want to confirm the server says NO with a 409.
+}

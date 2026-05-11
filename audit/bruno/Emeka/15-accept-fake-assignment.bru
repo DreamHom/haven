@@ -1,0 +1,29 @@
+meta {
+  name: 15 Try to accept an assignment that doesn't exist
+  type: http
+  seq: 15
+}
+
+post {
+  url: {{host}}/api/agent-listings/999999/accept
+  auth: bearer
+  body: none
+}
+
+auth:bearer {
+  token: {{jwt}}
+}
+
+assert {
+  res.status: gte 400
+  res.status: lt 500
+}
+
+docs {
+  Defensive probe. If a sneaky agent guessed an ID, can they accept it?
+  Persona doc: "Cannot accept an assignment for someone else's user ID
+  (403)" — but here the assignment ID doesn't even exist.
+
+  Expected: 404 (or 403 if the service decides not to leak existence).
+  Either is fine. Want to make sure error body has a clear `detail`.
+}

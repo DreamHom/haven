@@ -1,0 +1,42 @@
+meta {
+  name: 05 Try to submit a second AGENT_CREDENTIALS while one is PENDING
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{host}}/api/verifications
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{jwt}}
+}
+
+body:json {
+  {
+    "type": "AGENT_CREDENTIALS",
+    "documentRefs": {
+      "redan_certificate": {
+        "url": "https://res.cloudinary.com/demo/image/upload/v1/sample-cert-v2.jpg"
+      }
+    }
+  }
+}
+
+assert {
+  res.status: eq 409
+  res.body.detail: isDefined
+}
+
+docs {
+  Curiosity — I forgot which version of my certificate I uploaded. Can I
+  re-submit? Persona doc says no (one PENDING per type).
+
+  Expected: 409 Conflict with a clear `detail` so I know "wait, you already
+  have one in the queue."
+
+  If I get a 201 (silently accepted) or a generic 400, that's a finding —
+  the platform shouldn't let me pile up duplicates.
+}

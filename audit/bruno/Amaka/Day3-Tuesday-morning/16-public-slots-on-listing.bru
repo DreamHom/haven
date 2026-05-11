@@ -1,0 +1,19 @@
+meta {
+  name: 16 Slots publicly visible on the listing
+  type: http
+  seq: 16
+}
+
+get {
+  url: {{host}}/listings/{{listingId}}/slots
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  A stranger should be able to see both slots without logging in.
+}

@@ -1,0 +1,26 @@
+meta {
+  name: 03 Who am I — sanity check
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{host}}/me
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{jwt}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.role: eq OWNER
+  res.body.email: contains amaka.okafor.lekki
+}
+
+docs {
+  Quick check that my token works and shows I'm an OWNER. I want to be sure
+  before I start putting in details.
+}

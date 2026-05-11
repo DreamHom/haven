@@ -1,0 +1,35 @@
+meta {
+  name: 07 Filter assignments by status=ACCEPTED (new feature)
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{host}}/api/agent-listings/mine?status=ACCEPTED&page=0&size=20
+  auth: bearer
+}
+
+params:query {
+  status: ACCEPTED
+  page: 0
+  size: 20
+}
+
+auth:bearer {
+  token: {{jwt}}
+}
+
+assert {
+  res.status: eq 200
+  res.body: isDefined
+}
+
+docs {
+  Post-audit promised: a `status` filter on `/agent-listings/mine` so I can
+  pull "just my active listings" without having to scan the whole inbox.
+
+  Expected: 200, ideally empty page in this run. Crucially:
+  - the filter should be accepted (not 400)
+  - if I'm at 7 active listings in real life, this is the screen I'd hit
+    every morning to plan my day, so it needs to work
+}

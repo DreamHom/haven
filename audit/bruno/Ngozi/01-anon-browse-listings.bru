@@ -1,0 +1,42 @@
+meta {
+  name: 01 Anon browse listings
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/api/listings?page=0&size=20
+  body: none
+  auth: none
+}
+
+tests {
+  test("status 200 - anonymous browse works", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  test("has paginated content envelope", function() {
+    expect(res.getBody()).to.have.property("content");
+    expect(res.getBody()).to.have.property("page");
+  });
+  test("listings expose property.documentsVerifiedAt (verified-badge field)", function() {
+    const content = res.getBody().content;
+    if (content.length > 0) {
+      expect(content[0].property).to.have.property("documentsVerifiedAt");
+    }
+  });
+  test("Cache-Control header present (CDN-friendly)", function() {
+    expect(res.getHeader("Cache-Control") || res.getHeader("cache-control")).to.not.be.null;
+  });
+}
+
+script:post-response {
+  const body = res.getBody();
+  if (body && body.content && body.content.length > 0) {
+    // Pick a Lekki RENT listing if possible
+    let picked = body.content.find(l => l.listingType === "RENT");
+    if (!picked) picked = body.content[0];
+    bru.setVar("listing_id", picked.id);
+    bru.setVar("owner_id", picked.ownerId);
+    bru.setVar("property_id", picked.propertyId);
+  }
+}

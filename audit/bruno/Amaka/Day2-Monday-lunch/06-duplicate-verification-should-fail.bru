@@ -1,0 +1,40 @@
+meta {
+  name: 06 Duplicate verification while PENDING — should be rejected
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{host}}/verifications
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{jwt}}
+}
+
+body:json {
+  {
+    "type": "OWNER_IDENTITY",
+    "documentRefs": {
+      "nin_slip": {
+        "url": "https://res.cloudinary.com/demo/image/upload/v1700000001/amaka_nin_v2.jpg",
+        "kind": "NIN"
+      }
+    }
+  }
+}
+
+assert {
+  res.status: eq 409
+}
+
+docs {
+  Day 2, Monday lunch break at the office. I worried last night that my C of O
+  scan was too dark, so I'm trying to resubmit a clearer one. The spec /
+  persona doc says the system should reject a duplicate while the first is
+  still PENDING.
+
+  Expected: 409 with detail "a pending verification of this type already exists".
+}

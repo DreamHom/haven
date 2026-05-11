@@ -1,0 +1,42 @@
+meta {
+  name: 03 Anon owner/agent profile - badges
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{host}}/api/users/{{owner_id}}/profile
+  body: none
+  auth: none
+}
+
+tests {
+  test("status 200 - owner profile public", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  test("profile exposes identityVerifiedAt (owner verified badge)", function() {
+    expect(res.getBody()).to.have.property("identityVerifiedAt");
+  });
+  test("profile exposes agentCredentialVerifiedAt (agent verified badge)", function() {
+    expect(res.getBody()).to.have.property("agentCredentialVerifiedAt");
+  });
+  test("profile exposes averageRating", function() {
+    expect(res.getBody()).to.have.property("averageRating");
+  });
+  test("profile exposes reviewCount", function() {
+    expect(res.getBody()).to.have.property("reviewCount");
+  });
+  test("profile exposes displayName (privacy: not full legal name only)", function() {
+    expect(res.getBody()).to.have.property("displayName");
+  });
+  test("FINDING: profile does NOT expose closedDealCount (story 1 acceptance criterion still unmet)", function() {
+    expect(res.getBody()).to.not.have.property("closedDealCount");
+  });
+  test("FINDING: profile does NOT expose responseTimeMedianMinutes (cannot fact-check 40-minute agent response speed)", function() {
+    expect(res.getBody()).to.not.have.property("responseTimeMedianMinutes");
+  });
+  test("profile does NOT leak password/email", function() {
+    expect(res.getBody()).to.not.have.property("password");
+    expect(res.getBody()).to.not.have.property("email");
+  });
+}

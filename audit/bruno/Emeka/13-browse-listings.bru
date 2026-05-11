@@ -1,0 +1,32 @@
+meta {
+  name: 13 Browse available listings (find one to maybe approach an owner about)
+  type: http
+  seq: 13
+}
+
+get {
+  url: {{host}}/api/listings?page=0&size=10
+  auth: bearer
+}
+
+params:query {
+  page: 0
+  size: 10
+}
+
+auth:bearer {
+  token: {{jwt}}
+}
+
+assert {
+  res.status: eq 200
+  res.body: isDefined
+}
+
+docs {
+  Wednesday — quiet morning, scrolling the public board to see what's listed
+  by-owner in Port Harcourt that I could pitch myself on managing.
+
+  In a real product I'd want a `?city=Port+Harcourt` or `?nearAgent=true` —
+  the spec doesn't expose any geo filter that I can see (FINDING).
+}

@@ -1,0 +1,54 @@
+meta {
+  name: 01 Register as AGENT
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{host}}/api/auth/register
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "emeka.okoro.ph+{{run_tag}}@gmail.com",
+    "password": "PortHarcourt-2026!",
+    "fullName": "Emeka Chukwuemeka Okoro",
+    "displayName": "Emeka — PH Agent",
+    "phone": "+2348065551212",
+    "role": "AGENT",
+    "licenseNumber": "REDAN-PH-2024-0073",
+    "publicRole": true
+  }
+}
+
+assert {
+  res.status: eq 201
+  res.body.token: isDefined
+  res.body.role: eq AGENT
+  res.body.userId: isDefined
+  res.body.fullName: isDefined
+}
+
+script:post-response {
+  if (res.status === 201) {
+    bru.setVar("jwt", res.body.token);
+    bru.setVar("emeka_id", res.body.userId);
+    bru.setVar("emeka_email", "emeka.okoro.ph+" + bru.getEnvVar("run_tag") + "@gmail.com");
+  }
+}
+
+docs {
+  Friday morning. New phone, new SIM, I'm signing up to DreamHomes because
+  three of the developers I work with already list properties here and I want
+  the badge.
+
+  I'm registering as AGENT and including my REDAN license number — the
+  persona doc says this is required for AGENT role.
+
+  What I'm hoping for:
+  - 201 with a JWT so I can immediately start using the platform
+  - confirmation that my role really is AGENT (not silently downgraded)
+  - my user ID echoed back so I know what to expect on `/me`
+}

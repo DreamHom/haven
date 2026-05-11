@@ -1,0 +1,24 @@
+meta {
+  name: 17 Notifications — unread count (the badge on my phone)
+  type: http
+  seq: 17
+}
+
+get {
+  url: {{host}}/notifications/mine/unread-count
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{jwt}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  Day 5, Thursday after work. I open the app while watching TV. First thing I
+  do is check the badge — any new applicants?
+}

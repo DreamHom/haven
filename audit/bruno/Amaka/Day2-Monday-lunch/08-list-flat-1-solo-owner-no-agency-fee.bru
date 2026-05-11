@@ -1,0 +1,50 @@
+meta {
+  name: 08 Publish listing — solo owner, agencyFee 0 (REGRESSION TEST)
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{host}}/listings
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{jwt}}
+}
+
+body:json {
+  {
+    "propertyId": {{propertyId}},
+    "listingType": "RENT",
+    "askingPrice": 6500000,
+    "currency": "NGN",
+    "cautionFee": 650000,
+    "serviceCharge": 400000,
+    "agencyFee": 0
+  }
+}
+
+assert {
+  res.status: eq 201
+  res.body.status: eq LIVE
+  res.body.agencyFee: eq 0
+  res.body.askingPrice: eq 6500000
+}
+
+script:post-response {
+  if (res.body && res.body.id) {
+    bru.setVar("listingId", res.body.id);
+  }
+}
+
+docs {
+  This is THE TEST from last time. Last walkthrough, posting a listing with
+  agencyFee = 0 was broken — the validator rejected zero agency fees on
+  solo-owner listings even though that's the whole point of being a solo
+  owner. I'm asking 6.5M Naira/year for this Lekki flat, with NO agency fee
+  because I'm doing it myself.
+
+  Expected: 201 with agencyFee:0 echoed back, status=LIVE.
+}

@@ -1,0 +1,34 @@
+meta {
+  name: 02 Who am I now?
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/api/me
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{jwt}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.role: eq AGENT
+  res.body.email: isDefined
+  res.body.userId: isDefined
+}
+
+docs {
+  Sanity check. The JWT from registration should immediately work — I'm not
+  going to log in twice just to be sure.
+
+  What I want to see:
+  - role = AGENT (not silently APPLICANT)
+  - my full name back
+  - no surprise extra steps before I can act
+
+  Note: a real agent would expect to see the verification status here too.
+  If it's only on /verifications/mine, that's two screens instead of one.
+}

@@ -1,0 +1,36 @@
+meta {
+  name: 14 Try to open a slot on a listing I'm not assigned to (defensive)
+  type: http
+  seq: 14
+}
+
+post {
+  url: {{host}}/api/listings/999999/slots
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{jwt}}
+}
+
+body:json {
+  {
+    "startsAt": "2026-05-17T10:00:00Z",
+    "endsAt": "2026-05-17T10:30:00Z"
+  }
+}
+
+assert {
+  res.status: gte 400
+  res.status: lt 500
+}
+
+docs {
+  This is the "I shouldn't be able to do this, right?" probe. Persona doc says
+  trying to open a slot on a listing I'm not the assigned agent on should
+  403.
+
+  Expected: 403 (or 404 if the listing genuinely doesn't exist — both fine).
+  A 200 would be a permission bug.
+}
