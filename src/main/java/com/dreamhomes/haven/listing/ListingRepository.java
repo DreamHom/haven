@@ -15,6 +15,9 @@ public interface ListingRepository extends JpaRepository<Listing, Long> {
     /** Backs the public browse endpoint — only LIVE listings are visible to anonymous callers. */
     Page<Listing> findByStatus(ListingStatus status, Pageable pageable);
 
+    /** Backs {@code GET /api/listings/mine}: owner's portfolio across all statuses, newest first. */
+    Page<Listing> findByOwnerIdOrderByCreatedAtDesc(Long ownerId, Pageable pageable);
+
     /** Aggregate count by status — backs the admin analytics summary. */
     long countByStatus(ListingStatus status);
 

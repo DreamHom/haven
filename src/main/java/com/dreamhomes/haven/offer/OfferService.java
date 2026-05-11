@@ -47,6 +47,18 @@ public class OfferService {
     private final ObjectMapper objectMapper;
     private final ApplicationEventPublisher applicationEventPublisher;
 
+    /**
+     * Every offer where the caller is on either side — submitted (applicant) or
+     * received (owner). Backs {@code GET /api/offers/mine} — the read-side gap
+     * Temi and Biodun called out: a missed notification meant a permanently
+     * lost deal because there was no other path back to an offer's ID.
+     */
+    @Transactional(readOnly = true)
+    public org.springframework.data.domain.Page<Offer> listMine(
+            Long userId, org.springframework.data.domain.Pageable pageable) {
+        return offerRepository.findByApplicantIdOrOwnerIdOrderByCreatedAtDesc(userId, userId, pageable);
+    }
+
     @Transactional
     public Offer submit(Long applicantId, SubmitOfferCommand cmd) {
         // Throws ListingNotFoundException if missing — surfaces as RFC 7807 404.

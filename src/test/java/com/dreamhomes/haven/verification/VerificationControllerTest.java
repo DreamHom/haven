@@ -27,6 +27,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -110,6 +111,26 @@ class VerificationControllerTest {
                                 { "documentRefs": { "kind": "NIN", "ref": "x" } }
                                 """))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void listMineReturnsTheCallersOwnSubmissions() throws Exception {
+        when(verificationService.listMine(eq(50L), any()))
+                .thenReturn(new org.springframework.data.domain.PageImpl<>(
+                        List.of(stub(99L, VerificationType.OWNER_IDENTITY))));
+
+        mockMvc.perform(get("/api/verifications/mine")
+                        .with(asPrincipal(50L, Role.OWNER)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].id", is(99)))
+                .andExpect(jsonPath("$.content[0].submitterUserId", is(50)))
+                .andExpect(jsonPath("$.content[0].status", is("PENDING")));
+    }
+
+    @Test
+    void listMineRequiresAuthentication() throws Exception {
+        mockMvc.perform(get("/api/verifications/mine"))
+                .andExpect(status().isUnauthorized());
     }
 
     private static Verification stub(Long id, VerificationType type) {

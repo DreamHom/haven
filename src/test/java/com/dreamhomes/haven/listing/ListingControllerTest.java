@@ -97,6 +97,30 @@ class ListingControllerTest {
     }
 
     @Test
+    void ownerCanCreateListingWithZeroFees() throws Exception {
+        // Solo owner not paying any agent — agencyFee:0 + cautionFee:0 + serviceCharge:0
+        // is the flagship payload. Must accept (B-1 from persona audit).
+        when(listingService.create(eq(99L), any(CreateListingCommand.class)))
+                .thenAnswer(inv -> stubListing(124L, 99L, ListingStatus.LIVE));
+
+        mockMvc.perform(post("/api/listings")
+                        .with(asPrincipal(99L, Role.OWNER))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "propertyId": 7,
+                                  "listingType": "RENT",
+                                  "askingPrice": 1500000.00,
+                                  "cautionFee": 0,
+                                  "serviceCharge": 0,
+                                  "agencyFee": 0
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id", is(124)));
+    }
+
+    @Test
     void notPropertyOwnerExceptionMapsTo403() throws Exception {
         when(listingService.create(eq(99L), any(CreateListingCommand.class)))
                 .thenThrow(new NotPropertyOwnerException());
@@ -129,6 +153,33 @@ class ListingControllerTest {
                 .andExpect(status().isForbidden());
 
         verify(listingService, never()).create(any(), any());
+    }
+
+    @Test
+    void ownerListMineReturnsTheirListings() throws Exception {
+        when(listingService.listMine(eq(99L), any())).thenReturn(
+                new PageImpl<>(List.of(stubListingWithProperty(50L, 99L, ListingStatus.LIVE))));
+
+        mockMvc.perform(get("/api/listings/mine")
+                        .with(asPrincipal(99L, Role.OWNER)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].id", is(50)))
+                .andExpect(jsonPath("$.content[0].ownerId", is(99)));
+    }
+
+    @Test
+    void listMineRequiresOwnerRole() throws Exception {
+        mockMvc.perform(get("/api/listings/mine")
+                        .with(asPrincipal(50L, Role.APPLICANT)))
+                .andExpect(status().isForbidden());
+
+        verify(listingService, never()).listMine(any(), any());
+    }
+
+    @Test
+    void listMineRequiresAuthentication() throws Exception {
+        mockMvc.perform(get("/api/listings/mine"))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test

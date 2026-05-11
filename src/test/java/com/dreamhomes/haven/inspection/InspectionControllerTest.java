@@ -27,6 +27,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -87,6 +88,29 @@ class InspectionControllerTest {
                 .andExpect(status().isForbidden());
 
         verify(inspectionService, never()).requestSlot(any(), any());
+    }
+
+    @Test
+    void applicantListMineReturnsTheirBookings() throws Exception {
+        when(inspectionService.listMine(eq(100L), any())).thenReturn(
+                new org.springframework.data.domain.PageImpl<>(List.of(
+                        InspectionRequest.builder()
+                                .id(33L).slotId(12L).applicantId(100L)
+                                .status(InspectionRequestStatus.PENDING)
+                                .createdAt(Instant.now()).updatedAt(Instant.now())
+                                .build())));
+
+        mockMvc.perform(get("/api/inspections/mine")
+                        .with(asPrincipal(100L, Role.APPLICANT)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].id", is(33)))
+                .andExpect(jsonPath("$.content[0].applicantId", is(100)));
+    }
+
+    @Test
+    void listMineRequiresAuthentication() throws Exception {
+        mockMvc.perform(get("/api/inspections/mine"))
+                .andExpect(status().isUnauthorized());
     }
 
     private static RequestPostProcessor asPrincipal(Long userId, Role role) {

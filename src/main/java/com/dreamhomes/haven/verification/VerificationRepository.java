@@ -13,6 +13,10 @@ public interface VerificationRepository extends JpaRepository<Verification, Long
     Page<Verification> findByTypeAndStatusOrderBySubmittedAtAsc(
             VerificationType type, VerificationStatus status, Pageable pageable);
 
+    /** Backs {@code GET /api/verifications/mine}: caller's own submissions, newest first. */
+    Page<Verification> findBySubmitterUserIdOrderBySubmittedAtDesc(
+            Long submitterUserId, Pageable pageable);
+
     /**
      * Pre-flight check the service runs to short-circuit the duplicate-submission path
      * with a clean domain exception. The partial unique index in V10 is the actual

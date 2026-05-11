@@ -39,6 +39,17 @@ public class InspectionService {
     private final ObjectMapper objectMapper;
     private final ApplicationEventPublisher applicationEventPublisher;
 
+    /**
+     * Applicant's bookings. Backs {@code GET /api/inspections/mine} — the read-side
+     * Temi flagged as missing in the persona audit ("I booked a slot and have no
+     * way to see my upcoming inspections").
+     */
+    @Transactional(readOnly = true)
+    public org.springframework.data.domain.Page<InspectionRequest> listMine(
+            Long applicantId, org.springframework.data.domain.Pageable pageable) {
+        return requestRepository.findByApplicantIdOrderByCreatedAtDesc(applicantId, pageable);
+    }
+
     @Transactional
     public InspectionRequest requestSlot(Long applicantId, RequestInspectionCommand cmd) {
         InspectionSlot slot = slotRepository.findById(cmd.slotId())

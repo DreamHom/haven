@@ -16,9 +16,13 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -84,8 +88,35 @@ public class VerificationController {
                                        @Valid @RequestBody SubmitVerificationRequest request) {
         Verification saved = verificationService.submit(principal.userId(),
                 new SubmitVerificationCommand(request.type(), request.propertyId(), request.documentRefs()));
-        return new VerificationResponse(saved.getId(), saved.getType(), saved.getStatus(),
-                saved.getSubmitterUserId(), saved.getTargetUserId(), saved.getTargetPropertyId(),
-                saved.getDocumentRefs(), saved.getSubmittedAt(), saved.getDecidedAt());
+        return toResponse(saved);
+    }
+
+    @Operation(
+            summary = "List my verification submissions",
+            description = """
+                    Returns the caller's own verification submissions, newest first. Use this to
+                    check the status of a submission you made — PENDING / APPROVED / REJECTED.
+                    The persona audit found every persona who submits a verification had no way
+                    to see their own submissions; this is that read-side.
+
+                    Scoped strictly to the caller — there is no `?userId=` parameter; the admin
+                    queue (`GET /api/admin/verifications`) is the cross-user view.
+                    """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Paginated list of the caller's submissions."),
+            @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthenticated")
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @GetMapping("/mine")
+    public Page<VerificationResponse> listMine(@AuthenticationPrincipal JwtPrincipal principal,
+                                               @PageableDefault(size = 20) Pageable pageable) {
+        return verificationService.listMine(principal.userId(), pageable).map(this::toResponse);
+    }
+
+    private VerificationResponse toResponse(Verification v) {
+        return new VerificationResponse(v.getId(), v.getType(), v.getStatus(),
+                v.getSubmitterUserId(), v.getTargetUserId(), v.getTargetPropertyId(),
+                v.getDocumentRefs(), v.getSubmittedAt(), v.getDecidedAt());
     }
 }

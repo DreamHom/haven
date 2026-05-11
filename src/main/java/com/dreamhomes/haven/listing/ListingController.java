@@ -122,6 +122,33 @@ public class ListingController {
     }
 
     @Operation(
+            summary = "List my listings",
+            description = """
+                    Returns the caller's own listings across all statuses (LIVE, PAUSED, CLOSED, \
+                    TAKEN_DOWN), newest first. Scoped strictly to the authenticated owner — \
+                    there is no `?ownerId=` parameter. The persona audit (Amaka, Biodun) \
+                    flagged this as a gap: an owner with even 3-4 listings couldn't see what \
+                    they own without remembering the IDs.
+
+                    **Role gate**: `OWNER` only. Agents see their assignments via \
+                    `GET /api/agent-listings/mine`.
+                    """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Paginated list of the caller's listings."),
+            @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthenticated"),
+            @ApiResponse(responseCode = "403", ref = "#/components/responses/Forbidden")
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @GetMapping("/mine")
+    @PreAuthorize("hasRole('OWNER')")
+    public Page<ListingResponse> listMine(@AuthenticationPrincipal JwtPrincipal principal,
+                                          @PageableDefault(size = 20) Pageable pageable) {
+        return listingService.listMine(principal.userId(), pageable)
+                .map(lwp -> listingMapper.toResponse(lwp.listing(), lwp.property()));
+    }
+
+    @Operation(
             summary = "Read a listing's public detail",
             description = """
                     Returns the listing + its associated property (address, type, bedrooms). \

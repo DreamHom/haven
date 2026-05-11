@@ -70,7 +70,20 @@ public class ListingService {
      */
     @Transactional(readOnly = true)
     public Page<ListingWithProperty> browsePublic(Pageable pageable) {
-        Page<Listing> listings = listingRepository.findByStatus(ListingStatus.LIVE, pageable);
+        return withSummaries(listingRepository.findByStatus(ListingStatus.LIVE, pageable));
+    }
+
+    /**
+     * Owner's portfolio. Backs {@code GET /api/listings/mine} — the read-side
+     * Amaka and Biodun flagged as missing in the persona audit. Returns every
+     * listing they own (LIVE, PAUSED, CLOSED, TAKEN_DOWN), newest first.
+     */
+    @Transactional(readOnly = true)
+    public Page<ListingWithProperty> listMine(Long ownerId, Pageable pageable) {
+        return withSummaries(listingRepository.findByOwnerIdOrderByCreatedAtDesc(ownerId, pageable));
+    }
+
+    private Page<ListingWithProperty> withSummaries(Page<Listing> listings) {
         if (listings.isEmpty()) {
             return listings.map(l -> new ListingWithProperty(l, null));
         }

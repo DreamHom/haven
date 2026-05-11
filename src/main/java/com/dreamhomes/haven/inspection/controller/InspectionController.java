@@ -16,9 +16,13 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -76,7 +80,30 @@ public class InspectionController {
                                       @Valid @RequestBody RequestInspectionRequest body) {
         InspectionRequest saved = inspectionService.requestSlot(principal.userId(),
                 new RequestInspectionCommand(body.slotId(), body.notes()));
-        return new InspectionResponse(saved.getId(), saved.getSlotId(), saved.getApplicantId(),
-                saved.getStatus(), saved.getNotes(), saved.getCreatedAt(), saved.getUpdatedAt());
+        return toResponse(saved);
+    }
+
+    @Operation(
+            summary = "List my inspection requests",
+            description = """
+                    Returns the caller's own inspection bookings, newest first. Closes the
+                    gap Temi flagged: after booking a slot there was no way to see your
+                    upcoming inspections, no status, no recovery.
+                    """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Paginated list of the caller's bookings."),
+            @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthenticated")
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @GetMapping("/mine")
+    public Page<InspectionResponse> listMine(@AuthenticationPrincipal JwtPrincipal principal,
+                                             @PageableDefault(size = 20) Pageable pageable) {
+        return inspectionService.listMine(principal.userId(), pageable).map(this::toResponse);
+    }
+
+    private InspectionResponse toResponse(InspectionRequest r) {
+        return new InspectionResponse(r.getId(), r.getSlotId(), r.getApplicantId(),
+                r.getStatus(), r.getNotes(), r.getCreatedAt(), r.getUpdatedAt());
     }
 }

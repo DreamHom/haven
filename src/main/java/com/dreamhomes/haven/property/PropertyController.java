@@ -3,8 +3,11 @@ package com.dreamhomes.haven.property;
 import com.dreamhomes.haven.auth.JwtPrincipal;
 import com.dreamhomes.haven.property.dto.CreatePropertyRequest;
 import com.dreamhomes.haven.property.dto.PropertyResponse;
+import com.dreamhomes.haven.property.exception.PropertyNotFoundException;
 import com.dreamhomes.haven.property.model.Property;
+import com.dreamhomes.haven.user.model.Role;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -14,9 +17,14 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -71,5 +79,58 @@ public class PropertyController {
         return new PropertyResponse(saved.getId(), saved.getOwnerId(), saved.getType(),
                 saved.getAddress(), saved.getBedrooms(), saved.getBathrooms(),
                 saved.getSizeSqm(), saved.getDescription(), saved.getCreatedAt());
+    }
+
+    @Operation(
+            summary = "List my properties",
+            description = """
+                    Returns the caller's own properties, newest first. The persona audit
+                    (Amaka, Biodun) flagged this gap: once an owner forgets a property ID
+                    from the create response, there's no other way to find it.
+
+                    **Role gate**: `OWNER` only.
+                    """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Paginated list of the caller's properties."),
+            @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthenticated"),
+            @ApiResponse(responseCode = "403", ref = "#/components/responses/Forbidden")
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @GetMapping("/mine")
+    @PreAuthorize("hasRole('OWNER')")
+    public Page<PropertyResponse> listMine(@AuthenticationPrincipal JwtPrincipal principal,
+                                           @PageableDefault(size = 20) Pageable pageable) {
+        return propertyService.listMine(principal.userId(), pageable);
+    }
+
+    @Operation(
+            summary = "Read a property by ID",
+            description = """
+                    Returns the property if the caller owns it (or is an admin). Returns 404
+                    to non-owners to avoid leaking existence. Use this to look up properties
+                    you created earlier — combined with `GET /api/properties/mine` it closes
+                    the "I created a property and lost the ID" gap.
+                    """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200",
+                    description = "Property detail.",
+                    content = @Content(schema = @Schema(implementation = PropertyResponse.class))),
+            @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthenticated"),
+            @ApiResponse(responseCode = "404", ref = "#/components/responses/NotFound")
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @GetMapping("/{id}")
+    public PropertyResponse get(@AuthenticationPrincipal JwtPrincipal principal,
+                                @Parameter(description = "Property ID.", example = "42")
+                                @PathVariable Long id) {
+        // 404 (not 403) for non-owners to avoid leaking existence — same pattern
+        // as findPubliclyVisible on listings.
+        Long owner = propertyService.ownerOf(id).orElseThrow(() -> new PropertyNotFoundException(id));
+        if (!owner.equals(principal.userId()) && principal.role() != Role.ADMIN) {
+            throw new PropertyNotFoundException(id);
+        }
+        return propertyService.findById(id);
     }
 }

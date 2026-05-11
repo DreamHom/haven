@@ -1,10 +1,10 @@
 package com.dreamhomes.haven.common.config;
 
 import com.dreamhomes.haven.auth.JwtAuthenticationFilter;
+import com.dreamhomes.haven.common.web.ProblemDetailAuthenticationEntryPoint;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -13,7 +13,6 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -37,16 +36,26 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final List<String> allowedOrigins;
+    private final String errorTypeBase;
 
     public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
-                          @Value("${cors.allowed-origins}") List<String> allowedOrigins) {
+                          @Value("${cors.allowed-origins}") List<String> allowedOrigins,
+                          @Value("${haven.errors.type-base:https://github.com/DreamHom/haven/blob/main/docs/errors/}")
+                          String errorTypeBase) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.allowedOrigins = allowedOrigins;
+        this.errorTypeBase = errorTypeBase;
     }
 
     @Bean
     PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    ProblemDetailAuthenticationEntryPoint problemDetailAuthenticationEntryPoint(
+            com.fasterxml.jackson.databind.ObjectMapper objectMapper) {
+        return new ProblemDetailAuthenticationEntryPoint(objectMapper, errorTypeBase);
     }
 
     @Bean
@@ -64,7 +73,8 @@ public class SecurityConfig {
     }
 
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    SecurityFilterChain securityFilterChain(HttpSecurity http,
+                                            ProblemDetailAuthenticationEntryPoint problemEntryPoint) throws Exception {
         return http
                 .cors(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
@@ -82,6 +92,8 @@ public class SecurityConfig {
                                 "/v3/api-docs", "/v3/api-docs/**",
                                 "/swagger-ui.html", "/swagger-ui/**",
                                 "/scalar.html").permitAll()
+                        // Public read endpoints — both GET and HEAD (HEAD probes for cache-friendliness
+                        // shouldn't require auth where GET doesn't; B-4 from persona audit).
                         .requestMatchers(org.springframework.http.HttpMethod.GET,
                                 "/api/listings", "/api/listings/*", "/api/listings/*/slots",
                                 "/api/listings/*/comments",
@@ -89,8 +101,15 @@ public class SecurityConfig {
                                 "/api/listings/*/photos",
                                 "/api/users/*/profile",
                                 "/api/users/*/reviews").permitAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.HEAD,
+                                "/api/listings", "/api/listings/*", "/api/listings/*/slots",
+                                "/api/listings/*/comments",
+                                "/api/listings/*/reviews",
+                                "/api/listings/*/photos",
+                                "/api/users/*/profile",
+                                "/api/users/*/reviews").permitAll()
                         .anyRequest().authenticated())
-                .exceptionHandling(e -> e.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
+                .exceptionHandling(e -> e.authenticationEntryPoint(problemEntryPoint))
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)

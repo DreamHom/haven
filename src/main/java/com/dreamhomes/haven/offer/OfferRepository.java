@@ -1,5 +1,7 @@
 package com.dreamhomes.haven.offer;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
@@ -8,6 +10,15 @@ import com.dreamhomes.haven.offer.model.Offer;
 import com.dreamhomes.haven.offer.model.OfferStatus;
 
 public interface OfferRepository extends JpaRepository<Offer, Long> {
+
+    /**
+     * Backs {@code GET /api/offers/mine}: every offer where the caller is either the
+     * applicant who submitted it OR the owner who received it. The persona audit
+     * (Temi, Biodun) flagged this as the single biggest "I made an offer and lost
+     * the thread" gap.
+     */
+    Page<Offer> findByApplicantIdOrOwnerIdOrderByCreatedAtDesc(
+            Long applicantId, Long ownerId, Pageable pageable);
 
     /**
      * "Was this applicant the buyer/renter on this listing?" — used by ReviewService to

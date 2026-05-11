@@ -28,6 +28,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -115,6 +116,24 @@ class OfferControllerTest {
                 .andExpect(status().isForbidden());
 
         verify(offerService, never()).respond(any(), any(), any());
+    }
+
+    @Test
+    void listMineReturnsOffersWhereCallerIsApplicantOrOwner() throws Exception {
+        when(offerService.listMine(eq(100L), any())).thenReturn(
+                new org.springframework.data.domain.PageImpl<>(List.of(
+                        stub(42L, OfferStatus.PENDING))));
+
+        mockMvc.perform(get("/api/offers/mine")
+                        .with(asPrincipal(100L, Role.APPLICANT)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].id", is(42)));
+    }
+
+    @Test
+    void listMineRequiresAuthentication() throws Exception {
+        mockMvc.perform(get("/api/offers/mine"))
+                .andExpect(status().isUnauthorized());
     }
 
     private static Offer stub(Long id, OfferStatus status) {

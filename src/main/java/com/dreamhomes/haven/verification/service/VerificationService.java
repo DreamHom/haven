@@ -9,6 +9,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,6 +45,16 @@ public class VerificationService {
     private final UserProfileService userProfileService;
     private final PropertyService propertyService;
     private final ObjectMapper objectMapper;
+
+    /**
+     * Returns the caller's own submissions, newest first. Backs
+     * {@code GET /api/verifications/mine} — the read-side the persona audit
+     * surfaced as missing for every persona that submits a verification.
+     */
+    @Transactional(readOnly = true)
+    public Page<Verification> listMine(Long submitterUserId, Pageable pageable) {
+        return verificationRepository.findBySubmitterUserIdOrderBySubmittedAtDesc(submitterUserId, pageable);
+    }
 
     @Transactional
     public Verification submit(Long submitterUserId, SubmitVerificationCommand cmd) {

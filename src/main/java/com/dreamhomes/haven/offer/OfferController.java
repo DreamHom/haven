@@ -17,9 +17,13 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -84,6 +88,27 @@ public class OfferController {
                                 @Valid @RequestBody SubmitOfferRequest request) {
         return offerMapper.toResponse(offerService.submit(principal.userId(), new SubmitOfferCommand(
                 request.listingId(), request.amount(), request.currency(), request.message())));
+    }
+
+    @Operation(
+            summary = "List my offers",
+            description = """
+                    Returns every offer where the caller is either the applicant who
+                    submitted it or the owner who received it, newest first. The persona audit
+                    (Temi, Biodun) flagged this as the single biggest "lost the thread" gap:
+                    a missed notification meant a permanently lost deal, since there was no
+                    other path back to the offer's ID.
+                    """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Paginated list of the caller's offers."),
+            @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthenticated")
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @GetMapping("/mine")
+    public Page<OfferResponse> listMine(@AuthenticationPrincipal JwtPrincipal principal,
+                                        @PageableDefault(size = 20) Pageable pageable) {
+        return offerService.listMine(principal.userId(), pageable).map(offerMapper::toResponse);
     }
 
     @Operation(
