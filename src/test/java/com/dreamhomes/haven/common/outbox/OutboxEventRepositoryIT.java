@@ -24,11 +24,6 @@ class OutboxEventRepositoryIT extends AbstractPostgresIT {
     @Autowired
     OutboxEventRepository repository;
 
-    @BeforeEach
-    @AfterEach
-    void clean() {
-        repository.deleteAll();
-    }
 
     @Test
     void persistsRowAndReadsItBack() {

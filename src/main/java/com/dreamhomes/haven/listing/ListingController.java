@@ -39,6 +39,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class ListingController {
 
     private final ListingService listingService;
+    private final ListingMapper listingMapper;
 
     @Operation(
             summary = "Publish a listing",
@@ -77,7 +78,7 @@ public class ListingController {
     @PreAuthorize("hasRole('OWNER')")
     public ListingResponse create(@AuthenticationPrincipal JwtPrincipal principal,
                                   @Valid @RequestBody CreateListingRequest request) {
-        return ListingService.toResponse(
+        return listingMapper.toResponse(
                 listingService.create(principal.userId(), request.toCommand()), null);
     }
 
@@ -117,7 +118,7 @@ public class ListingController {
             @Parameter(description = "Standard Spring pagination — defaults to page=0&size=20.")
             @PageableDefault(size = 20) Pageable pageable) {
         return listingService.browsePublic(pageable)
-                .map(lwp -> ListingService.toResponse(lwp.listing(), lwp.property()));
+                .map(lwp -> listingMapper.toResponse(lwp.listing(), lwp.property()));
     }
 
     @Operation(
@@ -144,7 +145,7 @@ public class ListingController {
             @Parameter(description = "Listing ID.", example = "17")
             @PathVariable Long id) {
         ListingWithProperty lwp = listingService.findPubliclyVisible(id);
-        return ListingService.toResponse(lwp.listing(), lwp.property());
+        return listingMapper.toResponse(lwp.listing(), lwp.property());
     }
 
     @Operation(
@@ -180,7 +181,7 @@ public class ListingController {
                                   @Parameter(description = "Listing ID.", example = "17")
                                   @PathVariable Long id,
                                   @Valid @RequestBody UpdateListingRequest request) {
-        return ListingService.toResponse(
+        return listingMapper.toResponse(
                 listingService.update(principal.userId(), id, request.toCommand()), null);
     }
 }

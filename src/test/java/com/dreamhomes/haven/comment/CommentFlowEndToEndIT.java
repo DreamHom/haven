@@ -61,19 +61,6 @@ class CommentFlowEndToEndIT extends AbstractPostgresIT {
     @Autowired VerificationRepository verificationRepository;
     @Autowired AdminAuditLogRepository auditLogRepository;
 
-    @BeforeEach
-    @AfterEach
-    void clean() {
-        // FK order: audit + comments + verification + notifications reference users/listings.
-        auditLogRepository.deleteAll();
-        commentRepository.deleteAll();
-        verificationRepository.deleteAll();
-        notificationRepository.deleteAll();
-        listingRepository.deleteAll();
-        propertyRepository.deleteAll();
-        agentProfileRepository.deleteAll();
-        userRepository.deleteAll();
-    }
 
     @Test
     void applicantPostsOwnerNotifiedOwnerDeletesPublicListEmpty() throws Exception {

@@ -54,20 +54,6 @@ class EngagementFlowEndToEndIT extends AbstractPostgresIT {
     @Autowired AdminAuditLogRepository auditLogRepository;
     @Autowired AgentListingRepository agentListingRepository;
 
-    @BeforeEach
-    @AfterEach
-    void clean() {
-        listingSaveRepository.deleteAll();
-        agentListingRepository.deleteAll();
-        auditLogRepository.deleteAll();
-        commentRepository.deleteAll();
-        verificationRepository.deleteAll();
-        notificationRepository.deleteAll();
-        listingRepository.deleteAll();
-        propertyRepository.deleteAll();
-        agentProfileRepository.deleteAll();
-        userRepository.deleteAll();
-    }
 
     @Test
     void applicantSavesAndUnsavesListingIdempotently() throws Exception {

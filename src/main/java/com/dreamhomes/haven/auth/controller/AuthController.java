@@ -6,7 +6,6 @@ import com.dreamhomes.haven.auth.dto.LoginRequest;
 import com.dreamhomes.haven.auth.dto.LoginResponse;
 import com.dreamhomes.haven.auth.dto.RegisterCommand;
 import com.dreamhomes.haven.auth.dto.RegisterRequest;
-import com.dreamhomes.haven.auth.dto.UserResponse;
 import com.dreamhomes.haven.auth.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -38,16 +37,22 @@ public class AuthController {
     @Operation(
             summary = "Register a new account",
             description = """
-                    Creates a new user record with the requested role and returns the user's \
-                    public-facing fields. The role is part of the request body — pick one of:
+                    Creates a new user record with the requested role. The role is part of the \
+                    request body — pick one of:
 
                     - `OWNER` — solo landlord (Amaka) or developer (Biodun).
                     - `AGENT` — must also provide `licenseNumber`; an `AgentProfile` row is \
                       created in the same transaction.
                     - `APPLICANT` — Temi's path; rents or buys.
 
-                    Email is normalised + uniqueness-checked. Password must satisfy the strict \
+                    Email is normalised before storage. Password must satisfy the strict \
                     validators (length, common-password blocklist).
+
+                    **Always returns 202 Accepted with no body**, regardless of whether the \
+                    email was already registered. This is deliberate — the API does not \
+                    confirm or deny that an email exists in the system, which prevents \
+                    enumeration attacks. Validation failures (400) and rate limiting (429) \
+                    still surface as their normal status codes.
 
                     No JWT is returned by this endpoint — call `POST /auth/login` next to get \
                     a token. This path is rate-limited per-IP via bucket4j; aggressive callers \
@@ -55,24 +60,18 @@ public class AuthController {
                     """
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "201",
-                    description = "Account created.",
-                    content = @Content(
-                            schema = @Schema(implementation = UserResponse.class),
-                            examples = @ExampleObject(name = "AmakaRegistered", value = """
-                                    { "id": 7, "email": "amaka@gmail.com", "fullName": "Amaka Okafor",
-                                      "role": "OWNER", "phone": "+2348012345678",
-                                      "createdAt": "2026-05-10T08:30:00Z" }
-                                    """))),
+            @ApiResponse(responseCode = "202",
+                    description = "Request accepted. The response is identical whether the email"
+                            + " was newly registered or already taken — that is the anti-enumeration"
+                            + " contract."),
             @ApiResponse(responseCode = "400", ref = "#/components/responses/ValidationFailed"),
-            @ApiResponse(responseCode = "409", ref = "#/components/responses/Conflict"),
             @ApiResponse(responseCode = "429", ref = "#/components/responses/RateLimited")
     })
     @SecurityRequirements // public — opt out of bearerAuth
     @PostMapping("/register")
-    @ResponseStatus(HttpStatus.CREATED)
-    public UserResponse register(@Valid @RequestBody RegisterRequest request) {
-        return authService.register(new RegisterCommand(
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public void register(@Valid @RequestBody RegisterRequest request) {
+        authService.register(new RegisterCommand(
                 request.email(), request.password(), request.fullName(),
                 request.displayName(), request.phone(),
                 request.role(), request.licenseNumber()));

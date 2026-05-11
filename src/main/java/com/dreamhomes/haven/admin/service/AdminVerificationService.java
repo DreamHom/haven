@@ -92,7 +92,6 @@ public class AdminVerificationService {
                 .targetType(AuditTargetType.VERIFICATION)
                 .targetId(v.id())
                 .metadata(serialize(metadata))
-                .createdAt(Instant.now())
                 .build());
     }
 

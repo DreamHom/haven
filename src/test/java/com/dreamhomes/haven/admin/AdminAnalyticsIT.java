@@ -57,19 +57,6 @@ class AdminAnalyticsIT extends AbstractPostgresIT {
     @Autowired NotificationRepository notificationRepository;
     @Autowired AdminAuditLogRepository auditLogRepository;
 
-    @BeforeEach
-    @AfterEach
-    void clean() {
-        // FK order matters — anything that points at users/properties/listings has to go first.
-        offerRepository.deleteAll();
-        verificationRepository.deleteAll();
-        auditLogRepository.deleteAll();
-        notificationRepository.deleteAll();
-        listingRepository.deleteAll();
-        propertyRepository.deleteAll();
-        agentProfileRepository.deleteAll();
-        userRepository.deleteAll();
-    }
 
     @Test
     void summaryReflectsSeededDatabaseShape() throws Exception {

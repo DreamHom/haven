@@ -46,14 +46,11 @@ public class InspectionService {
         // Throws ListingNotFoundException if missing — propagates as 404 RFC 7807.
         ListingResponse listing = listingService.findById(slot.getListingId());
 
-        Instant now = Instant.now();
         InspectionRequest request = InspectionRequest.builder()
                 .slotId(slot.getId())
                 .applicantId(applicantId)
                 .status(InspectionRequestStatus.PENDING)
                 .notes(cmd.notes())
-                .createdAt(now)
-                .updatedAt(now)
                 .build();
 
         InspectionRequest saved;
@@ -70,6 +67,8 @@ public class InspectionService {
         // insert above — both commit together or neither does. The OutboxRelay ships
         // it to Kafka asynchronously after this returns.
         UUID eventId = UUID.randomUUID();
+        // Domain timestamp for the event's occurredAt — separate from the row's audit createdAt.
+        Instant occurredAt = Instant.now();
         InspectionRequestedEvent event = new InspectionRequestedEvent(
                 eventId,
                 saved.getId(),
@@ -79,7 +78,7 @@ public class InspectionService {
                 applicantId,
                 slot.getStartsAt(),
                 slot.getEndsAt(),
-                now);
+                occurredAt);
         outboxRepository.save(OutboxEvent.builder()
                 .eventId(eventId)
                 .aggregateType("InspectionRequest")
@@ -89,7 +88,6 @@ public class InspectionService {
                 // Per-listing ordering — system-architecture diagram says "key = listingId".
                 .partitionKey(String.valueOf(listing.id()))
                 .payload(serialize(event))
-                .createdAt(now)
                 .build());
 
         // Nudge the relay to drain right after this transaction commits, instead of

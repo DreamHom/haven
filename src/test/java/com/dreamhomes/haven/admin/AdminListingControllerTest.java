@@ -43,10 +43,9 @@ import com.dreamhomes.haven.admin.service.AdminListingService;
 @TestPropertySource(properties = {
         "haven.rate-limit.enabled=false",
         "cors.allowed-origins=http://localhost:3000",
-        "jwt.secret=test-secret-not-a-placeholder-and-32-bytes-or-more",
-        "jwt.expiration-ms=3600000",
-        "jwt.issuer=test-issuer",
-        "jwt.audience=test-audience"
+        "haven.jwt.expiration-ms=3600000",
+        "haven.jwt.issuer=test-issuer",
+        "haven.jwt.audience=test-audience"
 })
 class AdminListingControllerTest {
 

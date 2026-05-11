@@ -43,16 +43,6 @@ class PublicUserProfileIT extends AbstractPostgresIT {
     @Autowired NotificationRepository notificationRepository;
     @Autowired AdminAuditLogRepository auditLogRepository;
 
-    @BeforeEach
-    @AfterEach
-    void clean() {
-        // FK order matters: admin_audit_log and notifications reference users; wipe them first.
-        auditLogRepository.deleteAll();
-        notificationRepository.deleteAll();
-        verificationRepository.deleteAll();
-        agentProfileRepository.deleteAll();
-        userRepository.deleteAll();
-    }
 
     @Test
     void anonymousVisitorCanReadOwnerProfileAndNeverSeesPrivateContactDetails() throws Exception {

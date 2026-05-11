@@ -58,23 +58,6 @@ class ListingPhotoIT extends AbstractPostgresIT {
     @Autowired ListingReviewRepository reviewRepository;
     @Autowired OfferRepository offerRepository;
 
-    @BeforeEach
-    @AfterEach
-    void clean() {
-        photoRepository.deleteAll();
-        reviewRepository.deleteAll();
-        listingSaveRepository.deleteAll();
-        agentListingRepository.deleteAll();
-        auditLogRepository.deleteAll();
-        commentRepository.deleteAll();
-        verificationRepository.deleteAll();
-        notificationRepository.deleteAll();
-        offerRepository.deleteAll();
-        listingRepository.deleteAll();
-        propertyRepository.deleteAll();
-        agentProfileRepository.deleteAll();
-        userRepository.deleteAll();
-    }
 
     @Test
     void ownerUploadsThreePhotosTheyAppearInDisplayOrderPubliclyThenOwnerDeletesOne() throws Exception {

@@ -49,7 +49,7 @@ class UserCredentialsServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new UserCredentialsService(userRepository, agentProfileRepository);
+        service = new UserCredentialsService(userRepository, agentProfileRepository, new com.dreamhomes.haven.user.mapping.UserCredentialsMapperImpl());
     }
 
     @Test
@@ -137,11 +137,14 @@ class UserCredentialsServiceTest {
     }
 
     @Test
-    void createPersistsUserAndReturnsIdWithCreatedAt() {
+    void createPersistsUserAndReturnsIdAndCreatedAtFromRepository() {
+        Instant persisted = Instant.parse("2026-05-10T08:30:00Z");
         when(userRepository.existsByEmail("ada@example.com")).thenReturn(false);
         when(userRepository.save(any(User.class))).thenAnswer(inv -> {
+            // Mimic JPA auditing — repository returns the entity with createdAt populated.
             User u = inv.getArgument(0);
             u.setId(42L);
+            u.setCreatedAt(persisted);
             return u;
         });
 
@@ -153,9 +156,10 @@ class UserCredentialsServiceTest {
         assertThat(cap.getValue().getEmail()).isEqualTo("ada@example.com");
         assertThat(cap.getValue().getPasswordHash()).isEqualTo("$2a$10$h");
         assertThat(cap.getValue().getRole()).isEqualTo(Role.APPLICANT);
-        assertThat(cap.getValue().getCreatedAt()).isNotNull();
+        // The pre-save User builder no longer sets createdAt (JPA auditing handles it);
+        // the value we propagate to the caller is the post-save one.
         assertThat(result.id()).isEqualTo(42L);
-        assertThat(result.createdAt()).isNotNull();
+        assertThat(result.createdAt()).isEqualTo(persisted);
         verify(agentProfileRepository, never()).save(any());
     }
 

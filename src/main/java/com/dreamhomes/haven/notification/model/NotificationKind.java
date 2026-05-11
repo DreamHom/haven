@@ -35,5 +35,16 @@ public enum NotificationKind {
     /** Sync — fired by ReviewService when a review is posted; recipient is the reviewee. */
     REVIEW_RECEIVED,
     /** Sync — fired by OfferService.counter; recipient is the OTHER party in the negotiation. */
-    OFFER_COUNTERED
+    OFFER_COUNTERED,
+    /**
+     * Sync — fired by OfferService.respond when accepting one offer auto-declines its
+     * PENDING siblings on the same listing. Recipient is the losing applicant; payload
+     * carries {@code listingId} and {@code reason: "ANOTHER_OFFER_ACCEPTED"}.
+     */
+    OFFER_AUTO_DECLINED,
+    /**
+     * Sync — fired by {@code ListingReportService} when a user reports a listing. One row
+     * per admin so the moderation queue surfaces new reports without polling.
+     */
+    LISTING_REPORTED
 }

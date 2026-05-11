@@ -46,7 +46,7 @@ class UserAdminServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new UserAdminService(userRepository, agentProfileRepository);
+        service = new UserAdminService(userRepository, agentProfileRepository, new com.dreamhomes.haven.user.mapping.UserAdminMapperImpl());
     }
 
     @Test

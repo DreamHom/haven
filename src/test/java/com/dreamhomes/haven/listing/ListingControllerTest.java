@@ -53,14 +53,13 @@ import com.dreamhomes.haven.listing.model.ListingType;
  * rules live in their own focused tests (validators, ListingServiceUpdateTest).
  */
 @WebMvcTest(ListingController.class)
-@Import(SecurityConfig.class)
+@Import({SecurityConfig.class, com.dreamhomes.haven.listing.ListingMapperImpl.class})
 @TestPropertySource(properties = {
         "haven.rate-limit.enabled=false",
         "cors.allowed-origins=http://localhost:3000",
-        "jwt.secret=test-secret-not-a-placeholder-and-32-bytes-or-more",
-        "jwt.expiration-ms=3600000",
-        "jwt.issuer=test-issuer",
-        "jwt.audience=test-audience"
+        "haven.jwt.expiration-ms=3600000",
+        "haven.jwt.issuer=test-issuer",
+        "haven.jwt.audience=test-audience"
 })
 class ListingControllerTest {
 

@@ -37,11 +37,11 @@ class ListingServiceCreateTest {
 
     @BeforeEach
     void setUp() {
-        listingService = new ListingService(listingRepository, propertyService);
+        listingService = new ListingService(listingRepository, propertyService, new com.dreamhomes.haven.listing.ListingMapperImpl());
     }
 
     @Test
-    void persistsListingWithDefaultStatusAndCurrencyAndStampsTimestamps() {
+    void persistsListingWithDefaultStatusAndCurrency() {
         when(propertyService.ownerOf(7L)).thenReturn(Optional.of(99L));
         when(listingRepository.save(any(Listing.class))).thenAnswer(inv -> {
             Listing l = inv.getArgument(0);
@@ -62,8 +62,8 @@ class ListingServiceCreateTest {
         assertThat(saved.getAskingPrice()).isEqualByComparingTo("1500000.00");
         assertThat(saved.getCurrency()).isEqualTo("NGN");
         assertThat(saved.getStatus()).isEqualTo(ListingStatus.LIVE);
-        assertThat(saved.getCreatedAt()).isNotNull();
-        assertThat(saved.getUpdatedAt()).isNotNull();
+        // createdAt + updatedAt are populated by JPA auditing on persist (Listing has
+        // @CreatedDate + @LastModifiedDate). Auditing behavior is exercised by ListingRepositoryIT.
         assertThat(result.getId()).isEqualTo(123L);
     }
 

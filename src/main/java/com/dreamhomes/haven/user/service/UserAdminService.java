@@ -10,6 +10,7 @@ import com.dreamhomes.haven.user.dto.UserAdminView;
 import com.dreamhomes.haven.user.exception.UserAlreadySuspendedException;
 import com.dreamhomes.haven.user.exception.UserNotFoundException;
 import com.dreamhomes.haven.user.exception.UserNotSuspendedException;
+import com.dreamhomes.haven.user.mapping.UserAdminMapper;
 import com.dreamhomes.haven.user.model.AgentProfile;
 import com.dreamhomes.haven.user.model.User;
 import com.dreamhomes.haven.user.repository.AgentProfileRepository;
@@ -31,6 +32,7 @@ public class UserAdminService {
 
     private final UserRepository userRepository;
     private final AgentProfileRepository agentProfileRepository;
+    private final UserAdminMapper userAdminMapper;
 
     @Transactional
     public UserAdminView suspend(Long userId) {
@@ -45,7 +47,7 @@ public class UserAdminService {
         user.setTokenVersion(user.getTokenVersion() + 1);
         userRepository.save(user);
         log.info("Suspended userId={} (tokenVersion bumped to {})", userId, user.getTokenVersion());
-        return toView(user);
+        return userAdminMapper.toView(user);
     }
 
     @Transactional
@@ -60,7 +62,7 @@ public class UserAdminService {
         // outstanding JWTs, and the user has to log in fresh anyway.
         userRepository.save(user);
         log.info("Reactivated userId={}", userId);
-        return toView(user);
+        return userAdminMapper.toView(user);
     }
 
     @Transactional
@@ -83,13 +85,8 @@ public class UserAdminService {
     @Transactional(readOnly = true)
     public UserAdminView findForAdmin(Long userId) {
         return userRepository.findById(userId)
-                .map(UserAdminService::toView)
+                .map(userAdminMapper::toView)
                 .orElseThrow(() -> new UserNotFoundException(userId));
     }
 
-    private static UserAdminView toView(User u) {
-        return new UserAdminView(
-                u.getId(), u.getEmail(), u.getDisplayName(), u.getRole(),
-                u.getSuspendedAt(), u.getIdentityVerifiedAt());
-    }
 }

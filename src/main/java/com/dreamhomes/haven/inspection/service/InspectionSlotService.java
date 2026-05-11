@@ -9,7 +9,6 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
 import java.util.List;
 import com.dreamhomes.haven.inspection.dto.CreateSlotCommand;
 import com.dreamhomes.haven.inspection.exception.InvalidSlotWindowException;
@@ -44,7 +43,6 @@ public class InspectionSlotService {
                     .listingId(listingId)
                     .startsAt(cmd.startsAt())
                     .endsAt(cmd.endsAt())
-                    .createdAt(Instant.now())
                     .build());
         } catch (DataIntegrityViolationException overlap) {
             // Only the GiST EXCLUDE constraint can fire here.

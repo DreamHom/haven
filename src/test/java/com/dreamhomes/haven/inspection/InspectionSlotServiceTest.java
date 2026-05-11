@@ -55,7 +55,8 @@ class InspectionSlotServiceTest {
         ArgumentCaptor<InspectionSlot> captor = ArgumentCaptor.forClass(InspectionSlot.class);
         verify(slotRepository).saveAndFlush(captor.capture());
         assertThat(captor.getValue().getListingId()).isEqualTo(7L);
-        assertThat(captor.getValue().getCreatedAt()).isNotNull();
+        // createdAt is populated by JPA auditing on persist (InspectionSlot has @CreatedDate);
+        // exercised end-to-end in InspectionSlotRepositoryIT.
         assertThat(result.getId()).isEqualTo(123L);
     }
 

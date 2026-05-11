@@ -69,22 +69,6 @@ class ReviewFlowEndToEndIT extends AbstractPostgresIT {
     @Autowired AgentListingRepository agentListingRepository;
     @Autowired ListingSaveRepository listingSaveRepository;
 
-    @BeforeEach
-    @AfterEach
-    void clean() {
-        reviewRepository.deleteAll();
-        listingSaveRepository.deleteAll();
-        agentListingRepository.deleteAll();
-        auditLogRepository.deleteAll();
-        commentRepository.deleteAll();
-        verificationRepository.deleteAll();
-        notificationRepository.deleteAll();
-        offerRepository.deleteAll();
-        listingRepository.deleteAll();
-        propertyRepository.deleteAll();
-        agentProfileRepository.deleteAll();
-        userRepository.deleteAll();
-    }
 
     @Test
     void ownerAndApplicantBothReviewAfterDealCloses() throws Exception {

@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import com.dreamhomes.haven.listing.exception.ListingNotFoundException;
@@ -54,7 +55,6 @@ public class OfferService {
             throw new ListingNotOpenForOffersException();
         }
 
-        Instant now = Instant.now();
         Offer saved = offerRepository.save(Offer.builder()
                 .listingId(listing.id())
                 .applicantId(applicantId)
@@ -66,12 +66,12 @@ public class OfferService {
                 // Original offer: applicant proposed it. The owner is the one who
                 // will accept/decline/counter. Counter-offers (Phase 13) flip this.
                 .proposedByUserId(applicantId)
-                .createdAt(now)
-                .updatedAt(now)
                 .build());
 
         // Outbox + offer commit together. The OutboxRelay ships to Kafka asynchronously.
         UUID eventId = UUID.randomUUID();
+        // Domain timestamp (the event's occurredAt) — separate from row-create auditing.
+        Instant occurredAt = Instant.now();
         OfferSubmittedEvent event = new OfferSubmittedEvent(
                 eventId,
                 saved.getId(),
@@ -80,7 +80,7 @@ public class OfferService {
                 applicantId,
                 saved.getAmount(),
                 saved.getCurrency(),
-                now);
+                occurredAt);
         outboxRepository.save(OutboxEvent.builder()
                 .eventId(eventId)
                 .aggregateType("Offer")
@@ -89,7 +89,6 @@ public class OfferService {
                 .topic(OfferSubmittedEvent.TOPIC)
                 .partitionKey(String.valueOf(listing.id()))  // per-listing ordering
                 .payload(serialize(event))
-                .createdAt(now)
                 .build());
 
         // Drain right after this transaction commits — see InspectionService for rationale.
@@ -121,10 +120,42 @@ public class OfferService {
         }
 
         offer.setStatus(newStatus);
-        offer.setUpdatedAt(Instant.now());
+        // updatedAt is bumped by JPA auditing on save (entity has @LastModifiedDate).
         Offer saved = offerRepository.save(offer);
+
+        // When one offer wins, every PENDING sibling on the same listing loses. Flip them
+        // to DECLINED in the same transaction and notify their applicants — otherwise
+        // those rows sit forever and the losing applicant never finds out.
+        if (newStatus == OfferStatus.ACCEPTED) {
+            autoDeclineSiblings(saved);
+        }
+
         log.info("Caller {} responded to offerId={} with status={}", callerId, offerId, newStatus);
         return saved;
+    }
+
+    private void autoDeclineSiblings(Offer accepted) {
+        List<Offer> siblings = offerRepository.findByListingIdAndStatusAndIdNot(
+                accepted.getListingId(), OfferStatus.PENDING, accepted.getId());
+        if (siblings.isEmpty()) {
+            return;
+        }
+        for (Offer sibling : siblings) {
+            sibling.setStatus(OfferStatus.DECLINED);
+            offerRepository.save(sibling);
+            notifyAutoDeclined(sibling, accepted.getId());
+        }
+        log.info("Auto-declined {} sibling offer(s) on listingId={} after offerId={} accepted",
+                siblings.size(), accepted.getListingId(), accepted.getId());
+    }
+
+    private void notifyAutoDeclined(Offer sibling, Long winningOfferId) {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("offerId", sibling.getId());
+        payload.put("listingId", sibling.getListingId());
+        payload.put("winningOfferId", winningOfferId);
+        payload.put("reason", "ANOTHER_OFFER_ACCEPTED");
+        notificationApi.recordSync(NotificationKind.OFFER_AUTO_DECLINED, sibling.getApplicantId(), payload);
     }
 
     /**
@@ -153,13 +184,12 @@ public class OfferService {
             throw new InvalidOfferTransitionException(parent.getStatus(), OfferStatus.COUNTERED);
         }
 
-        Instant now = Instant.now();
         // Mark parent as COUNTERED — terminal but tracked in history.
+        // updatedAt is bumped by JPA auditing on save.
         parent.setStatus(OfferStatus.COUNTERED);
-        parent.setUpdatedAt(now);
         offerRepository.save(parent);
 
-        // New child offer flips proposedBy to the caller.
+        // New child offer flips proposedBy to the caller. createdAt + updatedAt populated by auditing.
         Offer child = offerRepository.save(Offer.builder()
                 .listingId(parent.getListingId())
                 .applicantId(parent.getApplicantId())
@@ -170,8 +200,6 @@ public class OfferService {
                 .status(OfferStatus.PENDING)
                 .proposedByUserId(callerId)
                 .parentOfferId(parent.getId())
-                .createdAt(now)
-                .updatedAt(now)
                 .build());
 
         // Notify the other party (whoever isn't the caller).

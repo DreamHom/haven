@@ -30,14 +30,6 @@ class InspectionRequestedListenerIT extends AbstractPostgresIT {
     @Autowired NotificationRepository notificationRepository;
     @Autowired UserRepository userRepository;
 
-    @org.junit.jupiter.api.BeforeEach
-    @org.junit.jupiter.api.AfterEach
-    void clean() {
-        // Listener IT commits rows asynchronously — wipe before and after so siblings see
-        // a clean DB.
-        notificationRepository.deleteAll();
-        userRepository.deleteAll();
-    }
 
     @Test
     void eventPublishedToTopicResultsInNotificationRowForOwner() {

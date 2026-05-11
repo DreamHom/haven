@@ -15,8 +15,6 @@ import java.util.Locale;
 import java.util.Optional;
 import com.dreamhomes.haven.auth.dto.LoginCommand;
 import com.dreamhomes.haven.auth.dto.RegisterCommand;
-import com.dreamhomes.haven.auth.dto.UserResponse;
-import com.dreamhomes.haven.auth.exception.EmailAlreadyRegisteredException;
 import com.dreamhomes.haven.auth.exception.InvalidCredentialsException;
 
 /**
@@ -75,10 +73,18 @@ public class AuthService {
         log.info("Logged out userId={}", userId);
     }
 
-    public UserResponse register(RegisterCommand cmd) {
+    /**
+     * Returns indistinguishably (no exception, no return value) whether or not the email
+     * was already taken. The controller surfaces 202 Accepted in both cases — that's the
+     * anti-enumeration contract: an attacker can't tell from the API whether an email is
+     * registered. Real existence-check + insert still happens for new emails; for taken
+     * emails we log and swallow.
+     */
+    public void register(RegisterCommand cmd) {
         String email = normalize(cmd.email());
         if (userCredentialsService.existsByEmail(email)) {
-            throw new EmailAlreadyRegisteredException();
+            log.info("Register noop: email='{}' already registered (returning 202 to avoid enumeration)", email);
+            return;
         }
         String displayName = defaultDisplayName(cmd.displayName(), cmd.fullName());
         try {
@@ -91,13 +97,10 @@ public class AuthService {
                     cmd.phone(),
                     cmd.licenseNumber()));
             log.info("Registered userId={} role={}", registered.id(), cmd.role());
-            return new UserResponse(registered.id(), email, cmd.fullName(), displayName,
-                    cmd.role(), registered.createdAt());
         } catch (EmailAlreadyTakenException race) {
-            // user-api signals the post-encode TOCTOU collision; remap to auth-api's
-            // wire-stable exception so the controller layer / GlobalExceptionHandler
-            // sees a consistent type.
-            throw new EmailAlreadyRegisteredException();
+            // TOCTOU: existsByEmail returned false but the colliding insert landed first.
+            // Swallow — same anti-enumeration contract as the up-front duplicate check.
+            log.info("Register lost race for email='{}' (returning 202 to avoid enumeration)", email);
         }
     }
 

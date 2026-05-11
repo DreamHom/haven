@@ -47,17 +47,6 @@ class AdminListingActionsIT extends AbstractPostgresIT {
     @Autowired VerificationRepository verificationRepository;
     @Autowired AdminAuditLogRepository auditLogRepository;
 
-    @BeforeEach
-    @AfterEach
-    void clean() {
-        auditLogRepository.deleteAll();
-        notificationRepository.deleteAll();
-        verificationRepository.deleteAll();
-        listingRepository.deleteAll();
-        propertyRepository.deleteAll();
-        agentProfileRepository.deleteAll();
-        userRepository.deleteAll();
-    }
 
     @Test
     void adminApprovesListingStampsApprovedAtAndOwnerSeesNotification() throws Exception {

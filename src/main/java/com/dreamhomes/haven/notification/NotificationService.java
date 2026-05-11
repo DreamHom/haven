@@ -47,7 +47,6 @@ public class NotificationService implements NotificationApi {
                 .kind(kind)
                 .source(NotificationSource.SYNC)
                 .payload(serialize(payload))
-                .createdAt(Instant.now())
                 .build());
         log.info("Recorded sync notificationId={} kind={} recipientId={}",
                 saved.getId(), kind, recipientUserId);
@@ -66,7 +65,6 @@ public class NotificationService implements NotificationApi {
                 .kind(kind)
                 .source(NotificationSource.ASYNC_KAFKA)
                 .payload(serialize(payload))
-                .createdAt(Instant.now())
                 .build());
         log.info("Recorded async notificationId={} eventId={} kind={} recipientId={}",
                 saved.getId(), eventId, kind, recipientUserId);

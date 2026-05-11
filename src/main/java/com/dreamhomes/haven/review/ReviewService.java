@@ -94,14 +94,12 @@ public class ReviewService {
             throw new DuplicateReviewException();
         }
 
-        Instant now = Instant.now();
         ListingReview saved = reviewRepository.save(ListingReview.builder()
                 .listingId(listingId)
                 .reviewerUserId(reviewerId)
                 .revieweeUserId(revieweeId)
                 .rating(rating)
                 .body(body.trim())
-                .createdAt(now)
                 .build());
 
         notifyReviewee(revieweeId, saved);

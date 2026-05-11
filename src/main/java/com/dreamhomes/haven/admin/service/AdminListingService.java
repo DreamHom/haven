@@ -102,7 +102,6 @@ public class AdminListingService {
                 .targetType(AuditTargetType.LISTING)
                 .targetId(listing.id())
                 .metadata(serialize(metadata))
-                .createdAt(Instant.now())
                 .build());
     }
 

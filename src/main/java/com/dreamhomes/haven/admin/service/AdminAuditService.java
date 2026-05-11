@@ -6,7 +6,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
 import java.util.Map;
 import com.dreamhomes.haven.admin.model.AdminAction;
 import com.dreamhomes.haven.admin.model.AdminAuditLog;
@@ -40,7 +39,6 @@ public class AdminAuditService implements AdminAuditApi {
                 .targetType(targetType)
                 .targetId(targetId)
                 .metadata(serialize(metadata))
-                .createdAt(Instant.now())
                 .build());
     }
 

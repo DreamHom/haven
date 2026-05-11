@@ -19,7 +19,11 @@ public class OfferSubmittedListener {
 
     private final NotificationApi notificationApi;
 
-    @KafkaListener(topics = OfferSubmittedEvent.TOPIC, groupId = "haven-notifications")
+    @KafkaListener(
+            topics = OfferSubmittedEvent.TOPIC,
+            groupId = "haven-notifications",
+            // Match consumer parallelism to the topic's partition count — see sibling listener.
+            concurrency = "${haven.kafka.topic-partitions:3}")
     public void onOfferSubmitted(OfferSubmittedEvent event, Acknowledgment ack) {
         log.info("Received offer.submitted.v1 eventId={} offerId={} ownerId={}",
                 event.eventId(), event.offerId(), event.ownerId());

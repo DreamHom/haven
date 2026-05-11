@@ -25,7 +25,13 @@ public class InspectionRequestedListener {
 
     private final NotificationApi notificationApi;
 
-    @KafkaListener(topics = InspectionRequestedEvent.TOPIC, groupId = "haven-notifications")
+    @KafkaListener(
+            topics = InspectionRequestedEvent.TOPIC,
+            groupId = "haven-notifications",
+            // Match consumer-side parallelism to the topic's partition count so every
+            // partition can be drained in parallel. Default of 1 left N-1 partitions
+            // queueing behind a single consumer thread.
+            concurrency = "${haven.kafka.topic-partitions:3}")
     public void onInspectionRequested(InspectionRequestedEvent event, Acknowledgment ack) {
         log.info("Received inspection.requested.v1 eventId={} inspectionRequestId={} ownerId={}",
                 event.eventId(), event.inspectionRequestId(), event.ownerId());

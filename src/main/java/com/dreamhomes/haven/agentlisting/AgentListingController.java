@@ -4,7 +4,6 @@ import com.dreamhomes.haven.agentlisting.dto.AgentListingResponse;
 import com.dreamhomes.haven.agentlisting.dto.DeclineAssignmentRequest;
 import com.dreamhomes.haven.agentlisting.dto.RequestAgentAssignmentRequest;
 import com.dreamhomes.haven.agentlisting.dto.RevokeAssignmentRequest;
-import com.dreamhomes.haven.agentlisting.model.AgentListing;
 import com.dreamhomes.haven.agentlisting.model.AgentListingStatus;
 import com.dreamhomes.haven.auth.JwtPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
@@ -51,6 +50,7 @@ public class AgentListingController {
     private static final int MAX_PAGE_SIZE = 100;
 
     private final AgentListingService agentListingService;
+    private final AgentListingMapper agentListingMapper;
 
     @Operation(
             summary = "Invite an agent to manage a listing",
@@ -96,7 +96,7 @@ public class AgentListingController {
             @Parameter(description = "Listing the agent is being invited to manage.", example = "17")
             @PathVariable Long listingId,
             @Valid @RequestBody RequestAgentAssignmentRequest request) {
-        return toResponse(
+        return agentListingMapper.toResponse(
                 agentListingService.request(principal.userId(), listingId, request.agentId()));
     }
 
@@ -132,7 +132,7 @@ public class AgentListingController {
             @AuthenticationPrincipal JwtPrincipal principal,
             @Parameter(description = "AgentListing ID.", example = "51")
             @PathVariable Long id) {
-        return toResponse(
+        return agentListingMapper.toResponse(
                 agentListingService.respond(principal.userId(), id, AgentListingStatus.ACCEPTED, null));
     }
 
@@ -164,7 +164,7 @@ public class AgentListingController {
             @Parameter(description = "AgentListing ID.", example = "51")
             @PathVariable Long id,
             @Valid @RequestBody DeclineAssignmentRequest request) {
-        return toResponse(
+        return agentListingMapper.toResponse(
                 agentListingService.respond(principal.userId(), id, AgentListingStatus.DECLINED, request.reason()));
     }
 
@@ -199,7 +199,7 @@ public class AgentListingController {
             @Parameter(description = "AgentListing ID.", example = "51")
             @PathVariable Long id,
             @Valid @RequestBody RevokeAssignmentRequest request) {
-        return toResponse(
+        return agentListingMapper.toResponse(
                 agentListingService.revoke(principal.userId(), principal.role(), id, request.reason()));
     }
 
@@ -236,12 +236,7 @@ public class AgentListingController {
             @RequestParam(defaultValue = "20") int size) {
         Pageable pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), MAX_PAGE_SIZE));
         return agentListingService.listMine(principal.userId(), principal.role(), pageable)
-                .map(AgentListingController::toResponse);
+                .map(agentListingMapper::toResponse);
     }
 
-    static AgentListingResponse toResponse(AgentListing al) {
-        return new AgentListingResponse(al.getId(), al.getListingId(), al.getAgentUserId(),
-                al.getRequestedByOwnerId(), al.getStatus(), al.getDecisionReason(),
-                al.getRequestedAt(), al.getDecidedAt());
-    }
 }

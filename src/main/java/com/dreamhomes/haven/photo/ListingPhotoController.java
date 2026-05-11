@@ -37,6 +37,7 @@ import java.util.List;
 public class ListingPhotoController {
 
     private final ListingPhotoService listingPhotoService;
+    private final ListingPhotoMapper listingPhotoMapper;
     private final PhotoStorage photoStorage;
 
     @Operation(
@@ -95,7 +96,7 @@ public class ListingPhotoController {
             @Parameter(description = "Optional human-readable caption.", required = false, example = "Living room")
             @RequestPart(value = "caption", required = false) String caption) {
         String hostedUrl = photoStorage.upload(file, listingId);
-        return toResponse(listingPhotoService.add(
+        return listingPhotoMapper.toResponse(listingPhotoService.add(
                 principal.userId(), listingId, hostedUrl, caption));
     }
 
@@ -162,11 +163,7 @@ public class ListingPhotoController {
             @Parameter(description = "Listing ID.", example = "17")
             @PathVariable Long listingId) {
         return listingPhotoService.list(listingId).stream()
-                .map(ListingPhotoController::toResponse).toList();
+                .map(listingPhotoMapper::toResponse).toList();
     }
 
-    static PhotoResponse toResponse(ListingPhoto p) {
-        return new PhotoResponse(p.getId(), p.getListingId(), p.getUrl(),
-                p.getDisplayOrder(), p.getCaption(), p.getUploadedAt());
-    }
 }

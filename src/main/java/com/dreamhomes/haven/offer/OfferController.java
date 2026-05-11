@@ -6,7 +6,6 @@ import com.dreamhomes.haven.offer.dto.OfferResponse;
 import com.dreamhomes.haven.offer.dto.RespondToOfferRequest;
 import com.dreamhomes.haven.offer.dto.SubmitOfferCommand;
 import com.dreamhomes.haven.offer.dto.SubmitOfferRequest;
-import com.dreamhomes.haven.offer.model.Offer;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -36,6 +35,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class OfferController {
 
     private final OfferService offerService;
+    private final OfferMapper offerMapper;
 
     @Operation(
             summary = "Submit an offer on a listing",
@@ -82,7 +82,7 @@ public class OfferController {
     @PreAuthorize("hasRole('APPLICANT')")
     public OfferResponse submit(@AuthenticationPrincipal JwtPrincipal principal,
                                 @Valid @RequestBody SubmitOfferRequest request) {
-        return toResponse(offerService.submit(principal.userId(), new SubmitOfferCommand(
+        return offerMapper.toResponse(offerService.submit(principal.userId(), new SubmitOfferCommand(
                 request.listingId(), request.amount(), request.currency(), request.message())));
     }
 
@@ -132,7 +132,7 @@ public class OfferController {
                                  @Parameter(description = "Offer ID to respond to.", example = "42")
                                  @PathVariable Long id,
                                  @Valid @RequestBody RespondToOfferRequest request) {
-        return toResponse(offerService.respond(principal.userId(), id, request.status()));
+        return offerMapper.toResponse(offerService.respond(principal.userId(), id, request.status()));
     }
 
     @Operation(
@@ -177,14 +177,7 @@ public class OfferController {
                                  @Parameter(description = "Parent offer ID being countered.", example = "42")
                                  @PathVariable Long id,
                                  @Valid @RequestBody CounterOfferRequest request) {
-        return toResponse(offerService.counter(
+        return offerMapper.toResponse(offerService.counter(
                 principal.userId(), id, request.amount(), request.message()));
-    }
-
-    static OfferResponse toResponse(Offer o) {
-        return new OfferResponse(o.getId(), o.getListingId(), o.getApplicantId(), o.getOwnerId(),
-                o.getAmount(), o.getCurrency(), o.getMessage(), o.getStatus(),
-                o.getParentOfferId(), o.getProposedByUserId(),
-                o.getCreatedAt(), o.getUpdatedAt());
     }
 }
