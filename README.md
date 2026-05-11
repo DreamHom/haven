@@ -110,9 +110,17 @@ Requires Java 21 and Docker (Docker Desktop on macOS).
 docker compose up -d
 
 # 2. Configure environment.
-#    JWT_SECRET is required (no fallback) and must be >= 32 bytes. The app refuses
-#    to start if it looks like a placeholder ("change-me", "DEV_ONLY", etc.).
-export JWT_SECRET="$(openssl rand -hex 32)"
+#    (a) JWT now uses RS256 — generate a 2048-bit RSA keypair and export the PEMs.
+#        The app refuses to start if either is missing or not a valid RSA key (>= 2048 bits).
+openssl genpkey -algorithm RSA -out jwt-private.pem -pkeyopt rsa_keygen_bits:2048
+openssl rsa     -in jwt-private.pem -pubout -out jwt-public.pem
+export HAVEN_JWT_PRIVATE_KEY="$(cat jwt-private.pem)"
+export HAVEN_JWT_PUBLIC_KEY="$(cat jwt-public.pem)"
+
+#    (b) Seeded platform admin — also required at startup, no defaults.
+#        Generate a bcrypt-10 hash for your chosen admin password.
+export ADMIN_EMAIL="admin@dreamhomes.local"
+export ADMIN_PASSWORD_HASH="$(htpasswd -nbBC 10 '' 'ChangeMeNow!' | tail -c +2)"
 
 # 3. Run the app
 mvn spring-boot:run

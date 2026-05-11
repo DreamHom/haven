@@ -707,6 +707,69 @@ longer manifest as Maven modules — the codebase consolidated back in Phase 15.
 
 ---
 
+## Phase 16.5 — Trade-offs ledger cleanup (post-audit Tier 1/2/3 sprint)
+
+This block resolves the 13 entries flagged as "lazy coding or ops polish" by the
+honest re-audit of all 126 prior TRADEOFFS entries. Items not listed here
+remain as-is; they were classified as legitimate scoped trade-offs.
+
+### JWT signing: HS256 → RS256 (`haven.jwt.private-key` + `haven.jwt.public-key`)
+- **Why**: HMAC means every party that verifies a token also has the secret to mint one. RS256 splits that — the private key signs, the public key verifies. Future fan-out (mobile, vista, internal services) can hold only the public half.
+- **Cost**: env vars are now PEM-encoded multiline strings instead of a 32-byte hex secret. Constructor checks the keys are RSA, ≥ 2048 bits, and that the modulus matches between private + public. README documents the `openssl genpkey` workflow.
+- **Revisit**: never. If we move to JWKS-served public keys for vista, the verify side gets simpler still.
+
+### `POST /auth/register` returns 202 Accepted in every branch (anti-enumeration)
+- **Why**: the previous 201/409 split let an attacker probe whether an email was registered just by hitting the endpoint. Always-202-with-empty-body removes that signal entirely. Service still inserts the user for fresh emails; duplicates and TOCTOU collisions are silently swallowed (logged for ops).
+- **Cost**: caller no longer learns server-issued user id from the register response — they call `POST /auth/login` next, which returns a JWT (with the userId embedded). One wire-contract change. Drop two now-dead types: `UserResponse` DTO + `EmailAlreadyRegisteredException`.
+- **Revisit**: never. If async email verification is ever added, the 202 already implies "we're processing it" — the contract's already aligned.
+
+### Seeded-admin env vars fail loud on missing
+- **Why**: `application.yml` previously shipped a bcrypt hash of "ChangeMeNow!" as the default admin password. A deploy that forgot to override `ADMIN_PASSWORD_HASH` would silently ship that. Removed both defaults — Spring property resolution now refuses to start if either is unset, mirroring how `HAVEN_JWT_PRIVATE_KEY` works.
+- **Cost**: every IT had to register `ADMIN_EMAIL` + `ADMIN_PASSWORD_HASH` via `@DynamicPropertySource` (done in `AbstractPostgresIT`); local dev needs an `htpasswd -nbBC 10 "" "..." | tail -c +2` one-liner (documented in README).
+- **Revisit**: never.
+
+### `POST /api/listings/{id}/report` (Ngozi backlog item)
+- **Why**: any authenticated user can flag a listing for moderation. Single insert into `listing_reports` (with a `(listing_id, reporter_user_id)` unique constraint enforcing one-report-per-user) plus a `LISTING_REPORTED` notification fanned out to every admin so the moderation queue surfaces fresh reports without polling.
+- **Cost**: new `listingreport` feature package (model + repo + dto + service + controller + exception), V20 Flyway migration, one new `NotificationKind`. Admin read endpoint (paginated queue + filter by reason) is intentionally NOT in this PR — separate ticket.
+- **Revisit**: when the read side ships, the `OFF_PLATFORM_FEES` payload is the place to add aggregate-by-reason analytics for ops.
+
+### Manual `Instant.now()` removed from services; JPA auditing is the only path
+- **Why**: every service previously stamped `createdAt` / `updatedAt` by hand alongside the `.builder()`. JPA auditing already populated the same fields on persist/update — two sources of truth, inconsistent in practice (some services forgot `setUpdatedAt` on PATCH paths). Drop the manual calls; trust the auditor.
+- **Cost**: a handful of service unit tests had assertions like `assertThat(...getCreatedAt()).isNotNull()` that broke once the service no longer set the field — those moved either to "the IT verifies the persist path" or to a Mockito stub that mimics auditing. Rewrites the prior "JPA auditing as belt-and-suspenders" entry: it's now the single mechanism, not a safety net.
+- **Revisit**: never.
+
+### `DatabaseCleanupTestExecutionListener` replaces 21 per-IT `@AfterEach` cleanup blocks
+- **Why**: every IT used to redeclare a private `clean()` method with FK-ordered `deleteAll()` calls. 21 files, all subtly different, easy to forget when adding a new table. Centralised into a single `TRUNCATE … RESTART IDENTITY CASCADE` statement run by a `TestExecutionListener` registered on `AbstractPostgresIT`.
+- **Cost**: ~232 lines of test code deleted; adding a new table now requires updating the listener's `TRUNCATE_SQL` constant. Listener is registered FIRST in the `@TestExecutionListeners` list so its `afterTestMethod` runs LAST — after Spring's transactional rollback releases the connection.
+- **Revisit**: never.
+
+### Auto-decline sibling `PENDING` offers when one accepts
+- **Why**: previously, accepting one offer left every other PENDING offer on the listing in PENDING — they'd sit forever, the owner saw stale rows in the queue, and the losing applicant never learned the deal closed without them. Now `OfferService.respond` flips siblings to `DECLINED` in the same transaction and fires `OFFER_AUTO_DECLINED` notifications.
+- **Cost**: one new `OfferRepository` method, one new `NotificationKind`, ~40 lines of service. Decline path is unchanged (no fan-out).
+- **Revisit**: when async email/SMS notifications join the system, the auto-decline notifications might want a different priority tag than first-class user actions.
+
+### MapStruct adoption for entity → DTO mapping
+- **Why**: 12 hand-rolled `static toResponse(Entity)` helpers across controllers + services. Each is a positional record constructor — adding a field to the DTO means hand-editing every callsite (which is exactly what the `displayName` change last sprint demanded). MapStruct generates the implementation at compile time, infers the field-by-field copy from same-named accessors, and surfaces missing or ambiguous mappings as compile errors.
+- **Cost**: one new dependency + annotation processor (`org.mapstruct:mapstruct` + `mapstruct-processor` + `lombok-mapstruct-binding`). 11 new `@Mapper(componentModel = "spring")` interfaces. `ListingMapper` had to spell out per-field `@Mapping(source = "listing.x")` because both arguments expose `id`. Service unit tests construct mappers via `new XxxMapperImpl()` (the generated impl); `@WebMvcTest` controller slices `@Import` the impl class so the bean is in the slice context.
+- **Revisit**: never. Rewrites the prior "static mappers — fine for now" entry from Phase 15.
+
+### `OutboxRelay` publishes async (no `.get()`); `kafka.publish.duration` Timer
+- **Why**: the previous `kafkaTemplate.send(...).get()` blocked the relay thread on broker latency — a slow ISR sync would hold open whatever transaction the after-commit hook ran in. Now the publish is fire-and-callback via `whenComplete`. The callback runs on the producer I/O thread and stamps `publishedAt` in a fresh transaction (via `TransactionTemplate`) because the originating tx is already closed. `Timer.Sample` wraps each attempt and registers under `haven.kafka.publish.duration` tagged by `topic` + `outcome=success|failure`.
+- **Cost**: relay constructor grew two args (`TransactionTemplate`, `MeterRegistry`). Publish failures and post-publish save failures both log + retry on the next scheduled poll — the consumer-side `event_id` dedup keeps that idempotent. Existing `OutboxRelayTest` updated to assert the timer fires with the right tags; existing listener ITs already used Awaitility, so the async timing change didn't break them.
+- **Revisit**: when the producer thread pool gets tuned for throughput, we'd want a dedicated executor for the markPublished callback rather than running it on the Kafka I/O thread.
+
+### Listener concurrency = `${haven.kafka.topic-partitions:3}`
+- **Why**: default `concurrency = 1` left N-1 partitions queueing behind a single consumer thread. Setting it equal to the topic's partition count gives one consumer thread per partition — full parallel drain at the cost of N threads in the consumer container.
+- **Cost**: spelled out as the property reference rather than a literal so the listener's parallelism stays in sync with `KafkaTopicConfig`'s partition count if either is changed.
+- **Revisit**: when partition count grows past available CPU, decouple consumer thread count from partition count by introducing a separate property.
+
+### `haven.outbox.dlt` depth gauge (mirror of `haven.outbox.unpublished`)
+- **Why**: ops can already alert on `haven.outbox.unpublished > 0` — that's "outbox row stuck before Kafka". The new `haven.outbox.dlt` gauge covers the post-DLT-route side: "consumer-side processing failed long enough to exhaust retries". One Gauge per DLT topic, tagged with `topic=`, sourced via Kafka `AdminClient` end-offset query. `sum(haven_outbox_dlt)` gives platform-wide DLT depth; `haven_outbox_dlt{topic="..."}` drills in.
+- **Cost**: new component + one Kafka AdminClient call per scrape per topic. AdminClient timeout (5s) bounded; failures emit `-1` so dashboards distinguish "not measured" from "0 depth". Scrape adds a few hundred ms when broker is healthy.
+- **Revisit**: when the AdminClient overhead matters (i.e. scrape interval drops below 5s), cache the last value and refresh on a separate schedule.
+
+---
+
 ## Deferred (not built — explicit Phase 14+ scope)
 
 - `ListingPhoto`, `ListingSave`, `ListingLike`, `ListingReview` (engagement)
