@@ -1,0 +1,49 @@
+<mxfile host="Electron" agent="DreamHomes">
+  <diagram name="System Architecture" id="arch-simple">
+    <mxGraphModel dx="1294" dy="1595" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1000" pageHeight="700" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontFamily=Helvetica;fontSize=16;fontStyle=1;align=center;verticalAlign=middle;" value="DreamHomes — System Architecture" vertex="1">
+          <mxGeometry height="30" width="920" x="40" y="-20" as="geometry" />
+        </mxCell>
+        <mxCell id="users" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontFamily=Helvetica;fontSize=16;fontStyle=1;" value="Users" vertex="1">
+          <mxGeometry height="60" width="180" x="410" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="vista" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontFamily=Helvetica;fontSize=16;fontStyle=1;" value="Vista" vertex="1">
+          <mxGeometry height="60" width="180" x="410" y="160" as="geometry" />
+        </mxCell>
+        <mxCell id="docker" parent="1" style="rounded=0;whiteSpace=wrap;html=1;dashed=1;fillColor=none;strokeColor=#666666;fontFamily=Helvetica;fontSize=16;fontStyle=1;verticalAlign=top;align=left;spacingLeft=12;spacingTop=8;" value="Docker" vertex="1">
+          <mxGeometry height="180" width="840" x="80" y="280" as="geometry" />
+        </mxCell>
+        <mxCell id="db" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontFamily=Helvetica;fontSize=16;fontStyle=1;" value="Database" vertex="1">
+          <mxGeometry height="60" width="180" x="140" y="350" as="geometry" />
+        </mxCell>
+        <mxCell id="haven" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontFamily=Helvetica;fontSize=16;fontStyle=1;" value="Haven" vertex="1">
+          <mxGeometry height="60" width="180" x="410" y="350" as="geometry" />
+        </mxCell>
+        <mxCell id="kafka" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontFamily=Helvetica;fontSize=16;fontStyle=1;" value="Kafka" vertex="1">
+          <mxGeometry height="60" width="180" x="680" y="350" as="geometry" />
+        </mxCell>
+        <mxCell id="llm" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontFamily=Helvetica;fontSize=16;fontStyle=1;" value="LLM" vertex="1">
+          <mxGeometry height="60" width="180" x="410" y="540" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" edge="1" parent="1" source="users" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;endArrow=classic;strokeColor=#000000;strokeWidth=2;" target="vista">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" edge="1" parent="1" source="vista" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;endArrow=classic;strokeColor=#000000;strokeWidth=2;" target="haven">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" edge="1" parent="1" source="haven" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;endArrow=classic;strokeColor=#000000;strokeWidth=2;" target="db">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" edge="1" parent="1" source="haven" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=classic;startArrow=classic;strokeColor=#000000;strokeWidth=2;" target="kafka">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" edge="1" parent="1" source="haven" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;endArrow=classic;strokeColor=#000000;strokeWidth=2;" target="llm">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
