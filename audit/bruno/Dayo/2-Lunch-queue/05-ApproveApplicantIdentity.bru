@@ -1,0 +1,23 @@
+meta {
+  name: 05-ApproveApplicantIdentity
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{host}}/api/admin/verifications/{{applicantVerificationId}}/approve
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{jwt}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  # Applicant identity — usually a NIN slip. Quick approve.
+}

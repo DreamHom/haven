@@ -1,0 +1,25 @@
+meta {
+  name: 04-Open one listing detail
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{host}}/api/listings/1
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: lte 404
+}
+
+docs {
+  One of the entries on page 1 caught my eye — let me click in.
+  Anonymous detail view, no login. Hardcoding listing id 1 because
+  I'm a real user who clicked the first card.
+
+  If listings are empty (no owners have published yet), this 404s
+  and that's also a finding: a brand-new user hitting a chicken-
+  and-egg problem on day 1 has nothing to do.
+}

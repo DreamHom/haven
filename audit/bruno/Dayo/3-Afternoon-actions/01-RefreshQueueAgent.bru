@@ -1,0 +1,36 @@
+meta {
+  name: 01-RefreshQueueAgent
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/api/admin/verifications?type=AGENT_CREDENTIALS&page=0&size=20
+  auth: bearer
+}
+
+params:query {
+  type: AGENT_CREDENTIALS
+  page: 0
+  size: 20
+}
+
+auth:bearer {
+  token: {{jwt}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+script:post-response {
+  if (res && res.body && Array.isArray(res.body.content) && res.body.content.length > 0) {
+    bru.setVar("agentVerificationId", res.body.content[0].id);
+    bru.setVar("agentSubmitterId", res.body.content[0].submitterUserId);
+  }
+}
+
+docs {
+  # 3:10pm — looking for agent-credential submissions specifically.
+  # These are the highest-leverage approvals on the platform.
+}

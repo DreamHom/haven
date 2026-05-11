@@ -1,0 +1,24 @@
+meta {
+  name: 01-Browse listings (anonymous, before signing up)
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/api/listings?page=0&size=20
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  Before I even register I want to scope out the platform. Are there
+  PH listings here? Who's already on it? I'm sizing up whether this is
+  worth my time.
+
+  As an agent, what I REALLY want to know — "how many listings on this
+  platform need an agent?" There's no filter for that. I'm flying blind.
+}

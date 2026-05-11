@@ -1,0 +1,40 @@
+meta {
+  name: 01-AcceptOffer
+  type: http
+  seq: 1
+}
+
+patch {
+  url: {{host}}/api/offers/{{firstOfferId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{biodunJwt}}
+}
+
+body:json {
+  {
+    "status": "ACCEPTED"
+  }
+}
+
+assert {
+  res.status: lte 499
+}
+
+docs {
+  # Friday 9am. Emeka has texted me: "Boss, accept the offer from Mrs
+  # Okeke on A1. Deposit is in. Decline the other one on A1, the guy
+  # has been ghosting." Cool — that is the delegation working.
+  #
+  # firstOfferId comes from a Temi/Ngozi run (cross-persona dependency).
+  #
+  # The endpoint is PATCH /offers/{id} with body { status: ACCEPTED }.
+  # The status enum on the request includes "PENDING" and "COUNTERED"
+  # which is misleading — you cannot actually transition TO PENDING via
+  # this endpoint, and you have to use /counter for COUNTERED. So the
+  # request schema is broader than the actual valid transitions.
+  # ⚠️ Schema accepts values the endpoint will reject.
+}

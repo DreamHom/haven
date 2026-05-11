@@ -1,0 +1,36 @@
+meta {
+  name: 01-FindUserToSuspend
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/api/users/2/profile
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{jwt}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+script:post-response {
+  if (res && res.body && res.body.id && res.body.role !== "ADMIN") {
+    bru.setVar("suspendTargetUserId", res.body.id);
+  }
+}
+
+docs {
+  # I need a user ID to suspend. The persona brief told me to "look up by
+  # ID — try IDs 2-10". User id=2 is Amaka (an OWNER, non-admin). In real
+  # life this would come from a support ticket.
+
+  Notice the bigger gap: there is NO admin "list users" or "search users
+  by email" endpoint in the spec. I cannot find a user by email. I cannot
+  see all suspended users. I cannot see all admins. I am operating with
+  one hand tied. ID-probing is not a real T&S workflow — it's what you do
+  when the platform refuses to give you a queue.
+}

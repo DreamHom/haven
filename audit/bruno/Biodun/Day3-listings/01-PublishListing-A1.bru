@@ -1,0 +1,51 @@
+meta {
+  name: 01-PublishListing-A1
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{host}}/api/listings
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{biodunJwt}}
+}
+
+body:json {
+  {
+    "propertyId": {{propertyA1}},
+    "listingType": "SALE",
+    "askingPrice": 32000000,
+    "currency": "NGN",
+    "agencyFee": 1600000
+  }
+}
+
+assert {
+  res.status: eq 201
+  res.body.listingType: eq SALE
+}
+
+script:post-response {
+  if (res.body && res.body.id) {
+    bru.setVar("listingA1", res.body.id);
+  }
+}
+
+docs {
+  # Listing the 1-bed Unit A1 for ₦32M outright sale. 5% agency fee.
+
+  # I notice there is NO title field, NO description field, NO listing
+  # name. The spec just takes propertyId + price + a couple of fees.
+  # When this shows up in /listings browse all anyone sees is "1-bed
+  # apartment, Ojodu, ₦32M". I cannot say "PROMO! First 3 buyers get
+  # ₦500k off!" or "Last unit on this floor!". For a developer pushing
+  # a launch this is a missing marketing surface.
+
+  # Also no occupancy date / handover date / off-plan completion date.
+  # An off-plan unit IS different from a finished unit and there's no
+  # way to say so.
+}

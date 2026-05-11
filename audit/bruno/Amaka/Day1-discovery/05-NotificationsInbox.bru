@@ -1,0 +1,28 @@
+meta {
+  name: 05-NotificationsInbox
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{host}}/api/notifications/mine
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{amakaJwt}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  # Let me check if there's any kind of welcome message or onboarding nudge
+  # waiting for me.
+
+  Empty page. Not even a "Welcome to DreamHomes — here's what to do next"
+  notification. As a brand-new user the inbox is barren and I have to figure
+  out the next step myself. Going to bed — will continue tomorrow.
+}

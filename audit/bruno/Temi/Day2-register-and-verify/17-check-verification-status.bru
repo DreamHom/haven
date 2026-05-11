@@ -1,0 +1,36 @@
+meta {
+  name: 17-Try to check verification status
+  type: http
+  seq: 17
+}
+
+get {
+  url: {{host}}/api/verifications/mine
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{temi_token}}
+}
+
+assert {
+  res.status: in [200, 401, 404]
+}
+
+docs {
+  After submitting, I want to know "is my NIN being reviewed?". I
+  expect a `GET /verifications/mine` or some endpoint that shows me
+  PENDING / APPROVED / REJECTED for my submission.
+
+  But the OpenAPI spec ONLY exposes:
+  - POST /verifications (submit)
+  - GET /admin/verifications (admin queue)
+  - POST /admin/verifications/{id}/approve|reject (admin decisions)
+
+  There is no read-side for the submitter. Me, as Temi, cannot
+  check the status of my own verification. I just have to wait
+  blindly until a notification fires. That is a finding.
+
+  Trying the URL anyway — expecting 404.
+}

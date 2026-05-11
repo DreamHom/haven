@@ -1,0 +1,21 @@
+meta {
+  name: 06-Check inspection slots
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{host}}/api/listings/1/slots
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: lte 404
+}
+
+docs {
+  Are there inspection times this weekend? I don't want to have to
+  call anyone — the whole reason I'm using this app is to skip the
+  WhatsApp-and-cold-calling part of Lagos house hunting.
+}

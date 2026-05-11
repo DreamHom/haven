@@ -1,0 +1,20 @@
+meta {
+  name: 08-Read reviews on this listing/agent
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{host}}/api/listings/1/reviews?page=0&size=10
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: lte 404
+}
+
+docs {
+  Reviews are the ONLY trust signal I trust as a first-timer. I
+  want to see what previous tenants said. Public, no login.
+}

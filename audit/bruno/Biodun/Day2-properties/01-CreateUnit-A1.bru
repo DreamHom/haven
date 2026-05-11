@@ -1,0 +1,57 @@
+meta {
+  name: 01-CreateUnit-A1
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{host}}/api/properties
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{biodunJwt}}
+}
+
+body:json {
+  {
+    "type": "APARTMENT",
+    "address": "Unit A1, Plot 7 Berger Road, Ojodu, Lagos",
+    "bedrooms": 1,
+    "bathrooms": 1,
+    "sizeSqm": 52,
+    "description": "Brand new 1-bed off-plan apartment, ground floor of new 12-unit block in Ojodu Berger. Tiled floors, POP ceiling, kitchen cabinets included. Estate has 24/7 security, borehole and treatment plant, paved compound."
+  }
+}
+
+assert {
+  res.status: eq 201
+  res.body.type: eq APARTMENT
+}
+
+script:post-response {
+  if (res.body && res.body.id) {
+    bru.setVar("propertyA1", res.body.id);
+  }
+}
+
+docs {
+  # Day 2. Verification still pending — but the spec says listings don't
+  # need it (badge is just a trust signal), so I'm pushing on. I'll do
+  # 4 of the 12 in this audit. In real life I'd be doing this 12 times.
+
+  # NB: there is no concept of a "building" or "block" in this API.
+  # I am about to type "Plot 7 Berger Road, Ojodu" twelve times. There
+  # is no parent/child Property model. There is no bulk-create. This is
+  # going to be miserable.
+
+  # Schema doesn't ask for a unit number field — I had to stuff it into
+  # the address. So all 12 of my units will share an address prefix and
+  # only differ on "Unit A1 / A2 / B1 …". Search-by-address will lump
+  # them together. Not ideal.
+
+  # No "block name" or "developer project name" field either. If I want
+  # to brand the whole development I have to repeat it in each
+  # description.
+}

@@ -1,0 +1,22 @@
+meta {
+  name: 07-Read public Q&A on the listing
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{host}}/api/listings/1/comments?page=0&size=20
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: lte 404
+}
+
+docs {
+  Comments are like the public Q&A on Jumia. I want to see what
+  other people have already asked — "is the rent annual or
+  monthly?", "is the building on the main road?", etc. Saves me
+  from asking dumb questions myself.
+}

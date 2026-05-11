@@ -1,0 +1,37 @@
+meta {
+  name: 15-Pull my pipeline again — any REQUESTED rows
+  type: http
+  seq: 15
+}
+
+get {
+  url: {{host}}/api/agent-listings/mine?page=0&size=20
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{emeka_jwt}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+script:post-response {
+  // Capture the first REQUESTED row's id if it exists
+  if (res.body && res.body.content) {
+    for (var row of res.body.content) {
+      if (row.status === "REQUESTED") {
+        bru.setVar("emeka_pending_assignment_id", row.id);
+        bru.setVar("emeka_assigned_listing_id", row.listingId);
+        break;
+      }
+    }
+  }
+}
+
+docs {
+  Same call as before but now I'm hoping there's a REQUESTED row
+  to act on. If there is, capture its id for the accept call below.
+}

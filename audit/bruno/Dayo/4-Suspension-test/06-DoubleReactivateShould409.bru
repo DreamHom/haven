@@ -1,0 +1,24 @@
+meta {
+  name: 06-DoubleReactivateShould409
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{host}}/api/admin/users/{{suspendTargetUserId}}/reactivate
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{jwt}}
+}
+
+assert {
+  res.status: eq 409
+}
+
+docs {
+  # Persona Story 5: reactivating a non-suspended user → 409.
+  # Same defensive check.
+}

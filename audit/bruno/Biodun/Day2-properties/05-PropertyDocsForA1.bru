@@ -1,0 +1,57 @@
+meta {
+  name: 05-PropertyDocsForA1
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{host}}/api/verifications
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{biodunJwt}}
+}
+
+body:json {
+  {
+    "type": "PROPERTY_DOCUMENTS",
+    "propertyId": {{propertyA1}},
+    "documentRefs": {
+      "certificateOfOccupancy": {
+        "url": "https://res.cloudinary.com/demo/image/upload/sample.jpg",
+        "label": "C of O — Plot 7 Berger Road, Ojodu, covers entire 12-unit block"
+      },
+      "buildingApproval": {
+        "url": "https://res.cloudinary.com/demo/image/upload/sample.jpg",
+        "label": "Lagos State building plan approval"
+      }
+    }
+  }
+}
+
+assert {
+  res.status: eq 201
+  res.body.type: eq PROPERTY_DOCUMENTS
+  res.body.status: eq PENDING
+}
+
+script:post-response {
+  if (res.body && res.body.id) {
+    bru.setVar("propertyDocVerifA1", res.body.id);
+  }
+}
+
+docs {
+  # Submitting property documents for unit A1. The C of O is the SAME
+  # piece of paper for all 12 units — they share one plot. The building
+  # approval is the SAME drawing.
+
+  # Yet I would have to submit 12 of these. And Dayo (the admin) would
+  # have to approve 12 identical-looking submissions. Why?
+
+  # I am only going to do ONE of these in the audit, with the
+  # understanding that the other 11 would feel like a ridiculous tax on
+  # both me and the admin team.
+}

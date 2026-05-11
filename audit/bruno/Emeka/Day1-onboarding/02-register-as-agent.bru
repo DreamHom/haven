@@ -1,0 +1,37 @@
+meta {
+  name: 02-Register as AGENT with license number
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{host}}/api/auth/register
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "emeka.okorie.ph+{{run_tag}}@gmail.com",
+    "password": "Bik3AndPh0ne!ph",
+    "fullName": "Emeka Okorie",
+    "displayName": "Emeka O.",
+    "phone": "+2348031234567",
+    "role": "AGENT",
+    "licenseNumber": "NIPRA/RC/2019/PH/0421",
+    "publicRole": true
+  }
+}
+
+assert {
+  res.status: eq 202
+}
+
+docs {
+  Putting in my real Glo number, my NIPRA license, my full name. The
+  spec says 202 with no body — fine, but as a new user I'm already
+  uneasy: did it accept me, or did it silently swallow my submission
+  because the email was taken? The "anti-enumeration" trick is for
+  attackers, not for me. There's nothing telling me "check your inbox"
+  or even "now log in".
+}

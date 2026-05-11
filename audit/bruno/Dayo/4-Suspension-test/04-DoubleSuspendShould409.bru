@@ -1,0 +1,31 @@
+meta {
+  name: 04-DoubleSuspendShould409
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{host}}/api/admin/users/{{suspendTargetUserId}}/suspend
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{jwt}}
+}
+
+body:json {
+  {
+    "reason": "Probing — already suspended. Expecting 409."
+  }
+}
+
+assert {
+  res.status: eq 409
+}
+
+docs {
+  # Persona doc Story 4 says re-suspending should 409.
+  # If this returns 200 it means I might be silently bumping tokenVersion
+  # twice or rewriting the suspension reason. Either is bad.
+}

@@ -1,0 +1,42 @@
+meta {
+  name: 17-day6-submit-offer-rent-to-buy
+  type: http
+  seq: 17
+}
+
+post {
+  url: {{host}}/api/offers
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{ngozi_token}}
+}
+
+body:json {
+  {
+    "listingId": 17,
+    "amount": 3200000,
+    "currency": "NGN",
+    "message": "Rent-to-buy intent: I'd like to rent at NGN 3.2M/yr for 12 months with first right of refusal to purchase at the end of the lease, contingent on Moniepoint financing approval. Family of three (myself, husband, our daughter)."
+  }
+}
+
+assert {
+  res.status: lte 500
+}
+
+docs {
+  # Day 6 — Wednesday. Inspection went well (in my head). I'm putting
+  # in an offer.
+  #
+  # My persona explicitly cares about rent-to-buy intent. The Offer
+  # schema has `amount`, `currency`, `message` — but no structured
+  # `intent` enum. I'm cramming the intent into the free-text
+  # `message` field and hoping the owner reads it. That's not
+  # good enough for me as a buyer; it means there's no way to filter
+  # offers by intent on the owner's side either.
+  #
+  # NGN 3.2M/year is realistic for a 2-bed family flat in Surulere.
+}

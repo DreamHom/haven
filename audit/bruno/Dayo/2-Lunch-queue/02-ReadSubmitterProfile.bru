@@ -1,0 +1,39 @@
+meta {
+  name: 02-ReadSubmitterProfile
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/api/users/{{ownerSubmitterId}}/profile
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{jwt}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  # Before I approve anything I want to look at WHO submitted. The persona
+  # doc says "read submitter context".
+
+  Problem: `GET /users/{id}/profile` returns the *public* profile —
+  `PublicUserProfile`. Same fields any logged-in stranger would see:
+  fullName, displayName, role, identityVerifiedAt, suspended, joinedAt,
+  averageRating.
+
+  As an admin I need MORE than the public profile to make a verification
+  decision:
+  - Email (so I can spot disposable-domain patterns)
+  - Phone
+  - All previous verification submissions and their decisions
+  - Whether this user has ever been suspended (and why)
+  - Whether this user has ever been reported
+
+  None of that is exposed. I'm being asked to approve identity badges
+  using a profile card the public could read. That's backwards.
+}

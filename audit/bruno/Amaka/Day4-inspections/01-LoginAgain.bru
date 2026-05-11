@@ -1,0 +1,32 @@
+meta {
+  name: 01-LoginAgain
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{host}}/api/auth/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "{{amakaEmail}}",
+    "password": "{{amakaPassword}}"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.token: isDefined
+}
+
+script:post-response {
+  bru.setVar("amakaJwt", res.body.token);
+}
+
+docs {
+  # Day 4 — Sunday afternoon. I want to open viewing slots so people can
+  # come see the flat next weekend.
+}

@@ -1,0 +1,44 @@
+meta {
+  name: 01-NoListingsMineEndpoint
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/api/listings/mine
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{biodunJwt}}
+}
+
+assert {
+  res.status: gte 400
+}
+
+docs {
+  # 🚫 SHOWSTOPPER #2.
+  #
+  # I have 12 listings in the system. I want one screen that says:
+  # "A1 — OPEN — 3 offers — 1 inspection scheduled
+  #  A2 — OPEN — 0 offers — 0 inspections
+  #  B1 — OPEN — 2 offers — 1 inspection scheduled
+  #  ..."
+  #
+  # GET /listings/mine does not exist. The persona doc literally
+  # asked me to verify this and the spec confirms: there is no
+  # owner-scoped listings endpoint.
+  #
+  # The PUBLIC /listings endpoint paginates everyone's listings —
+  # I would have to scroll through every listing in the entire
+  # platform looking for mine. Even if I did, there is no offers-count
+  # or inspections-count on the response.
+  #
+  # As a developer this is brutal. I do not know what I own without
+  # opening my own browser tabs to each /listings/{id} I happen to
+  # have written down. There is genuinely no "my portfolio" view.
+  #
+  # Asserting 404 just to log the gap.
+}

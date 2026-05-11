@@ -1,0 +1,28 @@
+meta {
+  name: 22-Pick an inspection slot
+  type: http
+  seq: 22
+}
+
+get {
+  url: {{host}}/api/listings/1/slots
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{temi_token}}
+}
+
+assert {
+  res.status: lte 404
+}
+
+docs {
+  Re-fetching slots so I can pick the one I want. Logged in this
+  time. I want a Saturday morning slot. The slot response is just
+  `{id, listingId, startsAt, endsAt}` — there's no "this is the
+  agent who'll meet you" or "address pin" or "directions". As a
+  Yaba-bound first-timer I need to know where I'm going and who
+  I'll meet there.
+}

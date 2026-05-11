@@ -1,0 +1,37 @@
+meta {
+  name: 04-NoOffersListEndpoint
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{host}}/api/offers?listingId={{listingA1}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{biodunJwt}}
+}
+
+assert {
+  res.status: gte 400
+}
+
+docs {
+  # 🚫 BIG GAP. There is NO endpoint to list offers I have received.
+  #
+  # /offers exists but only as POST (applicant submits an offer).
+  # No GET /offers/mine, no GET /listings/{id}/offers, nothing.
+  #
+  # So how do I know what offers are open on my 12 listings? Only via
+  # the notifications inbox. But notifications can be marked-read or
+  # missed; if I missed an OFFER_SUBMITTED notification I literally
+  # have no way to discover the offer in the system except by guessing
+  # the offer ID and PATCHing it.
+  #
+  # For a developer juggling 12 listings simultaneously this is a
+  # massive missing feature.
+  #
+  # Asserting 405 because the path /offers exists for POST but not GET.
+}

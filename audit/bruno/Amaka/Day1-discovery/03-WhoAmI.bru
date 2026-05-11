@@ -1,0 +1,34 @@
+meta {
+  name: 03-WhoAmI
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{host}}/api/me
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{amakaJwt}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.role: eq OWNER
+  res.body.userId: isDefined
+}
+
+script:post-response {
+  bru.setVar("amakaUserId", res.body.userId);
+}
+
+docs {
+  # OK that's better — at least I can fetch /me to see who I am.
+
+  Confirmed I'm an OWNER and I got a numeric userId. But this response is
+  shaped like the JWT internals (`tokenVersion`?? what does that mean to
+  me?). It doesn't show my name, phone, or whether my badge is verified.
+  I'd want a "profile" view here, not the security guts.
+}

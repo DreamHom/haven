@@ -1,0 +1,35 @@
+meta {
+  name: 21-Ask a question publicly on the listing
+  type: http
+  seq: 21
+}
+
+post {
+  url: {{host}}/api/listings/1/comments
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{temi_token}}
+}
+
+body:json {
+  {
+    "body": "Hi! Is the ₦850k figure for one year or two? And does the caution fee come back when I move out, or is it gone? First-time renter, sorry for the basics."
+  }
+}
+
+assert {
+  res.status: in [201, 401, 404]
+}
+
+docs {
+  I'm asking the question that anyone moving out of their parents'
+  house in Lagos has — is the rent for one year or two, and does
+  the caution fee come back? I'd much rather ask publicly so the
+  next first-timer sees the answer.
+
+  As a Lagos renter the platform itself should already explain
+  caution fee in tooltips. Asking it in comments is a workaround.
+}

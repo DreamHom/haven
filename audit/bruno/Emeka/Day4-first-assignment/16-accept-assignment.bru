@@ -1,0 +1,34 @@
+meta {
+  name: 16-Accept the assignment (BLOCKED — needs an invite from Biodun)
+  type: http
+  seq: 16
+}
+
+post {
+  url: {{host}}/api/agent-listings/{{emeka_pending_assignment_id}}/accept
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{emeka_jwt}}
+}
+
+assert {
+  res.status: in [200, 404, 403, 401]
+}
+
+docs {
+  If Biodun has invited me, this transitions REQUESTED → ACCEPTED
+  and the owner gets notified.
+
+  Solo run: emeka_pending_assignment_id is unset, so the request
+  hits an invalid path. The 404/403 is expected — keeping this in
+  the collection so when the orchestrator wires Biodun in, the call
+  works end-to-end.
+
+  GAP I'd flag even on success: there's no way for me to send the
+  owner a short note like "got it, I'm on this" alongside accept.
+  Owner just gets a system notification. For trust-building, that's
+  cold.
+}

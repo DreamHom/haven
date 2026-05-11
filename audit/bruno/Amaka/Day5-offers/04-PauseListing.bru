@@ -1,0 +1,38 @@
+meta {
+  name: 04-PauseListing
+  type: http
+  seq: 4
+}
+
+patch {
+  url: {{host}}/api/listings/{{amakaListingId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{amakaJwt}}
+}
+
+body:json {
+  {
+    "status": "PAUSED"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq PAUSED
+}
+
+docs {
+  # I was getting too many calls about Admiralty so I want to pause it
+  # while I think about the price.
+
+  ✅ Status changed to PAUSED. Still my listing.
+
+  ⚠️ I cannot edit the property's address or bedroom count via this PATCH —
+  spec only exposes `askingPrice` and `status`. So if I notice a typo in
+  the address I'd be stuck. There's no PATCH /properties/{id} in the spec
+  at all. That's a clear gap — properties become immutable once created.
+}

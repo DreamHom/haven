@@ -1,0 +1,47 @@
+meta {
+  name: 01-Register
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{host}}/api/auth/register
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "biodun.adesanya.dev+{{run_tag}}@gmail.com",
+    "password": "OjoduBerger12Units!",
+    "fullName": "Biodun Adesanya",
+    "displayName": "Biodun A.",
+    "phone": "+2348051234712",
+    "role": "OWNER",
+    "publicRole": true
+  }
+}
+
+assert {
+  res.status: eq 202
+}
+
+script:post-response {
+  bru.setVar("biodunEmail", "biodun.adesanya.dev+" + bru.getEnvVar("run_tag") + "@gmail.com");
+  bru.setVar("biodunPassword", "OjoduBerger12Units!");
+}
+
+docs {
+  # Day 1, Saturday morning at the office in Bodija. 47 years old. I just
+  # finished pouring concrete on a 12-unit block in Ojodu Berger and my
+  # son told me to put it on this DreamHomes thing instead of paying a
+  # billboard guy. Let's see.
+
+  # I picked OWNER because I am the developer. publicRole=true so people
+  # can see my name attached to the units. Did not give a license number
+  # because I am not an agent — Emeka will be the agent.
+
+  # 202 with no body. Same complaint as everyone else: now I have to log
+  # in again. For someone who has 12 units to push live today this is
+  # already one extra step I do not want.
+}

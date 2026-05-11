@@ -1,0 +1,31 @@
+meta {
+  name: 24-See my inspections (attempted)
+  type: http
+  seq: 24
+}
+
+get {
+  url: {{host}}/api/inspections/mine
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{temi_token}}
+}
+
+assert {
+  res.status: in [200, 401, 404]
+}
+
+docs {
+  Where can I see my upcoming inspection? I want a "my bookings"
+  page like Booking.com. The spec only documents POST /inspections
+  — there's no GET /inspections/mine, no GET /inspections/{id}, no
+  way to read what I just submitted, no way to cancel. The
+  persona doc explicitly says "I can cancel before the slot time?
+  (confirm — may not be in current scope)" — and the spec
+  confirms: NO, you can't.
+
+  Trying anyway — expecting 404.
+}

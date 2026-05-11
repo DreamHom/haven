@@ -1,0 +1,29 @@
+meta {
+  name: 01-UnreadCount
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/api/notifications/mine/unread-count
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{biodunJwt}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  # Friday morning. I'm at the new site in Ibadan. Coffee in hand.
+  # First check: how many things demand my attention?
+  #
+  # Returns just a count. It does not tell me HOW MANY are offers vs.
+  # comments vs. agent-acceptance acks vs. system. As a developer I
+  # only care about offers — a single number lumping everything together
+  # is not useful for triage.
+}

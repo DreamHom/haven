@@ -1,0 +1,20 @@
+meta {
+  name: 02-day1-browse-page-2
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/api/listings?page=1&size=10
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  # Still browsing — am I being shown the same five fake listings on
+  # every page? On the last platform, that's exactly what happened.
+}

@@ -1,0 +1,33 @@
+meta {
+  name: 27-See my offers (attempted)
+  type: http
+  seq: 27
+}
+
+get {
+  url: {{host}}/api/offers/mine
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{temi_token}}
+}
+
+assert {
+  res.status: in [200, 401, 404]
+}
+
+docs {
+  Where can I see "my offers" as a Booking.com-style activity tab?
+  The spec only documents:
+  - POST /offers (submit)
+  - PATCH /offers/{id} (accept/decline)
+  - POST /offers/{id}/counter
+
+  There is NO `GET /offers/mine`, NO `GET /offers/{id}`, NO way to
+  list everything I've offered on. I have to track offers via
+  notifications only. That's missing.
+
+  Trying anyway — expecting 404.
+}

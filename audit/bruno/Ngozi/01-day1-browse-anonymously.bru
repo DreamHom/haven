@@ -1,0 +1,35 @@
+meta {
+  name: 01-day1-browse-anonymously
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/api/listings?page=0&size=10
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.content: isDefined
+  res.body.page: isDefined
+}
+
+docs {
+  # Day 1, 9:42pm — Lagos
+
+  My husband swears this platform is different. I've heard that before.
+  I open it on my phone in airplane mode'd skepticism — no account, no
+  email, nothing they can hook me with. Just looking.
+
+  What I want to see on the listing card before I'd ever click in:
+  - A verified-property badge
+  - The agent's name and rating
+  - A real Lagos address
+  - A price that isn't suspiciously cheap
+
+  I also want to confirm THE PLATFORM ITSELF doesn't ask me for a fee
+  to browse. The previous platforms didn't either, of course — that
+  comes later, off-platform. But I'm watching.
+}

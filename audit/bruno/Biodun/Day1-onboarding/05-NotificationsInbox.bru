@@ -1,0 +1,30 @@
+meta {
+  name: 05-NotificationsInbox
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{host}}/api/notifications/mine
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{biodunJwt}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  # Refreshing to see if Dayo has approved my OWNER_IDENTITY yet. He has
+  # not. Empty inbox. There's no "verification status" endpoint I can hit
+  # for a fast yes/no — my only feedback channel is a notification, which
+  # means I'm sat refreshing inbox when I should be sleeping.
+
+  # As a developer juggling another project I'd want a tiny "pending /
+  # approved / rejected" widget I could glance at. Not a notification
+  # firehose.
+}

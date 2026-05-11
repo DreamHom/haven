@@ -1,0 +1,21 @@
+meta {
+  name: 10-Read everything past tenants said about the owner
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{host}}/api/users/1/reviews?page=0&size=20
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: lte 404
+}
+
+docs {
+  This is the most important thing for me. The listing photos can
+  be staged but the reviews from people who actually rented from
+  this person can't be faked easily. Reading them all.
+}

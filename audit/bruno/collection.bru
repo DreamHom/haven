@@ -1,0 +1,41 @@
+meta {
+  name: DreamHomes Haven — persona audit
+  type: collection
+}
+
+docs {
+  # DreamHomes Haven — persona audit collection
+
+  Each top-level folder is one user persona walking their full chronological
+  journey through the DreamHomes API. Personas:
+
+  - **Amaka** — solo Lagos landlord (OWNER, no agent)
+  - **Emeka** — hustling agent (AGENT, gets assigned to listings)
+  - **Temi** — first-time renter (APPLICANT, golden path)
+  - **Ngozi** — burned-three-times skeptic (APPLICANT, scrutinises trust signals)
+  - **Biodun** — developer with 12 units (OWNER, delegates to Emeka)
+  - **Dayo** — platform admin (admin moderation, verification queue)
+
+  ## How to use the GUI
+
+  1. **File → Open Collection** → pick `audit/bruno/`
+  2. **Top-right environment dropdown** → select `Local`
+  3. **Settings (gear icon) → Variables tab** → set `run_tag` to anything
+     unique like `b1`, `friday-am`, etc. Each run uses a fresh email so the
+     DB stays clean across runs.
+  4. Click any request to inspect it. The **Docs** tab on each request
+     contains the persona's in-character notes.
+  5. Right-click a folder → **Run Folder** to execute the whole persona's flow.
+
+  ## How to use the CLI
+
+  ```
+  cd audit/bruno
+  bru run --env Local --env-var run_tag=$(date +%s) --reporter-html ../reports/amaka.html Amaka
+  ```
+
+  ## Rules for persona-agents
+
+  See `../RULES.md`. TL;DR: only consult `audit/openapi.json` + your persona
+  doc + the open internet. No source code. No other personas' files.
+}

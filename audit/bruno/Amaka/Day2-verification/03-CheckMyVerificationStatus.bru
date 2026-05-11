@@ -1,0 +1,32 @@
+meta {
+  name: 03-CheckMyVerificationStatus
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{host}}/api/verifications/mine
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{amakaJwt}}
+}
+
+assert {
+  res.status: eq 404
+}
+
+docs {
+  # Want to see my submission and confirm it's "pending review".
+
+  🚫 EXPECTED-MISSING: my persona doc says I should be able to see my own
+  verifications via `GET /verifications/mine`. The OpenAPI spec doesn't
+  list that path. Only admins can browse the queue (`GET /admin/verifications`).
+  So after I submit, I have NO WAY to confirm my submission was saved. I
+  just have to trust the 201 response and wait. That's terrible for trust —
+  this is exactly the moment I'd be most anxious.
+
+  This call will 404. Recording it as a finding and moving on.
+}

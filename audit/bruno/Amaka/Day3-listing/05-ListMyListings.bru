@@ -1,0 +1,32 @@
+meta {
+  name: 05-ListMyListings
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{host}}/api/listings/mine
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{amakaJwt}}
+}
+
+assert {
+  res.status: eq 404
+}
+
+docs {
+  # I want to see all my own listings on a "My Listings" page like I would
+  # on Jiji or Property24. My persona doc says this should exist.
+
+  🚫 EXPECTED-MISSING: There is no `GET /listings/mine` in the spec. I have
+  no way to fetch JUST my own listings as the authenticated owner. My
+  options to see my listing again are: remember the ID, OR scroll the
+  PUBLIC listings page until I find it. That's not acceptable for a
+  property-management tool.
+
+  Same for properties — no `GET /properties/mine`. I'm flying blind.
+}

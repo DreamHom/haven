@@ -1,0 +1,30 @@
+meta {
+  name: 11-Logout
+  type: http
+  seq: 11
+}
+
+post {
+  url: {{host}}/api/auth/logout
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{amakaJwt}}
+}
+
+assert {
+  res.status: eq 204
+}
+
+docs {
+  # End of week. Logging out from my office laptop because I share the
+  # desk with a colleague.
+
+  ✅ 204 returned. The spec says this bumps tokenVersion to invalidate
+  ALL tokens, so my phone session would also be killed — which is NOT
+  what I want here. As a real user I'd want "log out this session" vs
+  "log out everywhere" as separate options. The spec only offers the
+  nuclear one.
+}

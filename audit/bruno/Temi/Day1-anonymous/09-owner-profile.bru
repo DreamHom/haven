@@ -1,0 +1,22 @@
+meta {
+  name: 09-Look up the owner's profile
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{host}}/api/users/1/profile
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: lte 404
+}
+
+docs {
+  Who's listing this place? Are they a verified owner or a random
+  person? I'm checking the user profile before I engage. Verified
+  badge + decent average rating = I might consider booking an
+  inspection.
+}

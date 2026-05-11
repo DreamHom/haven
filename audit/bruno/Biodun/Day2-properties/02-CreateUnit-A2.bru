@@ -1,0 +1,46 @@
+meta {
+  name: 02-CreateUnit-A2
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{host}}/api/properties
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{biodunJwt}}
+}
+
+body:json {
+  {
+    "type": "APARTMENT",
+    "address": "Unit A2, Plot 7 Berger Road, Ojodu, Lagos",
+    "bedrooms": 1,
+    "bathrooms": 1,
+    "sizeSqm": 52,
+    "description": "Brand new 1-bed off-plan apartment, ground floor of new 12-unit block in Ojodu Berger. Tiled floors, POP ceiling, kitchen cabinets included. Estate has 24/7 security, borehole and treatment plant, paved compound."
+  }
+}
+
+assert {
+  res.status: eq 201
+}
+
+script:post-response {
+  if (res.body && res.body.id) {
+    bru.setVar("propertyA2", res.body.id);
+  }
+}
+
+docs {
+  # Unit 2 of 12. I just copy-pasted everything except "A1" → "A2". This
+  # is exactly the friction the persona doc warned about. Six more 1-bed
+  # units to go and then six 2-beds upstairs.
+
+  # A "duplicate this property, change the address" button on the front
+  # end would mask this — but the BACKEND owes me a bulk-create or at
+  # least a "create child unit of property X" endpoint.
+}

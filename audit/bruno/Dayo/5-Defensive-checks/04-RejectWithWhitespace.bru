@@ -1,0 +1,31 @@
+meta {
+  name: 04-RejectWithWhitespace
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{host}}/api/admin/verifications/{{ownerVerificationId}}/reject
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{jwt}}
+}
+
+body:json {
+  {
+    "reason": "     "
+  }
+}
+
+assert {
+  res.status: eq 400
+}
+
+docs {
+  # Same idea, but whitespace-only. A common bypass when validation only
+  # checks length not content. Persona Story 3 explicitly calls out
+  # "whitespace-only reason → 400 before any DB write".
+}

@@ -1,0 +1,51 @@
+meta {
+  name: 02-OpenSaturdaySlot
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{host}}/api/listings/{{amakaListingId}}/slots
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{amakaJwt}}
+}
+
+script:pre-request {
+  // Open a slot 7 days from now, 10am-12pm WAT (UTC+1) — Saturday morning.
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() + 7);
+  d.setUTCHours(9, 0, 0, 0); // 09:00 UTC = 10:00 WAT
+  bru.setVar("slotStart", d.toISOString());
+  const e = new Date(d.getTime() + 2 * 60 * 60 * 1000);
+  bru.setVar("slotEnd", e.toISOString());
+}
+
+body:json {
+  {
+    "startsAt": "{{slotStart}}",
+    "endsAt": "{{slotEnd}}"
+  }
+}
+
+assert {
+  res.status: eq 201
+  res.body.id: isDefined
+}
+
+script:post-response {
+  bru.setVar("amakaSlot1Id", res.body.id);
+}
+
+docs {
+  # 10am-12pm next Saturday — when my caretaker can open the gate.
+
+  ✅ Slot created.
+
+  ⚠️ I can't tag a slot with WHO will be present (me, my caretaker, etc.)
+  or any prep notes ("Use the side gate"). Slot is just a window. Whatever
+  context I'd give, I have to repeat manually to every applicant.
+}

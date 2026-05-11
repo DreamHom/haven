@@ -1,0 +1,41 @@
+meta {
+  name: 01-RefreshQueueOwner
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/api/admin/verifications?type=OWNER_IDENTITY&page=0&size=20
+  auth: bearer
+}
+
+params:query {
+  type: OWNER_IDENTITY
+  page: 0
+  size: 20
+}
+
+auth:bearer {
+  token: {{jwt}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+script:post-response {
+  if (res && res.body && Array.isArray(res.body.content) && res.body.content.length > 0) {
+    bru.setVar("ownerVerificationId", res.body.content[0].id);
+    bru.setVar("ownerSubmitterId", res.body.content[0].submitterUserId);
+  }
+}
+
+docs {
+  # 12:50pm — back from getting suya. Other personas should have submitted
+  # by now. Re-pulling the queue.
+
+  Notice the polling pattern: there's no notification, no SSE, no badge
+  count delta. I just have to keep re-fetching to find out if anything
+  arrived. For T&S that's wrong direction — the moment a NEW agent-
+  credentials submission lands, I want a push.
+}

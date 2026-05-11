@@ -1,0 +1,48 @@
+meta {
+  name: 01-Login
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{host}}/api/auth/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "admin@dreamhomes.local",
+    "password": "AuditAdmin#1!"
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+script:post-response {
+  if (res && res.body && res.body.token) {
+    bru.setVar("jwt", res.body.token);
+  }
+}
+
+docs {
+  # 8:42am — laptop open, coffee in hand. First thing every morning.
+
+  Single endpoint, JSON body, returns a token. That part is fine on the
+  spec. The spec promises a `LoginResponse { token }` and nothing else —
+  no `userId`, no `role`, no `tokenVersion`, no `expiresAt`.
+
+  As an admin operator that already bothers me. If I get a token I can't
+  even tell from the response *which account* I just authenticated as. I
+  have to make a separate `GET /me` round-trip just to confirm I logged in
+  as the admin and not some test account someone forgot about. For a T&S
+  console that's wasted clicks every shift change.
+
+  Also: `POST /auth/login` is rate-limited per IP (per the brief). There's
+  no documented "admin override" or "internal IP allowlist" — meaning if
+  another teammate on the same office NAT is hammering login with a script,
+  I get locked out of moderation. That's a real-world problem, not a
+  hypothetical.
+}

@@ -1,0 +1,26 @@
+meta {
+  name: 19-day7-saves-mine
+  type: http
+  seq: 19
+}
+
+get {
+  url: {{host}}/api/saves/mine?page=0&size=20
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{ngozi_token}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.content: isDefined
+}
+
+docs {
+  # And the saved-listings list. I want to confirm it's actually
+  # private — only I see my saves. The spec says it's scoped to the
+  # JWT subject; I'll trust that for now.
+}

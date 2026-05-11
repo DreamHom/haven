@@ -1,0 +1,35 @@
+meta {
+  name: 02-Login
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{host}}/api/auth/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "{{amakaEmail}}",
+    "password": "{{amakaPassword}}"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.token: isDefined
+}
+
+script:post-response {
+  bru.setVar("amakaJwt", res.body.token);
+}
+
+docs {
+  # Right after register — had to type the password again.
+
+  Got a token back. The response is just `{ "token": "..." }` — I have no
+  idea who I am, what my user ID is, when this expires, or whether the
+  server even noticed I'm an OWNER. I'd expect maybe a `user` object too.
+}

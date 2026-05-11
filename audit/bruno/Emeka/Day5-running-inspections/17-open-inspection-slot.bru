@@ -1,0 +1,41 @@
+meta {
+  name: 17-Open a Saturday morning inspection slot (BLOCKED — needs ACCEPTED assignment)
+  type: http
+  seq: 17
+}
+
+post {
+  url: {{host}}/api/listings/{{emeka_assigned_listing_id}}/slots
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{emeka_jwt}}
+}
+
+body:json {
+  {
+    "startsAt": "2026-05-16T09:00:00Z",
+    "endsAt": "2026-05-16T11:00:00Z"
+  }
+}
+
+assert {
+  res.status: in [201, 200, 403, 404, 401]
+}
+
+docs {
+  Saturday 10am Lagos time = 9am UTC. I want a 2h window for back-to-
+  back walkthroughs of the 3-bed in Trans-Amadi.
+
+  The spec for POST /listings/{id}/slots literally says
+  "Authorisation: the listing's owner (today). Assigned agent..." —
+  the sentence trails off. Does the assigned agent actually have
+  authority here or not? The contract is unclear. Per my persona
+  doc Story 6, both owner AND assigned agent are authorised. If the
+  spec text is current and assigned-agent is NOT authorised, that's
+  a major bug for me — Story 6 is broken.
+
+  BLOCKED solo: no listing id, no acceptance in place. Will 403/404.
+}

@@ -1,0 +1,46 @@
+meta {
+  name: 04-CreateUnit-B2
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{host}}/api/properties
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{biodunJwt}}
+}
+
+body:json {
+  {
+    "type": "APARTMENT",
+    "address": "Unit B2, Plot 7 Berger Road, Ojodu, Lagos",
+    "bedrooms": 2,
+    "bathrooms": 2,
+    "sizeSqm": 78,
+    "description": "Brand new 2-bed off-plan apartment, first floor of new 12-unit block in Ojodu Berger. En-suite master, fully fitted kitchen, balcony, POP ceiling, ample parking. Estate has 24/7 security, borehole and treatment plant, paved compound."
+  }
+}
+
+assert {
+  res.status: eq 201
+}
+
+script:post-response {
+  if (res.body && res.body.id) {
+    bru.setVar("propertyB2", res.body.id);
+  }
+}
+
+docs {
+  # Stopping at 4 properties for the audit. In reality I would now have
+  # to do this 8 more times. That's 8 more clicks of "Create", 8 more
+  # confirmations, 8 more "did the network drop" anxieties. Compare with
+  # what I do at the bank: the relationship manager knows me, types the
+  # 12 unit numbers into a spreadsheet template, hits go. One transaction.
+
+  # 🚫 No bulk-create endpoint exists in the spec.
+}

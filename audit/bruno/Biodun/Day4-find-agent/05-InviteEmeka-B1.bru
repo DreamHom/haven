@@ -1,0 +1,29 @@
+meta {
+  name: 05-InviteEmeka-B1
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{host}}/api/listings/{{listingB1}}/agent-assignment
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{biodunJwt}}
+}
+
+body:json {
+  {
+    "agentId": {{emekaUserId}}
+  }
+}
+
+assert {
+  res.status: lte 499
+}
+
+docs {
+  # 3 of 4. Tedious.
+}

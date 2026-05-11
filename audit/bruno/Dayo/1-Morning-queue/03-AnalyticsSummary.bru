@@ -1,0 +1,39 @@
+meta {
+  name: 03-AnalyticsSummary
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{host}}/api/admin/analytics/summary
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{jwt}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+script:post-response {
+  if (res && res.body && typeof res.body.pendingVerifications !== 'undefined') {
+    bru.setVar("pendingVerificationCount", res.body.pendingVerifications);
+  }
+}
+
+docs {
+  # 8:44am — dashboard glance before I open the queue.
+
+  Useful: I get one number for `pendingVerifications`. That's the closest
+  thing to a "queue depth" badge I have. No breakdown by type though, so
+  I can't tell at a glance whether the backlog is Owner identity or Agent
+  credentials. If 47 things are pending I have no idea which to staff up
+  for.
+
+  Also missing for an operator: no `pendingListingReports` count (because
+  there's no admin queue for listing reports at all — see Story 8). No
+  `pendingTakedownAppeals`. No "verifications waiting > 24h" SLA breach
+  count. This dashboard is a launch-day stub, not a T&S console.
+}

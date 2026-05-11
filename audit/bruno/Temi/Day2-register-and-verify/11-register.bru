@@ -1,0 +1,51 @@
+meta {
+  name: 11-Register as APPLICANT
+  type: http
+  seq: 11
+}
+
+post {
+  url: {{host}}/api/auth/register
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "temi.adebayo.yaba+{{run_tag}}@gmail.com",
+    "password": "Yaba-First-Move-2026!",
+    "fullName": "Temi Adebayo",
+    "displayName": "Temi A.",
+    "phone": "+2348101234567",
+    "role": "APPLICANT",
+    "publicRole": true
+  }
+}
+
+assert {
+  res.status: in [201, 202]
+}
+
+script:post-response {
+  if (res.status === 202 || res.status === 201) {
+    bru.setVar("temi_email", "temi.adebayo.yaba+" + bru.getEnvVar("run_tag") + "@gmail.com");
+    bru.setVar("temi_password", "Yaba-First-Move-2026!");
+  }
+}
+
+docs {
+  Day 2. I came back. I want to save a couple of these places so I
+  don't have to scroll-and-find them again. The app says I need an
+  account first.
+
+  Picking a real-looking gmail because the spec says strict email
+  validation. Phone is a real Nigerian MTN range. Password has 24
+  chars with a symbol — should clear the "common password
+  blocklist" the persona doc mentions.
+
+  Side note: the spec says this returns 202 with NO body, even on
+  success. So I won't get my JWT here — I have to go and log in
+  separately. That's a friction surprise vs every other consumer
+  app I've used (Cowrywise, Carbon, Kuda) where signup auto-logs me
+  in. Will note this in my review.
+}
