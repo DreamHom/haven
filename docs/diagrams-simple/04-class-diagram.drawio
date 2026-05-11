@@ -1,0 +1,240 @@
+<mxfile host="Electron" agent="DreamHomes">
+  <diagram name="Class Diagram" id="class-diagram-simple">
+    <mxGraphModel dx="1700" dy="1300" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1700" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="title" value="DreamHomes Haven — Class Diagram (simple)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontFamily=Helvetica;fontSize=16;fontStyle=1;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="40" y="10" width="1620" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="legend" value="Layered: Controller → Service → Repository → Entity. Boxes coloured by feature: identity (blue), property/listing (green), inspection/offer (red), verification (purple), notification/outbox (orange), admin (grey)." style="rounded=0;whiteSpace=wrap;html=1;strokeColor=none;fillColor=none;fontFamily=Helvetica;fontSize=11;fontStyle=2;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="40" y="48" width="1620" height="22" as="geometry" />
+        </mxCell>
+
+        <!-- Row labels -->
+        <mxCell id="lbl-controller" value="«controller»" style="text;html=1;strokeColor=none;fillColor=none;fontFamily=Helvetica;fontSize=11;fontStyle=2;align=right;" vertex="1" parent="1">
+          <mxGeometry x="20" y="100" width="80" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl-service" value="«service»" style="text;html=1;strokeColor=none;fillColor=none;fontFamily=Helvetica;fontSize=11;fontStyle=2;align=right;" vertex="1" parent="1">
+          <mxGeometry x="20" y="240" width="80" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl-repo" value="«repository»" style="text;html=1;strokeColor=none;fillColor=none;fontFamily=Helvetica;fontSize=11;fontStyle=2;align=right;" vertex="1" parent="1">
+          <mxGeometry x="20" y="380" width="80" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl-entity" value="«entity»" style="text;html=1;strokeColor=none;fillColor=none;fontFamily=Helvetica;fontSize=11;fontStyle=2;align=right;" vertex="1" parent="1">
+          <mxGeometry x="20" y="520" width="80" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- ============================ COLUMN 1: AUTH / IDENTITY (blue) ============================ -->
+        <mxCell id="ctrl-auth" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontFamily=Helvetica;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;" value="AuthController" vertex="1">
+          <mxGeometry height="50" width="180" x="120" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="svc-auth" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontFamily=Helvetica;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;" value="AuthService" vertex="1">
+          <mxGeometry height="50" width="180" x="120" y="240" as="geometry" />
+        </mxCell>
+        <mxCell id="svc-jwt" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontFamily=Helvetica;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;" value="JwtService" vertex="1">
+          <mxGeometry height="50" width="180" x="120" y="310" as="geometry" />
+        </mxCell>
+        <mxCell id="repo-user" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontFamily=Helvetica;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;" value="UserRepository" vertex="1">
+          <mxGeometry height="50" width="180" x="120" y="380" as="geometry" />
+        </mxCell>
+        <mxCell id="ent-user" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontFamily=Helvetica;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;" value="User" vertex="1">
+          <mxGeometry height="50" width="180" x="120" y="520" as="geometry" />
+        </mxCell>
+        <mxCell id="ent-agentprofile" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontFamily=Helvetica;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;" value="AgentProfile" vertex="1">
+          <mxGeometry height="50" width="180" x="120" y="590" as="geometry" />
+        </mxCell>
+
+        <!-- ============================ COLUMN 2: PROPERTY / LISTING (green) ============================ -->
+        <mxCell id="ctrl-property" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontFamily=Helvetica;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;" value="PropertyController" vertex="1">
+          <mxGeometry height="50" width="180" x="360" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="ctrl-listing" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontFamily=Helvetica;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;" value="ListingController" vertex="1">
+          <mxGeometry height="50" width="180" x="360" y="160" as="geometry" />
+        </mxCell>
+        <mxCell id="svc-property" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontFamily=Helvetica;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;" value="PropertyService" vertex="1">
+          <mxGeometry height="50" width="180" x="360" y="240" as="geometry" />
+        </mxCell>
+        <mxCell id="svc-listing" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontFamily=Helvetica;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;" value="ListingService" vertex="1">
+          <mxGeometry height="50" width="180" x="360" y="310" as="geometry" />
+        </mxCell>
+        <mxCell id="repo-property" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontFamily=Helvetica;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;" value="PropertyRepository" vertex="1">
+          <mxGeometry height="50" width="180" x="360" y="380" as="geometry" />
+        </mxCell>
+        <mxCell id="repo-listing" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontFamily=Helvetica;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;" value="ListingRepository" vertex="1">
+          <mxGeometry height="50" width="180" x="360" y="450" as="geometry" />
+        </mxCell>
+        <mxCell id="ent-property" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontFamily=Helvetica;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;" value="Property" vertex="1">
+          <mxGeometry height="50" width="180" x="360" y="520" as="geometry" />
+        </mxCell>
+        <mxCell id="ent-listing" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontFamily=Helvetica;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;" value="Listing" vertex="1">
+          <mxGeometry height="50" width="180" x="360" y="590" as="geometry" />
+        </mxCell>
+
+        <!-- ============================ COLUMN 3: INSPECTION / OFFER (red) ============================ -->
+        <mxCell id="ctrl-inspection" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontFamily=Helvetica;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;" value="InspectionController" vertex="1">
+          <mxGeometry height="50" width="180" x="600" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="ctrl-offer" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontFamily=Helvetica;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;" value="OfferController" vertex="1">
+          <mxGeometry height="50" width="180" x="600" y="160" as="geometry" />
+        </mxCell>
+        <mxCell id="svc-inspection" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontFamily=Helvetica;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;" value="InspectionService" vertex="1">
+          <mxGeometry height="50" width="180" x="600" y="240" as="geometry" />
+        </mxCell>
+        <mxCell id="svc-offer" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontFamily=Helvetica;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;" value="OfferService" vertex="1">
+          <mxGeometry height="50" width="180" x="600" y="310" as="geometry" />
+        </mxCell>
+        <mxCell id="repo-inspectionrequest" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontFamily=Helvetica;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;" value="InspectionRepositories" vertex="1">
+          <mxGeometry height="50" width="180" x="600" y="380" as="geometry" />
+        </mxCell>
+        <mxCell id="repo-offer" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontFamily=Helvetica;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;" value="OfferRepository" vertex="1">
+          <mxGeometry height="50" width="180" x="600" y="450" as="geometry" />
+        </mxCell>
+        <mxCell id="ent-inspectionslot" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontFamily=Helvetica;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;" value="InspectionSlot + Request" vertex="1">
+          <mxGeometry height="50" width="180" x="600" y="520" as="geometry" />
+        </mxCell>
+        <mxCell id="ent-offer" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontFamily=Helvetica;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;" value="Offer" vertex="1">
+          <mxGeometry height="50" width="180" x="600" y="590" as="geometry" />
+        </mxCell>
+
+        <!-- ============================ COLUMN 4: VERIFICATION (purple) ============================ -->
+        <mxCell id="ctrl-verif" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontFamily=Helvetica;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;" value="VerificationController" vertex="1">
+          <mxGeometry height="50" width="200" x="840" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="svc-verif" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontFamily=Helvetica;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;" value="VerificationService" vertex="1">
+          <mxGeometry height="50" width="200" x="840" y="240" as="geometry" />
+        </mxCell>
+        <mxCell id="repo-verif" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontFamily=Helvetica;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;" value="VerificationRepository" vertex="1">
+          <mxGeometry height="50" width="200" x="840" y="380" as="geometry" />
+        </mxCell>
+        <mxCell id="ent-verif" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontFamily=Helvetica;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;" value="Verification" vertex="1">
+          <mxGeometry height="50" width="200" x="840" y="520" as="geometry" />
+        </mxCell>
+
+        <!-- ============================ COLUMN 5: NOTIFICATION / OUTBOX (orange) ============================ -->
+        <mxCell id="svc-notif" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontFamily=Helvetica;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;" value="NotificationService" vertex="1">
+          <mxGeometry height="50" width="200" x="1080" y="240" as="geometry" />
+        </mxCell>
+        <mxCell id="svc-relay" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontFamily=Helvetica;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;" value="OutboxRelay" vertex="1">
+          <mxGeometry height="50" width="200" x="1080" y="310" as="geometry" />
+        </mxCell>
+        <mxCell id="repo-notif" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontFamily=Helvetica;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;" value="NotificationRepository" vertex="1">
+          <mxGeometry height="50" width="200" x="1080" y="380" as="geometry" />
+        </mxCell>
+        <mxCell id="repo-outbox" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontFamily=Helvetica;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;" value="OutboxEventRepository" vertex="1">
+          <mxGeometry height="50" width="200" x="1080" y="450" as="geometry" />
+        </mxCell>
+        <mxCell id="ent-notif" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontFamily=Helvetica;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;" value="Notification" vertex="1">
+          <mxGeometry height="50" width="200" x="1080" y="520" as="geometry" />
+        </mxCell>
+        <mxCell id="ent-outbox" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontFamily=Helvetica;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;" value="OutboxEvent" vertex="1">
+          <mxGeometry height="50" width="200" x="1080" y="590" as="geometry" />
+        </mxCell>
+
+        <!-- ============================ COLUMN 6: ADMIN (grey) ============================ -->
+        <mxCell id="ctrl-adminv" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontFamily=Helvetica;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;" value="AdminVerificationController" vertex="1">
+          <mxGeometry height="50" width="240" x="1320" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ctrl-adminl" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontFamily=Helvetica;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;" value="AdminListingController" vertex="1">
+          <mxGeometry height="50" width="240" x="1320" y="140" as="geometry" />
+        </mxCell>
+        <mxCell id="ctrl-adminu" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontFamily=Helvetica;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;" value="AdminUserController" vertex="1">
+          <mxGeometry height="50" width="240" x="1320" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="svc-adminv" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontFamily=Helvetica;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;" value="AdminVerificationService" vertex="1">
+          <mxGeometry height="50" width="240" x="1320" y="270" as="geometry" />
+        </mxCell>
+        <mxCell id="svc-adminl" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontFamily=Helvetica;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;" value="AdminListingService" vertex="1">
+          <mxGeometry height="50" width="240" x="1320" y="330" as="geometry" />
+        </mxCell>
+        <mxCell id="svc-adminu" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontFamily=Helvetica;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;" value="AdminUserService" vertex="1">
+          <mxGeometry height="50" width="240" x="1320" y="390" as="geometry" />
+        </mxCell>
+        <mxCell id="repo-adminaudit" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontFamily=Helvetica;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;" value="AdminAuditLogRepository" vertex="1">
+          <mxGeometry height="50" width="240" x="1320" y="460" as="geometry" />
+        </mxCell>
+        <mxCell id="ent-adminauditlog" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontFamily=Helvetica;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;" value="AdminAuditLog" vertex="1">
+          <mxGeometry height="50" width="240" x="1320" y="530" as="geometry" />
+        </mxCell>
+        <mxCell id="cmp-adminmetrics" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontFamily=Helvetica;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;" value="AdminMetrics" vertex="1">
+          <mxGeometry height="50" width="240" x="1320" y="590" as="geometry" />
+        </mxCell>
+
+        <!-- ============================ COMMON (DomainException) ============================ -->
+        <mxCell id="ent-domainex" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5d0c5;strokeColor=#b85450;fontFamily=Helvetica;fontSize=12;fontStyle=2;align=center;verticalAlign=middle;dashed=0;" value="DomainException&#10;«abstract»" vertex="1">
+          <mxGeometry height="60" width="220" x="700" y="780" as="geometry" />
+        </mxCell>
+        <mxCell id="cmp-globalex" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontFamily=Helvetica;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;" value="GlobalExceptionHandler" vertex="1">
+          <mxGeometry height="60" width="220" x="980" y="780" as="geometry" />
+        </mxCell>
+        <mxCell id="cmp-security" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontFamily=Helvetica;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;" value="SecurityConfig + JwtAuthenticationFilter" vertex="1">
+          <mxGeometry height="60" width="280" x="120" y="780" as="geometry" />
+        </mxCell>
+        <mxCell id="cmp-outboxrelay" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontFamily=Helvetica;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;" value="Outbox flow:&#10;Service → OutboxEvent → OutboxRelay → Kafka → Listener → NotificationService" vertex="1">
+          <mxGeometry height="60" width="700" x="430" y="900" as="geometry" />
+        </mxCell>
+
+        <!-- ============================ EDGES ============================ -->
+        <!-- All controller→service vertical, service→repo vertical, repo→entity vertical -->
+
+        <!-- Auth column verticals -->
+        <mxCell id="e-cauth-sauth" edge="1" parent="1" source="ctrl-auth" target="svc-auth" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;startArrow=none;endArrow=open;strokeColor=#6c8ebf;"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-sauth-sjwt" edge="1" parent="1" source="svc-auth" target="svc-jwt" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;startArrow=none;endArrow=open;strokeColor=#6c8ebf;"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-sjwt-ruser" edge="1" parent="1" source="svc-jwt" target="repo-user" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;startArrow=none;endArrow=open;strokeColor=#6c8ebf;"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-ruser-euser" edge="1" parent="1" source="repo-user" target="ent-user" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;startArrow=none;endArrow=open;strokeColor=#6c8ebf;"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-euser-eagent" edge="1" parent="1" source="ent-user" target="ent-agentprofile" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;startArrow=ERone;endArrow=ERzeroToOne;strokeColor=#6c8ebf;" value="1:0..1"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- Property/Listing column verticals -->
+        <mxCell id="e-cprop-sprop" edge="1" parent="1" source="ctrl-property" target="svc-property" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;startArrow=none;endArrow=open;strokeColor=#82b366;"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-clist-slist" edge="1" parent="1" source="ctrl-listing" target="svc-listing" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;startArrow=none;endArrow=open;strokeColor=#82b366;"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-sprop-rprop" edge="1" parent="1" source="svc-property" target="repo-property" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;startArrow=none;endArrow=open;strokeColor=#82b366;"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-slist-rlist" edge="1" parent="1" source="svc-listing" target="repo-listing" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;startArrow=none;endArrow=open;strokeColor=#82b366;"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-rprop-eprop" edge="1" parent="1" source="repo-property" target="ent-property" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;startArrow=none;endArrow=open;strokeColor=#82b366;"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-rlist-elist" edge="1" parent="1" source="repo-listing" target="ent-listing" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;startArrow=none;endArrow=open;strokeColor=#82b366;"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- Inspection/Offer column verticals -->
+        <mxCell id="e-cinsp-sinsp" edge="1" parent="1" source="ctrl-inspection" target="svc-inspection" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;startArrow=none;endArrow=open;strokeColor=#b85450;"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-coffer-soffer" edge="1" parent="1" source="ctrl-offer" target="svc-offer" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;startArrow=none;endArrow=open;strokeColor=#b85450;"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-sinsp-rinsp" edge="1" parent="1" source="svc-inspection" target="repo-inspectionrequest" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;startArrow=none;endArrow=open;strokeColor=#b85450;"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-soffer-roffer" edge="1" parent="1" source="svc-offer" target="repo-offer" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;startArrow=none;endArrow=open;strokeColor=#b85450;"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-rinsp-einsp" edge="1" parent="1" source="repo-inspectionrequest" target="ent-inspectionslot" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;startArrow=none;endArrow=open;strokeColor=#b85450;"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-roffer-eoffer" edge="1" parent="1" source="repo-offer" target="ent-offer" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;startArrow=none;endArrow=open;strokeColor=#b85450;"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- Verification column verticals -->
+        <mxCell id="e-cverif-sverif" edge="1" parent="1" source="ctrl-verif" target="svc-verif" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;startArrow=none;endArrow=open;strokeColor=#9673a6;"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-sverif-rverif" edge="1" parent="1" source="svc-verif" target="repo-verif" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;startArrow=none;endArrow=open;strokeColor=#9673a6;"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-rverif-everif" edge="1" parent="1" source="repo-verif" target="ent-verif" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;startArrow=none;endArrow=open;strokeColor=#9673a6;"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- Notification/Outbox verticals -->
+        <mxCell id="e-snotif-rnotif" edge="1" parent="1" source="svc-notif" target="repo-notif" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;startArrow=none;endArrow=open;strokeColor=#d79b00;"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-srelay-routbox" edge="1" parent="1" source="svc-relay" target="repo-outbox" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;startArrow=none;endArrow=open;strokeColor=#d79b00;"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-rnotif-enotif" edge="1" parent="1" source="repo-notif" target="ent-notif" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;startArrow=none;endArrow=open;strokeColor=#d79b00;"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-routbox-eoutbox" edge="1" parent="1" source="repo-outbox" target="ent-outbox" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;startArrow=none;endArrow=open;strokeColor=#d79b00;"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- Admin verticals -->
+        <mxCell id="e-cadminv-sadminv" edge="1" parent="1" source="ctrl-adminv" target="svc-adminv" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;startArrow=none;endArrow=open;strokeColor=#666666;"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-cadminl-sadminl" edge="1" parent="1" source="ctrl-adminl" target="svc-adminl" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;startArrow=none;endArrow=open;strokeColor=#666666;"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-cadminu-sadminu" edge="1" parent="1" source="ctrl-adminu" target="svc-adminu" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;startArrow=none;endArrow=open;strokeColor=#666666;"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-sadmin-raudit" edge="1" parent="1" source="svc-adminu" target="repo-adminaudit" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;startArrow=none;endArrow=open;strokeColor=#666666;"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-raudit-eaudit" edge="1" parent="1" source="repo-adminaudit" target="ent-adminauditlog" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;startArrow=none;endArrow=open;strokeColor=#666666;"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-eaudit-metrics" edge="1" parent="1" source="ent-adminauditlog" target="cmp-adminmetrics" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;startArrow=none;endArrow=open;strokeColor=#666666;"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- DomainException inheritance hub: every package's exceptions extend it.
+             Single dashed lines from each column's service area down to DomainException. -->
+        <mxCell id="e-inh-auth" edge="1" parent="1" source="svc-auth" target="ent-domainex" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.3;startArrow=none;endArrow=block;endFill=0;dashed=1;strokeColor=#b85450;" value="throws"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="700" y="265" /></Array></mxGeometry></mxCell>
+        <mxCell id="e-inh-listing" edge="1" parent="1" source="svc-listing" target="ent-domainex" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.3;entryY=0;startArrow=none;endArrow=block;endFill=0;dashed=1;strokeColor=#b85450;"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-inh-offer" edge="1" parent="1" source="svc-offer" target="ent-domainex" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;startArrow=none;endArrow=block;endFill=0;dashed=1;strokeColor=#b85450;"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-inh-verif" edge="1" parent="1" source="svc-verif" target="ent-domainex" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.7;entryY=0;startArrow=none;endArrow=block;endFill=0;dashed=1;strokeColor=#b85450;"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-inh-admin" edge="1" parent="1" source="svc-adminu" target="ent-domainex" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0;exitY=0.5;entryX=1;entryY=0.5;startArrow=none;endArrow=block;endFill=0;dashed=1;strokeColor=#b85450;"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- GlobalExceptionHandler handles DomainException -->
+        <mxCell id="e-globex-domex" edge="1" parent="1" source="cmp-globalex" target="ent-domainex" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0;exitY=0.5;entryX=1;entryY=0.5;startArrow=none;endArrow=open;strokeColor=#666666;" value="@ExceptionHandler"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- AdminVerificationService cross-package collaboration -->
+        <mxCell id="e-adminv-rverif" edge="1" parent="1" source="svc-adminv" target="repo-verif" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0;exitY=0.5;entryX=1;entryY=0.5;startArrow=none;endArrow=open;strokeColor=#9673a6;dashed=1;" value="reads / writes"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-adminv-rnotif" edge="1" parent="1" source="svc-adminv" target="repo-notif" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0;exitY=0.5;entryX=1;entryY=0.5;startArrow=none;endArrow=open;strokeColor=#d79b00;dashed=1;" value="sync notify"><mxGeometry relative="1" as="geometry" /></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

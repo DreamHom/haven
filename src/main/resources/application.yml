@@ -1,0 +1,152 @@
+spring:
+  application:
+    name: dreamhomes-haven
+  datasource:
+    # Host port defaults to 5433 (see docker-compose.yml — host 5432 is taken locally).
+    # Override with DB_PORT if you remap the compose stack.
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5433}/${DB_NAME:dreamhomes_haven}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  flyway:
+    # V11 seeds the platform admin (PRD §4.10: "Seeded admin account — no
+    # self-registration"). ADMIN_EMAIL + ADMIN_PASSWORD_HASH are REQUIRED — no
+    # defaults — so a misconfigured deploy fails Spring property resolution at
+    # startup instead of silently shipping a known-default password. Generate
+    # a bcrypt hash with: htpasswd -nbBC 10 "" "your-password" | tail -c +2
+    # (or any bcrypt-10 generator). See README + .env.example.
+    placeholders:
+      admin_email: ${ADMIN_EMAIL}
+      admin_full_name: ${ADMIN_FULL_NAME:Platform Admin}
+      admin_password_hash: ${ADMIN_PASSWORD_HASH}
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      # Wait for all in-sync replicas before counting a send as successful — durability
+      # over throughput, because every event we ship matters per PRD §7.
+      acks: all
+      compression-type: lz4
+      properties:
+        # Idempotent producer: same logical send won't produce duplicate broker writes
+        # even if the ack response is lost. Combined with consumer-side event_id dedup,
+        # delivery is effectively exactly-once at the application layer.
+        enable.idempotence: true
+        # Bounded retries with backoff before the producer surfaces failure to the relay.
+        retries: 5
+        retry.backoff.ms: 100
+        # Stop request stalls from blocking the relay forever.
+        delivery.timeout.ms: 30000
+    consumer:
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      auto-offset-reset: earliest
+      # Manual offset commits — only acknowledge after the listener's DB insert succeeds.
+      # Crash between consume and write → Kafka redelivers (at-least-once); consumer-side
+      # dedup by event_id keeps the insert idempotent.
+      enable-auto-commit: false
+      properties:
+        spring.json.trusted.packages: com.dreamhomes.haven.inspection.events,com.dreamhomes.haven.offer.events
+        spring.json.value.default.type: com.dreamhomes.haven.inspection.events.InspectionRequestedEvent
+    listener:
+      ack-mode: MANUAL_IMMEDIATE
+
+server:
+  port: 8080
+
+cors:
+  # Comma-separated list of origins allowed to call the API. Vista's dev server runs
+  # on :3000 by default; override via CORS_ALLOWED_ORIGINS in non-dev environments.
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+
+# RFC 7807 ProblemDetail `type` URI namespace. Every error response stamps a stable
+# type identifier under this base, e.g. `<base>not-found`, `<base>conflict`. The
+# default points at the repo's `docs/errors/` directory so the URI is a real,
+# clickable explainer for each error family. Override per environment via
+# HAVEN_ERRORS_TYPE_BASE once a hosted docs site exists (e.g. `https://docs.dreamhomes.com/errors/`).
+haven:
+  jwt:
+    # RS256 keypair — production MUST set HAVEN_JWT_PRIVATE_KEY + HAVEN_JWT_PUBLIC_KEY
+    # to PEM-encoded RSA keys (PKCS#8 private, X.509 SubjectPublicKeyInfo public).
+    # No default — missing values fail Spring property resolution at startup, not silently
+    # fall back. Generate with:
+    #   openssl genpkey -algorithm RSA -out private.pem -pkeyopt rsa_keygen_bits:2048
+    #   openssl rsa -in private.pem -pubout -out public.pem
+    # Then set HAVEN_JWT_PRIVATE_KEY="$(cat private.pem)" / HAVEN_JWT_PUBLIC_KEY="$(cat public.pem)".
+    private-key: ${HAVEN_JWT_PRIVATE_KEY}
+    public-key: ${HAVEN_JWT_PUBLIC_KEY}
+    expiration-ms: 3600000
+    issuer: dreamhomes-haven
+    audience: dreamhomes
+  errors:
+    type-base: ${HAVEN_ERRORS_TYPE_BASE:https://github.com/DreamHom/haven/blob/main/docs/errors/}
+  kafka:
+    # Partition count for every topic this app produces (inspection.requested.v1,
+    # offer.submitted.v1, plus their .DLT siblings). Pinned via NewTopic beans in
+    # KafkaTopicConfig so brokers don't auto-create with wrong defaults. Re-partitioning
+    # an existing topic is operationally painful, so set this with intent.
+    topic-partitions: ${HAVEN_KAFKA_TOPIC_PARTITIONS:3}
+    # Replication factor. Default 1 is dev-safe (single-broker); production with a
+    # 3-broker cluster should set this to 3 via env override.
+    replication-factor: ${HAVEN_KAFKA_REPLICATION_FACTOR:1}
+  photos:
+    # PhotoStorage backend selector. Default `local` synthesises a placeholder URL
+    # without persisting bytes anywhere — fine for dev + test because the storage
+    # behaviour is what we test, not the bytes. Production overrides to `r2` and
+    # supplies the credentials below.
+    storage: ${HAVEN_PHOTOS_STORAGE:local}
+    r2:
+      # Cloudflare R2 endpoint URL — usually `https://<account-id>.r2.cloudflarestorage.com`.
+      endpoint: ${HAVEN_PHOTOS_R2_ENDPOINT:}
+      access-key-id: ${HAVEN_PHOTOS_R2_ACCESS_KEY_ID:}
+      secret-access-key: ${HAVEN_PHOTOS_R2_SECRET_ACCESS_KEY:}
+      bucket: ${HAVEN_PHOTOS_R2_BUCKET:}
+      # Public-facing URL the bucket serves under (R2 custom domain, R2.dev fallback,
+      # or a CDN in front). Combined with the object key to produce the URL recorded
+      # on the ListingPhoto row.
+      public-base-url: ${HAVEN_PHOTOS_R2_PUBLIC_BASE_URL:}
+
+# Actuator: expose only the endpoints we want to publicly probe.
+# health = liveness/readiness for k8s/load-balancer probes (PUBLIC — see SecurityConfig).
+# info   = build/git metadata; safe to expose unauthenticated.
+# prometheus = Micrometer scrape target; AUTH-GATED (operator-only) by default.
+# Everything else (env, beans, mappings, etc.) stays disabled in prod.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      # Show component-level details (db, kafka, diskSpace) only when authenticated.
+      # Anonymous probes get just status: UP/DOWN — never the underlying detail.
+      show-details: when-authorized
+      probes:
+        enabled: true
+  info:
+    git:
+      mode: simple
+    build:
+      enabled: true
+
+# springdoc-openapi: pin paths so they're easy to allowlist in security and proxy rules.
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    # Disable the "try it out" form action against external URLs by default; demo
+    # environments can override.
+    try-it-out-enabled: true
+    operations-sorter: method
+    tags-sorter: alpha
+  # Surface actuator endpoints (health, info, prometheus) in the OpenAPI spec so
+  # the "Observability" tag in Scalar shows real entries instead of being empty.
+  # OpenApiConfig#reTagActuatorOperationsToObservability re-labels them under our tag.
+  show-actuator: true

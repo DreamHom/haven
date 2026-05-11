@@ -1,0 +1,162 @@
+<mxfile host="Electron" agent="DreamHomes">
+  <diagram name="ERD" id="erd-simple">
+    <mxGraphModel dx="1362" dy="1542" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="600" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontFamily=Helvetica;fontSize=16;fontStyle=1;align=center;verticalAlign=middle;" value="DreamHomes — Entity Relationship Diagram" vertex="1">
+          <mxGeometry height="30" width="1320" x="40" y="-60" as="geometry" />
+        </mxCell>
+        <mxCell id="verification" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontFamily=Helvetica;fontSize=14;fontStyle=1;" value="Verification" vertex="1">
+          <mxGeometry height="60" width="180" x="480" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="agentlisting" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontFamily=Helvetica;fontSize=14;fontStyle=1;" value="AgentListing" vertex="1">
+          <mxGeometry height="60" width="180" x="920" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="agentprofile" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontFamily=Helvetica;fontSize=14;fontStyle=1;" value="AgentProfile" vertex="1">
+          <mxGeometry height="60" width="180" x="40" y="240" as="geometry" />
+        </mxCell>
+        <mxCell id="user" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontFamily=Helvetica;fontSize=14;fontStyle=1;" value="User" vertex="1">
+          <mxGeometry height="60" width="180" x="260" y="240" as="geometry" />
+        </mxCell>
+        <mxCell id="property" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontFamily=Helvetica;fontSize=14;fontStyle=1;" value="Property" vertex="1">
+          <mxGeometry height="60" width="180" x="480" y="240" as="geometry" />
+        </mxCell>
+        <mxCell id="listing" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontFamily=Helvetica;fontSize=14;fontStyle=1;verticalAlign=middle;" value="&lt;b&gt;Listing&lt;/b&gt;&lt;br&gt;&lt;span style=&#39;font-size:10px;font-weight:normal&#39;&gt;verificationStatus:&lt;br&gt;PENDING_DOCUMENTS · UNDER_REVIEW&lt;br&gt;APPROVED · REJECTED&lt;/span&gt;" vertex="1">
+          <mxGeometry height="120" width="180" x="700" y="240" as="geometry" />
+        </mxCell>
+        <mxCell id="inspectionslot" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontFamily=Helvetica;fontSize=14;fontStyle=1;" value="InspectionSlot" vertex="1">
+          <mxGeometry height="60" width="180" x="920" y="240" as="geometry" />
+        </mxCell>
+        <mxCell id="inspectionrequest" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontFamily=Helvetica;fontSize=14;fontStyle=1;" value="InspectionRequest" vertex="1">
+          <mxGeometry height="60" width="180" x="1140" y="240" as="geometry" />
+        </mxCell>
+        <mxCell id="notification" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontFamily=Helvetica;fontSize=14;fontStyle=1;" value="Notification" vertex="1">
+          <mxGeometry height="60" width="180" x="260" y="420" as="geometry" />
+        </mxCell>
+        <mxCell id="document" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontFamily=Helvetica;fontSize=14;fontStyle=1;" value="Document" vertex="1">
+          <mxGeometry height="60" width="180" x="480" y="420" as="geometry" />
+        </mxCell>
+        <mxCell id="comment" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontFamily=Helvetica;fontSize=14;fontStyle=1;" value="Comment" vertex="1">
+          <mxGeometry height="60" width="180" x="700" y="420" as="geometry" />
+        </mxCell>
+        <mxCell id="offer" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontFamily=Helvetica;fontSize=14;fontStyle=1;" value="Offer" vertex="1">
+          <mxGeometry height="60" width="180" x="920" y="420" as="geometry" />
+        </mxCell>
+        <mxCell id="outboxevent" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontFamily=Helvetica;fontSize=14;fontStyle=1;" value="OutboxEvent" vertex="1">
+          <mxGeometry height="60" width="180" x="1140" y="420" as="geometry" />
+        </mxCell>
+        <mxCell id="adminauditlog" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontFamily=Helvetica;fontSize=14;fontStyle=1;" value="AdminAuditLog" vertex="1">
+          <mxGeometry height="60" width="180" x="40" y="420" as="geometry" />
+        </mxCell>
+        <mxCell id="e-agentprofile-user" edge="1" parent="1" source="agentprofile" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;startArrow=ERone;endArrow=ERone;strokeColor=#000000;fontFamily=Helvetica;fontSize=12;" target="user" value="1:1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-user-property" edge="1" parent="1" source="user" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;startArrow=ERone;endArrow=ERmany;strokeColor=#000000;fontFamily=Helvetica;fontSize=12;" target="property" value="1:N">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-property-listing" edge="1" parent="1" source="property" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.25;entryDx=0;entryDy=0;startArrow=ERone;endArrow=ERmany;strokeColor=#000000;fontFamily=Helvetica;fontSize=12;" target="listing" value="1:N">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-listing-slot" edge="1" parent="1" source="listing" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.25;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;startArrow=ERone;endArrow=ERmany;strokeColor=#000000;fontFamily=Helvetica;fontSize=12;" target="inspectionslot" value="1:N">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-slot-request" edge="1" parent="1" source="inspectionslot" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;startArrow=ERone;endArrow=ERzeroToOne;strokeColor=#000000;fontFamily=Helvetica;fontSize=12;" target="inspectionrequest" value="1:0..1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-property-verification" edge="1" parent="1" source="property" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;startArrow=ERone;endArrow=ERmany;strokeColor=#000000;fontFamily=Helvetica;fontSize=12;" target="verification" value="1:N">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-property-document" edge="1" parent="1" source="property" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;startArrow=ERone;endArrow=ERmany;strokeColor=#000000;fontFamily=Helvetica;fontSize=12;" target="document" value="1:N">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-listing-comment" edge="1" parent="1" source="listing" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;startArrow=ERone;endArrow=ERmany;strokeColor=#000000;fontFamily=Helvetica;fontSize=12;" target="comment" value="1:N">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-request-outbox" edge="1" parent="1" source="inspectionrequest" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;startArrow=ERone;endArrow=ERmany;strokeColor=#000000;fontFamily=Helvetica;fontSize=12;" target="outboxevent" value="1:N">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-offer-outbox" edge="1" parent="1" source="offer" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;startArrow=ERone;endArrow=ERmany;strokeColor=#000000;fontFamily=Helvetica;fontSize=12;" target="outboxevent" value="1:N">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-user-notification" edge="1" parent="1" source="user" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.3;exitY=1;exitDx=0;exitDy=0;entryX=0.3;entryY=0;entryDx=0;entryDy=0;startArrow=ERone;endArrow=ERmany;strokeColor=#000000;fontFamily=Helvetica;fontSize=12;" target="notification" value="1:N">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-user-verification" edge="1" parent="1" source="user" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.95;exitY=0;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;startArrow=ERone;endArrow=ERmany;strokeColor=#000000;fontFamily=Helvetica;fontSize=12;" target="verification" value="1:N">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="431" y="90" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-user-agentlisting" edge="1" parent="1" source="user" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.7;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;startArrow=ERone;endArrow=ERmany;strokeColor=#000000;fontFamily=Helvetica;fontSize=12;" target="agentlisting" value="1:N">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="386" y="40" />
+              <mxPoint x="1010" y="40" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-user-request" edge="1" parent="1" source="user" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;startArrow=ERone;endArrow=ERmany;strokeColor=#000000;fontFamily=Helvetica;fontSize=12;" target="inspectionrequest" value="1:N">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="350" y="20" />
+              <mxPoint x="1230" y="20" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-user-offer" edge="1" parent="1" source="user" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.7;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;startArrow=ERone;endArrow=ERmany;strokeColor=#000000;fontFamily=Helvetica;fontSize=12;" target="offer" value="1:N">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="460" y="282" />
+              <mxPoint x="460" y="540" />
+              <mxPoint x="1010" y="540" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-user-comment" edge="1" parent="1" source="user" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.7;exitY=1;exitDx=0;exitDy=0;entryX=0.4;entryY=0;entryDx=0;entryDy=0;startArrow=ERone;endArrow=ERmany;strokeColor=#000000;fontFamily=Helvetica;fontSize=12;" target="comment" value="1:N">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="386" y="380" />
+              <mxPoint x="772" y="380" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-listing-agentlisting" edge="1" parent="1" source="listing" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.7;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;startArrow=ERone;endArrow=ERmany;strokeColor=#000000;fontFamily=Helvetica;fontSize=12;" target="agentlisting" value="1:N">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="826" y="130" />
+              <mxPoint x="1010" y="130" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-listing-offer" edge="1" parent="1" source="listing" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.7;exitY=1;exitDx=0;exitDy=0;entryX=0.8;entryY=0;entryDx=0;entryDy=0;startArrow=ERone;endArrow=ERmany;strokeColor=#000000;fontFamily=Helvetica;fontSize=12;" target="offer" value="1:N">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="826" y="390" />
+              <mxPoint x="1064" y="390" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <!-- Admin (User with role=ADMIN) writes to AdminAuditLog on every moderation action. -->
+        <mxCell id="e-user-adminauditlog" edge="1" parent="1" source="user" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;startArrow=ERone;endArrow=ERmany;strokeColor=#000000;fontFamily=Helvetica;fontSize=12;" target="adminauditlog" value="1:N admin">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="240" y="270" />
+              <mxPoint x="240" y="450" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <!-- OutboxEvent -> Notification: no FK; the consumer creates the Notification row
+             carrying the same event_id, which is UNIQUE for at-least-once dedup. -->
+        <mxCell id="e-outbox-notification" edge="1" parent="1" source="outboxevent" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;startArrow=ERone;endArrow=ERmany;strokeColor=#666666;fontFamily=Helvetica;fontSize=11;" target="notification" value="via Kafka • event_id dedup">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="500" y="500" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

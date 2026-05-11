@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Logback profile-aware config:
+    • default / dev / test → human-readable console pattern with the requestId stamped
+      from MDC (see RequestIdFilter). Easy to scan during local development and tests.
+    • prod → JSON via logstash-logback-encoder so log aggregators (Loki / ELK / Datadog)
+      ingest cleanly without custom parsing rules.
+
+  Run prod-style locally with: -Dspring.profiles.active=prod
+-->
+<configuration>
+
+  <springProperty scope="context" name="appName" source="spring.application.name" defaultValue="dreamhomes-haven"/>
+
+  <!-- Human-readable pattern for dev/test. requestId is stamped by RequestIdFilter
+       and survives across SLF4J calls inside a request thread. Empty when no request
+       is active (e.g. scheduled tasks, Kafka listeners) — Logback prints "-" then. -->
+  <property name="DEV_PATTERN"
+            value="%d{HH:mm:ss.SSS} %-5level [%thread] %-40.40logger{40} req=%X{requestId:--} - %msg%n"/>
+
+  <springProfile name="default,dev,test">
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+      <encoder>
+        <pattern>${DEV_PATTERN}</pattern>
+      </encoder>
+    </appender>
+
+    <root level="INFO">
+      <appender-ref ref="CONSOLE"/>
+    </root>
+
+    <!-- Quieter framework chatter; our own packages remain at INFO. -->
+    <logger name="org.apache.kafka" level="WARN"/>
+    <logger name="kafka" level="WARN"/>
+    <logger name="org.hibernate" level="WARN"/>
+    <logger name="org.springframework.kafka" level="WARN"/>
+  </springProfile>
+
+  <springProfile name="prod">
+    <appender name="JSON" class="ch.qos.logback.core.ConsoleAppender">
+      <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+        <!-- Include the request correlation id at the top level of each event. -->
+        <includeMdcKeyName>requestId</includeMdcKeyName>
+        <customFields>{"app":"${appName}"}</customFields>
+      </encoder>
+    </appender>
+
+    <root level="INFO">
+      <appender-ref ref="JSON"/>
+    </root>
+
+    <logger name="org.apache.kafka" level="WARN"/>
+    <logger name="org.hibernate" level="WARN"/>
+  </springProfile>
+
+</configuration>
