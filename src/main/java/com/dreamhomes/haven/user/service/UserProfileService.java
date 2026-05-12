@@ -82,15 +82,15 @@ public class UserProfileService {
 
     /**
      * Public agent directory — non-suspended AGENT users. {@code q} is a case-insensitive
-     * substring of name; {@code verifiedOnly} requires identity-verified badge.
+     * substring of name; {@code verified} requires identity-verified badge.
      * Persona audit (Biodun): "delegation-first product where the owner cannot find an
      * agent to delegate to is broken at the design level."
      */
     @Transactional(readOnly = true)
     public org.springframework.data.domain.Page<PublicUserProfile> searchAgents(
-            String q, boolean verifiedOnly,
+            String q, boolean verified,
             org.springframework.data.domain.Pageable pageable) {
-        return userRepository.searchAgents(q, verifiedOnly, pageable)
+        return userRepository.searchAgents(q, verified, pageable)
                 .map(user -> {
                     java.time.Instant credentialVerifiedAt = agentProfileRepository.findById(user.getId())
                             .map(com.dreamhomes.haven.user.model.AgentProfile::getCredentialVerifiedAt)

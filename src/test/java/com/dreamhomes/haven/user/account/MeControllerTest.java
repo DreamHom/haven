@@ -1,9 +1,10 @@
-package com.dreamhomes.haven.auth;
+package com.dreamhomes.haven.user.account;
 
-import com.dreamhomes.haven.auth.controller.MeController;
+import com.dreamhomes.haven.auth.JwtPrincipal;
 import com.dreamhomes.haven.auth.service.JwtService;
+import com.dreamhomes.haven.user.account.controller.MeController;
 import com.dreamhomes.haven.common.config.SecurityConfig;
-import com.dreamhomes.haven.user.dto.MyAccountProfile;
+import com.dreamhomes.haven.user.dto.PrivateUserProfile;
 import com.dreamhomes.haven.user.model.Role;
 import com.dreamhomes.haven.user.service.UserAccountService;
 import com.dreamhomes.haven.user.service.UserCredentialsService;
@@ -150,8 +151,8 @@ class MeControllerTest {
                 .andExpect(jsonPath("$.role", is("AGENT")));
     }
 
-    private static MyAccountProfile profile(Role role) {
-        return new MyAccountProfile(
+    private static PrivateUserProfile profile(Role role) {
+        return new PrivateUserProfile(
                 7L,
                 "owner@example.com",
                 "Ada Lovelace",

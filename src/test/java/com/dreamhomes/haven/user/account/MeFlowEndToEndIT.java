@@ -1,4 +1,4 @@
-package com.dreamhomes.haven.auth;
+package com.dreamhomes.haven.user.account;
 
 import com.dreamhomes.haven.support.AbstractPostgresIT;
 import com.dreamhomes.haven.support.JwtTestSupport;

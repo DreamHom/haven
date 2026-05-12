@@ -1,11 +1,11 @@
-package com.dreamhomes.haven.auth.controller;
+package com.dreamhomes.haven.user.account.controller;
 
 import com.dreamhomes.haven.auth.JwtPrincipal;
 import com.dreamhomes.haven.auth.dto.ChangeMyPasswordRequest;
 import com.dreamhomes.haven.auth.dto.MeResponse;
 import com.dreamhomes.haven.auth.dto.UpdateMyAgentProfileRequest;
 import com.dreamhomes.haven.auth.dto.UpdateMyProfileRequest;
-import com.dreamhomes.haven.user.dto.MyAccountProfile;
+import com.dreamhomes.haven.user.dto.PrivateUserProfile;
 import com.dreamhomes.haven.user.dto.UserCredentials;
 import com.dreamhomes.haven.user.exception.UserNotFoundException;
 import com.dreamhomes.haven.user.service.UserAccountService;
@@ -36,7 +36,7 @@ import org.springframework.web.bind.annotation.RestController;
  * <ul>
  *   <li>{@code GET /api/me} — lightweight identity for app-boot pings. Returns
  *       {@link MeResponse} so internal fields like {@code tokenVersion} stay private.</li>
- *   <li>{@code GET /api/me/profile} — full settings preload ({@link MyAccountProfile}):
+ *   <li>{@code GET /api/me/profile} — full settings preload ({@link PrivateUserProfile}):
  *       phone, license, agency, badges. Heavier; called only when the settings page opens.</li>
  *   <li>{@code PATCH /api/me} — partial update of email/fullName/displayName/phone.</li>
  *   <li>{@code POST /api/me/password} — password change with session revocation.</li>
@@ -96,9 +96,9 @@ public class MeController {
             @ApiResponse(responseCode = "200",
                     description = "Private account profile returned.",
                     content = @Content(
-                            schema = @Schema(implementation = MyAccountProfile.class),
+                            schema = @Schema(implementation = PrivateUserProfile.class),
                             examples = @ExampleObject(name = "AgentSettings", value = """
-                                    { "id": 23, "email": "agent@example.com",
+                                    { "userId": 23, "email": "agent@example.com",
                                       "fullName": "Emeka Okonkwo", "displayName": "Emeka",
                                       "phone": "+2348012345678", "role": "AGENT",
                                       "identityVerifiedAt": "2026-04-12T10:00:00Z",
@@ -112,7 +112,7 @@ public class MeController {
     })
     @SecurityRequirement(name = "bearerAuth")
     @GetMapping("/api/me/profile")
-    public MyAccountProfile myProfile(@AuthenticationPrincipal JwtPrincipal principal) {
+    public PrivateUserProfile myProfile(@AuthenticationPrincipal JwtPrincipal principal) {
         return userAccountService.findMyProfile(principal.userId());
     }
 
@@ -130,14 +130,14 @@ public class MeController {
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Profile updated.",
-                    content = @Content(schema = @Schema(implementation = MyAccountProfile.class))),
+                    content = @Content(schema = @Schema(implementation = PrivateUserProfile.class))),
             @ApiResponse(responseCode = "400", ref = "#/components/responses/ValidationFailed"),
             @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthenticated"),
             @ApiResponse(responseCode = "409", ref = "#/components/responses/Conflict")
     })
     @SecurityRequirement(name = "bearerAuth")
     @PatchMapping("/api/me")
-    public MyAccountProfile updateMyProfile(@AuthenticationPrincipal JwtPrincipal principal,
+    public PrivateUserProfile updateMyProfile(@AuthenticationPrincipal JwtPrincipal principal,
                                             @Valid @RequestBody UpdateMyProfileRequest request) {
         return userAccountService.updateMyProfile(
                 principal.userId(),
@@ -181,7 +181,7 @@ public class MeController {
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Agent profile updated.",
-                    content = @Content(schema = @Schema(implementation = MyAccountProfile.class))),
+                    content = @Content(schema = @Schema(implementation = PrivateUserProfile.class))),
             @ApiResponse(responseCode = "400", ref = "#/components/responses/ValidationFailed"),
             @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthenticated"),
             @ApiResponse(responseCode = "403", ref = "#/components/responses/Forbidden"),
@@ -190,7 +190,7 @@ public class MeController {
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasRole('AGENT')")
     @PatchMapping("/api/me/agent-profile")
-    public MyAccountProfile updateMyAgentProfile(@AuthenticationPrincipal JwtPrincipal principal,
+    public PrivateUserProfile updateMyAgentProfile(@AuthenticationPrincipal JwtPrincipal principal,
                                                  @Valid @RequestBody UpdateMyAgentProfileRequest request) {
         return userAccountService.updateMyAgentProfile(
                 principal.userId(),

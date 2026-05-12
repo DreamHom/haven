@@ -1,6 +1,6 @@
 package com.dreamhomes.haven.user.service;
 
-import com.dreamhomes.haven.user.dto.MyAccountProfile;
+import com.dreamhomes.haven.user.dto.PrivateUserProfile;
 import com.dreamhomes.haven.user.exception.AgentLicenseAlreadyTakenException;
 import com.dreamhomes.haven.user.exception.AgentProfileNotFoundException;
 import com.dreamhomes.haven.user.exception.CurrentPasswordIncorrectException;
@@ -48,13 +48,13 @@ public class UserAccountService {
     private final PasswordEncoder passwordEncoder;
 
     @Transactional(readOnly = true)
-    public MyAccountProfile findMyProfile(Long userId) {
+    public PrivateUserProfile findMyProfile(Long userId) {
         User user = requireUser(userId);
-        return toMyAccountProfile(user, loadAgentProfileIfPresent(user));
+        return toPrivateUserProfile(user, loadAgentProfileIfPresent(user));
     }
 
     @Transactional
-    public MyAccountProfile updateMyProfile(Long userId,
+    public PrivateUserProfile updateMyProfile(Long userId,
                                             String email,
                                             String fullName,
                                             String displayName,
@@ -105,7 +105,7 @@ public class UserAccountService {
         } else {
             log.info("Updated account basics for userId={}", userId);
         }
-        return toMyAccountProfile(user, loadAgentProfileIfPresent(user));
+        return toPrivateUserProfile(user, loadAgentProfileIfPresent(user));
     }
 
     @Transactional
@@ -123,7 +123,7 @@ public class UserAccountService {
     }
 
     @Transactional
-    public MyAccountProfile updateMyAgentProfile(Long userId, String licenseNumber, String agency) {
+    public PrivateUserProfile updateMyAgentProfile(Long userId, String licenseNumber, String agency) {
         User user = requireUser(userId);
         if (user.getRole() != Role.AGENT) {
             throw new NotAnAgentException();
@@ -161,7 +161,7 @@ public class UserAccountService {
             throw new AgentLicenseAlreadyTakenException();
         }
         log.info("Updated agent profile for userId={}", userId);
-        return toMyAccountProfile(user, agentProfile);
+        return toPrivateUserProfile(user, agentProfile);
     }
 
     private User requireUser(Long userId) {
@@ -177,9 +177,9 @@ public class UserAccountService {
                 .orElseThrow(() -> new AgentProfileNotFoundException(user.getId()));
     }
 
-    private MyAccountProfile toMyAccountProfile(User user, AgentProfile agentProfile) {
-        return new MyAccountProfile(
-                user.getId(),
+    private PrivateUserProfile toPrivateUserProfile(User user, AgentProfile agentProfile) {
+        return new PrivateUserProfile(
+                user.getId(),  // → PrivateUserProfile.userId — keep the /me family on `userId` (Dayo audit)
                 user.getEmail(),
                 user.getFullName(),
                 user.getDisplayName(),

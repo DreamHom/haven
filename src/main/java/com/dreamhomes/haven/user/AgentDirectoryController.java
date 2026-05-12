@@ -36,7 +36,7 @@ public class AgentDirectoryController {
             description = """
                     Returns AGENT-role users (non-suspended), sorted with verified agents
                     first. Pass `?q=Emeka` to substring-match on `fullName`/`displayName`,
-                    `?verifiedOnly=true` to restrict to badge-stamped agents.
+                    `?verified=true` to restrict to badge-stamped agents.
 
                     Public — no auth required. Verified agents surface first so owners
                     looking to delegate see the trustworthy ones immediately.
@@ -51,8 +51,8 @@ public class AgentDirectoryController {
             @Parameter(description = "Substring of name (case-insensitive).")
             @RequestParam(required = false) String q,
             @Parameter(description = "If true, only return identity-verified agents.")
-            @RequestParam(defaultValue = "false") boolean verifiedOnly,
+            @RequestParam(name = "verified", defaultValue = "false") boolean verified,
             @PageableDefault(size = 20) Pageable pageable) {
-        return userProfileService.searchAgents(q, verifiedOnly, pageable);
+        return userProfileService.searchAgents(q, verified, pageable);
     }
 }

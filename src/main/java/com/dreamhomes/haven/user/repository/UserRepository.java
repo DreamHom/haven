@@ -50,7 +50,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     /**
      * Backs {@code GET /api/agents}. Public agent directory — non-suspended AGENTs only.
-     * {@code verifiedOnly} requires {@code identity_verified_at IS NOT NULL}.
+     * {@code verified} requires {@code identity_verified_at IS NOT NULL}.
      * {@code q} matches against {@code fullName} OR {@code displayName} case-insensitively.
      * Persona audit (Biodun): "I want to invite an agent — there's no way to find one."
      */
@@ -58,13 +58,13 @@ public interface UserRepository extends JpaRepository<User, Long> {
             SELECT u FROM User u
              WHERE u.role = com.dreamhomes.haven.user.model.Role.AGENT
                AND u.suspendedAt IS NULL
-               AND (:verifiedOnly = FALSE OR u.identityVerifiedAt IS NOT NULL)
+               AND (:verified = FALSE OR u.identityVerifiedAt IS NOT NULL)
                AND (:q IS NULL
                     OR LOWER(u.fullName) LIKE LOWER(CONCAT('%', :q, '%'))
                     OR LOWER(u.displayName) LIKE LOWER(CONCAT('%', :q, '%')))
              ORDER BY u.identityVerifiedAt DESC NULLS LAST, u.createdAt DESC
             """)
     Page<User> searchAgents(@Param("q") String q,
-                            @Param("verifiedOnly") boolean verifiedOnly,
+                            @Param("verified") boolean verified,
                             Pageable pageable);
 }
