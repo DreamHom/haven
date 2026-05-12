@@ -48,6 +48,7 @@ class AgentListingControllerTest {
     @Autowired MockMvc mockMvc;
     @MockBean AgentListingService agentListingService;
     @MockBean JwtService jwtService;
+    @MockBean com.dreamhomes.haven.auth.blocklist.JwtBlocklistRepository jwtBlocklistRepository;
     @MockBean UserCredentialsService userCredentialsService;
 
     @Test

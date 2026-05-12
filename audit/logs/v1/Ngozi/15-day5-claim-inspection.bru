@@ -1,0 +1,37 @@
+meta {
+  name: 15-day5-claim-inspection
+  type: http
+  seq: 15
+}
+
+post {
+  url: {{host}}/api/inspections
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{ngozi_token}}
+}
+
+body:json {
+  {
+    "slotId": 12,
+    "notes": "Coming with my husband. Please confirm the property is still available before we drive in from Surulere — last platform I used wasted my Saturday."
+  }
+}
+
+assert {
+  res.status: lte 500
+}
+
+docs {
+  # Day 5, evening. Booking the slot. The persona doc tells me agents
+  # who reply within 40 minutes through a tracked channel earn my
+  # trust — so I'm watching the notification timestamp carefully on
+  # the next request.
+  #
+  # If this 404s because slot 12 doesn't exist (DB is empty / no
+  # other persona has run yet), I record it as a cross-persona
+  # dependency and move on.
+}

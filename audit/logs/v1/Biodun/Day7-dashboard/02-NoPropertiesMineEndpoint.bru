@@ -1,0 +1,34 @@
+meta {
+  name: 02-NoPropertiesMineEndpoint
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/api/properties
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{biodunJwt}}
+}
+
+assert {
+  res.status: gte 400
+}
+
+docs {
+  # 🚫 Same problem one level down: there is no GET /properties at all.
+  #
+  # The spec only has POST /properties (create). I cannot list the
+  # properties I own. Once I create them I have no way to see them
+  # except by writing down their IDs at creation time.
+  #
+  # If I lose my notes, the property IDs are gone. There is no
+  # GET /properties/mine, no GET /properties/{id}, NOTHING.
+  #
+  # For a 12-unit developer this is unacceptable.
+  #
+  # Asserting 405 because the path /properties exists for POST only.
+}

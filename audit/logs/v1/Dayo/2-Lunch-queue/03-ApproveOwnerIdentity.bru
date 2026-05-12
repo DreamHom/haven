@@ -1,0 +1,31 @@
+meta {
+  name: 03-ApproveOwnerIdentity
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{host}}/api/admin/verifications/{{ownerVerificationId}}/approve
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{jwt}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  # Approving an owner identity. Documents check out, addresses match.
+
+  The spec defines NO request body for approve. The persona doc says
+  approval should record an *optional* `decision_reason` — but the spec
+  has no body schema, so there's no way for me to attach context like
+  "approved despite blurry NIN — owner is repeat-good-actor since 2024".
+
+  That's an audit-trail loss. When I approve a borderline case I want a
+  one-line note attached so the next admin can see WHY I called it.
+}

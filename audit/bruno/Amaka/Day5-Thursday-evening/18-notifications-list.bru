@@ -1,0 +1,25 @@
+meta {
+  name: 18 Notifications — list mine
+  type: http
+  seq: 18
+}
+
+get {
+  url: {{host}}/notifications/mine
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{jwt}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  Pulling the full feed. I'm not expecting much in this run (no applicant
+  has interacted yet, since this is a clean run_tag), but the endpoint
+  itself should respond cleanly.
+}

@@ -1,0 +1,24 @@
+meta {
+  name: 05 Check verification status
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{host}}/verifications/mine
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{jwt}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  Bedtime check — is my submission really queued? I want to see it listed before
+  I close my laptop. Going to expect a paginated envelope.
+}

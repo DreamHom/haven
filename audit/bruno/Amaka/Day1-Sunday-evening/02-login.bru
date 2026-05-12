@@ -1,0 +1,38 @@
+meta {
+  name: 02 Login to get JWT
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{host}}/auth/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "amaka.okafor.lekki+{{run_tag}}@gmail.com",
+    "password": "Lekki!Flat#2026!Amaka"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.token: isDefined
+  res.body.role: eq OWNER
+}
+
+script:post-response {
+  if (res.status === 200 && res.body && res.body.token) {
+    bru.setVar("jwt", res.body.token);
+    bru.setVar("amakaUserId", res.body.userId);
+  }
+}
+
+docs {
+  Apparently registration doesn't auto-issue a JWT anymore — I have to log in
+  separately. Slightly annoying but okay, this is how most apps work.
+
+  Capturing the token + my userId for downstream calls.
+}

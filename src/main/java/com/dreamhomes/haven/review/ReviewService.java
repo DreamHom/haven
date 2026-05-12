@@ -117,6 +117,10 @@ public class ReviewService {
 
     @Transactional(readOnly = true)
     public Page<ListingReview> listForListing(Long listingId, Pageable pageable) {
+        // 404 if the listing is missing — see B-2 in the persona audit.
+        if (!listingService.exists(listingId)) {
+            throw new com.dreamhomes.haven.listing.exception.ListingNotFoundException(listingId);
+        }
         return reviewRepository.findByListingIdAndDeletedAtIsNullOrderByCreatedAtDesc(
                 listingId, pageable);
     }
@@ -127,9 +131,6 @@ public class ReviewService {
      */
     @Transactional
     public ListingReview delete(Long callerId, Role callerRole, Long reviewId, String reason) {
-        if (reason == null || reason.isBlank()) {
-            throw new IllegalArgumentException("Deletion reason is required");
-        }
         ListingReview review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new ReviewNotFoundException(reviewId));
         if (review.isDeleted()) {
@@ -140,6 +141,11 @@ public class ReviewService {
         boolean isAuthor = callerId.equals(review.getReviewerUserId());
         if (!isAdmin && !isAuthor) {
             throw new NotAuthorisedToDeleteReviewException();
+        }
+        // Self-delete: author can omit the reason. Admin deletes still require one
+        // for the audit trail (forced below).
+        if (isAdmin && (reason == null || reason.isBlank())) {
+            throw new IllegalArgumentException("Admin deletion reason is required");
         }
 
         review.setDeletedAt(Instant.now());

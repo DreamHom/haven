@@ -1,0 +1,43 @@
+meta {
+  name: 07-PublishSecondListing
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{host}}/api/listings
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{amakaJwt}}
+}
+
+body:json {
+  {
+    "propertyId": {{amakaProperty2Id}},
+    "listingType": "RENT",
+    "askingPrice": 7500000,
+    "currency": "NGN",
+    "cautionFee": 750000,
+    "serviceCharge": 600000,
+    "agencyFee": 0
+  }
+}
+
+assert {
+  res.status: eq 201
+  res.body.id: isDefined
+  res.body.status: eq LIVE
+}
+
+script:post-response {
+  bru.setVar("amakaListing2Id", res.body.id);
+}
+
+docs {
+  # Publishing the Chevron Drive listing at ₦7.5M/year.
+  # Everything that hurt the first time hurts again — same flow, no
+  # bulk-create option.
+}

@@ -46,6 +46,7 @@ class InspectionServiceTest {
     @Mock ListingService listingService;
     @Mock OutboxEventRepository outboxRepository;
     @Mock ApplicationEventPublisher applicationEventPublisher;
+    @Mock com.dreamhomes.haven.notification.NotificationApi notificationApi;
 
     InspectionService service;
 
@@ -53,7 +54,7 @@ class InspectionServiceTest {
     void setUp() {
         service = new InspectionService(slotRepository, requestRepository, listingService,
                 outboxRepository, new ObjectMapper().findAndRegisterModules(),
-                applicationEventPublisher);
+                applicationEventPublisher, notificationApi);
     }
 
     @Test
@@ -163,6 +164,7 @@ class InspectionServiceTest {
         Instant now = Instant.now();
         return new ListingResponse(listingId, 1L, ownerId, ListingType.RENT,
                 new BigDecimal("100.00"), "NGN", null, null, null,
-                ListingStatus.LIVE, null, 0L, now, now, null);
+                null, null, null, null,
+                ListingStatus.LIVE, null, 0L, now, now, null, null, null);
     }
 }

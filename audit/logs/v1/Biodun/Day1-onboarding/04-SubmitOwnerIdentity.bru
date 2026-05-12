@@ -1,0 +1,61 @@
+meta {
+  name: 04-SubmitOwnerIdentity
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{host}}/api/verifications
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{biodunJwt}}
+}
+
+body:json {
+  {
+    "type": "OWNER_IDENTITY",
+    "documentRefs": {
+      "certificateOfOccupancy": {
+        "url": "https://res.cloudinary.com/demo/image/upload/sample.jpg",
+        "label": "C of O — Plot 7, Berger Road, Ojodu, Lagos"
+      },
+      "nin": {
+        "url": "https://res.cloudinary.com/demo/image/upload/sample.jpg",
+        "number": "22233344455"
+      }
+    }
+  }
+}
+
+assert {
+  res.status: eq 201
+  res.body.status: eq PENDING
+  res.body.type: eq OWNER_IDENTITY
+}
+
+script:post-response {
+  if (res.body && res.body.id) {
+    bru.setVar("biodunOwnerVerificationId", res.body.id);
+  }
+}
+
+docs {
+  # I want the verified-owner badge urgently because I am asking people
+  # to commit ₦25M+ for an off-plan unit. If they see my name without
+  # the badge they will not pick up.
+
+  # Same complaint as Amaka: documentRefs is a free-form object, no shape
+  # given in the spec. I had to guess `certificateOfOccupancy` and `nin`.
+  # Could just as easily be `cofo` or `c_of_o` — admin might reject me
+  # because my keys are wrong, not because my docs are bad.
+
+  # And — I built a 12-unit BLOCK. I have ONE C of O for the whole plot.
+  # Why am I attaching it to a user-level verification AND, later,
+  # property-level verifications for each of 12 properties? Asked once,
+  # checked once, should suffice for a developer. Right now I either
+  # repeat the same C of O 12 times or skip property-doc verification
+  # on 11 of them.
+}

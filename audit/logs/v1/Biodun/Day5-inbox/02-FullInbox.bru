@@ -1,0 +1,38 @@
+meta {
+  name: 02-FullInbox
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/api/notifications/mine?page=0&size=50
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{biodunJwt}}
+}
+
+params:query {
+  page: 0
+  size: 50
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  # Pulling the inbox. Spec doesn't show a way to FILTER by type
+  # (e.g. only OFFER_SUBMITTED). My persona doc literally says
+  # "GET /notifications/mine (filtered to OFFER_SUBMITTED)" — but
+  # the API has no such filter. So Friday morning I'm scrolling
+  # through every "comment posted on your listing", every "Emeka
+  # accepted your invite", every "Temi asked a question" looking
+  # for the offer notifications.
+  #
+  # 🚫 No type filter on /notifications/mine.
+  # 🚫 No grouping by listing.
+  # 🚫 No way to mark all as read after I'm done — only mark-one-read.
+}

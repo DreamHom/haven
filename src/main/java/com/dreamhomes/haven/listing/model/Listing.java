@@ -68,6 +68,22 @@ public class Listing {
     @Column(name = "agency_fee", precision = 12, scale = 2)
     private BigDecimal agencyFee;
 
+    // Marketing-copy fields (V27). Optional — pre-existing listings have null. Persona
+    // audit (Amaka, Biodun) flagged the absence as the reason listings looked
+    // identical to applicants regardless of owner effort.
+    @Column(length = 255)
+    private String title;
+
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
+    @Column(length = 255)
+    private String headline;
+
+    /** Off-plan / handover date for developer launches (Biodun). */
+    @Column(name = "handover_date")
+    private java.time.LocalDate handoverDate;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 32)
     @Builder.Default

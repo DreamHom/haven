@@ -1,0 +1,31 @@
+meta {
+  name: 23 PAUSE flat 1 — I want to rethink the price
+  type: http
+  seq: 23
+}
+
+patch {
+  url: {{host}}/listings/{{listingId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{jwt}}
+}
+
+body:json {
+  {
+    "status": "PAUSED"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq PAUSED
+}
+
+docs {
+  My cousin Tunde called and said agents nearby are asking 7.5M, not 6.5M.
+  I want to PAUSE the listing while I think — not CLOSE it.
+}

@@ -78,13 +78,21 @@ public class AdminVerificationController {
     @SecurityRequirement(name = "bearerAuth")
     @GetMapping
     public Page<VerificationAdminView> listPending(
-            @Parameter(description = "Verification type to filter by.", example = "OWNER_IDENTITY", required = true)
-            @RequestParam VerificationType type,
+            @Parameter(description = "Optional verification type filter.", example = "OWNER_IDENTITY")
+            @RequestParam(required = false) VerificationType type,
+            @Parameter(description = "Optional status filter. Defaults to PENDING if omitted.",
+                    example = "PENDING")
+            @RequestParam(required = false)
+            com.dreamhomes.haven.verification.model.VerificationStatus status,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         Pageable pageable = PageRequest.of(Math.max(page, 0),
                 Math.min(Math.max(size, 1), MAX_PAGE_SIZE));
-        return adminVerificationService.listPending(type, pageable);
+        // Default to PENDING for backwards-compat with existing callers that
+        // didn't pass any filter (the endpoint used to be pending-only).
+        com.dreamhomes.haven.verification.model.VerificationStatus effectiveStatus =
+                status != null ? status : com.dreamhomes.haven.verification.model.VerificationStatus.PENDING;
+        return adminVerificationService.list(type, effectiveStatus, pageable);
     }
 
     @Operation(

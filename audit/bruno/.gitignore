@@ -1,0 +1,3 @@
+# Bruno local app state — runtime caches, last-opened state, etc.
+.bruno/
+*.bru.bak

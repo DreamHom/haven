@@ -37,7 +37,7 @@ class ListingServiceCreateTest {
 
     @BeforeEach
     void setUp() {
-        listingService = new ListingService(listingRepository, propertyService, new com.dreamhomes.haven.listing.ListingMapperImpl());
+        listingService = new ListingService(listingRepository, propertyService, new com.dreamhomes.haven.listing.ListingMapperImpl(), org.mockito.Mockito.mock(com.dreamhomes.haven.agentlisting.AgentListingRepository.class), org.mockito.Mockito.mock(com.dreamhomes.haven.listingreport.ListingReportRepository.class));
     }
 
     @Test
@@ -51,7 +51,7 @@ class ListingServiceCreateTest {
 
         Listing result = listingService.create(99L, new CreateListingCommand(
                 7L, ListingType.RENT, new BigDecimal("1500000.00"),
-                null, null, null, null));
+                null, null, null, null, null, null, null, null));
 
         ArgumentCaptor<Listing> captor = ArgumentCaptor.forClass(Listing.class);
         verify(listingRepository).save(captor.capture());
@@ -73,7 +73,7 @@ class ListingServiceCreateTest {
 
         assertThatThrownBy(() -> listingService.create(99L, new CreateListingCommand(
                 404L, ListingType.RENT, new BigDecimal("1000000.00"),
-                null, null, null, null)))
+                null, null, null, null, null, null, null, null)))
                 .isInstanceOf(PropertyNotFoundException.class);
 
         verify(listingRepository, never()).save(any());
@@ -85,7 +85,7 @@ class ListingServiceCreateTest {
 
         assertThatThrownBy(() -> listingService.create(99L, new CreateListingCommand(
                 7L, ListingType.RENT, new BigDecimal("1000000.00"),
-                null, null, null, null)))
+                null, null, null, null, null, null, null, null)))
                 .isInstanceOf(NotPropertyOwnerException.class);
 
         verify(listingRepository, never()).save(any());

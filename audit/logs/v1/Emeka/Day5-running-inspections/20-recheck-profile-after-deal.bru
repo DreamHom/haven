@@ -1,0 +1,29 @@
+meta {
+  name: 20-Re-check my public profile after the deal closes
+  type: http
+  seq: 20
+}
+
+get {
+  url: {{host}}/api/users/{{emeka_user_id}}/profile
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{emeka_jwt}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  After the deal closes and the applicant leaves a 5-star review,
+  my averageRating and reviewCount should bump. This is the moment
+  I sell to the next owner.
+
+  GAP I keep flagging: still no closedDealCount, no responseRate,
+  no responseTime. Story 9 in my persona doc is "future". For an
+  agent persona this isn't future — this is the WHOLE pitch.
+}

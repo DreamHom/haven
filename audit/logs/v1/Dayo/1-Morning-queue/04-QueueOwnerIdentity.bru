@@ -1,0 +1,50 @@
+meta {
+  name: 04-QueueOwnerIdentity
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{host}}/api/admin/verifications?type=OWNER_IDENTITY&page=0&size=20
+  auth: bearer
+}
+
+params:query {
+  type: OWNER_IDENTITY
+  page: 0
+  size: 20
+}
+
+auth:bearer {
+  token: {{jwt}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+script:post-response {
+  if (res && res.body && Array.isArray(res.body.content) && res.body.content.length > 0) {
+    bru.setVar("ownerVerificationId", res.body.content[0].id);
+    bru.setVar("ownerSubmitterId", res.body.content[0].submitterUserId);
+  }
+}
+
+docs {
+  # The single biggest design problem with my morning queue.
+
+  `GET /admin/verifications` REQUIRES `?type=...` as a mandatory query
+  param. There is no "give me everything PENDING right now" call. To see
+  my full backlog I have to make FOUR separate requests — one for each
+  enum value (OWNER_IDENTITY, APPLICANT_IDENTITY, AGENT_CREDENTIALS,
+  PROPERTY_DOCUMENTS). And then I have to mentally merge four paginated
+  result sets to get a chronological queue.
+
+  There's also no `?status=` filter on the spec, even though the persona
+  doc and the response example both promise PENDING-only. So I'm trusting
+  the server to filter by status without any way to override it (e.g. to
+  audit recently-rejected ones).
+
+  No `?sort=` either — I can't ask for oldest-first to enforce a fairness
+  SLA. No `?submittedBefore=` to find aging items.
+}

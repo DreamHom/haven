@@ -56,8 +56,11 @@ public class AdminListingController {
     public AdminListingResponse approve(
             @AuthenticationPrincipal JwtPrincipal principal,
             @Parameter(description = "Listing ID.", example = "17")
-            @PathVariable Long id) {
-        return toAdminResponse(adminListingService.approve(principal.userId(), id));
+            @PathVariable Long id,
+            @Valid @RequestBody(required = false)
+            com.dreamhomes.haven.admin.dto.RepublishListingRequest request) {
+        String reason = request == null ? null : request.reason();
+        return toAdminResponse(adminListingService.approve(principal.userId(), id, reason));
     }
 
     @Operation(

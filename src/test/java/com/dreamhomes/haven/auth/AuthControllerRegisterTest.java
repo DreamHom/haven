@@ -18,7 +18,10 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
 
 /**
  * Tests cover what the controller layer owns: response shape (always 202 + empty body for
@@ -48,6 +51,9 @@ class AuthControllerRegisterTest {
     JwtService jwtService;
 
     @MockBean
+    com.dreamhomes.haven.auth.blocklist.JwtBlocklistRepository jwtBlocklistRepository;
+
+    @MockBean
     com.dreamhomes.haven.user.service.UserCredentialsService userCredentialsService;
 
     @Test
@@ -64,7 +70,8 @@ class AuthControllerRegisterTest {
                                 }
                                 """))
                 .andExpect(status().isAccepted())
-                .andExpect(content().string(""));
+                .andExpect(jsonPath("$.status", is("ACCEPTED")))
+                .andExpect(jsonPath("$.nextStep", containsString("login")));
     }
 
     @Test
@@ -82,7 +89,8 @@ class AuthControllerRegisterTest {
                                 }
                                 """))
                 .andExpect(status().isAccepted())
-                .andExpect(content().string(""));
+                .andExpect(jsonPath("$.status", is("ACCEPTED")))
+                .andExpect(jsonPath("$.nextStep", containsString("login")));
     }
 
     @Test
@@ -136,7 +144,8 @@ class AuthControllerRegisterTest {
                                 }
                                 """))
                 .andExpect(status().isAccepted())
-                .andExpect(content().string(""));
+                .andExpect(jsonPath("$.status", is("ACCEPTED")))
+                .andExpect(jsonPath("$.nextStep", containsString("login")));
     }
 
     @Test

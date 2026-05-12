@@ -1,0 +1,32 @@
+meta {
+  name: 08 Filter assignments by status=REQUESTED (pending invites)
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{host}}/api/agent-listings/mine?status=REQUESTED&page=0&size=20
+  auth: bearer
+}
+
+params:query {
+  status: REQUESTED
+  page: 0
+  size: 20
+}
+
+auth:bearer {
+  token: {{jwt}}
+}
+
+assert {
+  res.status: eq 200
+  res.body: isDefined
+}
+
+docs {
+  Same filter, different value — this is the inbox. When an owner has
+  pinged me, this is where it shows up.
+
+  Expected: 200, page empty (no owner invited me in this run).
+}

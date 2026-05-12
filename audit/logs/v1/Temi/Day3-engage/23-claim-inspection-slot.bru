@@ -1,0 +1,38 @@
+meta {
+  name: 23-Book the slot
+  type: http
+  seq: 23
+}
+
+post {
+  url: {{host}}/api/inspections
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{temi_token}}
+}
+
+body:json {
+  {
+    "slotId": 1,
+    "notes": "Hi, I'm Temi — first-timer. I work nearby in VI so I can meet anytime on Saturday morning. My number is +2348101234567 if you need to reach me."
+  }
+}
+
+assert {
+  res.status: in [201, 400, 401, 403, 404, 409]
+}
+
+docs {
+  Booking. The endpoint is `/inspections` (NOT
+  `/listings/{id}/inspection-requests` like my persona doc suggested
+  — it's a flat top-level resource keyed by slotId). That's a
+  reasonable design choice but my persona doc and the spec
+  disagree, which means new client devs will write the wrong path
+  first.
+
+  Notes field is generous (5000 chars). I'm leaving my number in
+  case the agent prefers WhatsApp. Lagos reality.
+}

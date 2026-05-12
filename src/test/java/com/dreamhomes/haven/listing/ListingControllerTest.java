@@ -73,6 +73,9 @@ class ListingControllerTest {
     JwtService jwtService;
 
     @MockBean
+    com.dreamhomes.haven.auth.blocklist.JwtBlocklistRepository jwtBlocklistRepository;
+
+    @MockBean
     UserCredentialsService userCredentialsService;
 
     @Test
@@ -94,6 +97,30 @@ class ListingControllerTest {
                 .andExpect(jsonPath("$.id", is(123)))
                 .andExpect(jsonPath("$.status", is("LIVE")))
                 .andExpect(jsonPath("$.currency", is("NGN")));
+    }
+
+    @Test
+    void ownerCanCreateListingWithZeroFees() throws Exception {
+        // Solo owner not paying any agent — agencyFee:0 + cautionFee:0 + serviceCharge:0
+        // is the flagship payload. Must accept (B-1 from persona audit).
+        when(listingService.create(eq(99L), any(CreateListingCommand.class)))
+                .thenAnswer(inv -> stubListing(124L, 99L, ListingStatus.LIVE));
+
+        mockMvc.perform(post("/api/listings")
+                        .with(asPrincipal(99L, Role.OWNER))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "propertyId": 7,
+                                  "listingType": "RENT",
+                                  "askingPrice": 1500000.00,
+                                  "cautionFee": 0,
+                                  "serviceCharge": 0,
+                                  "agencyFee": 0
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id", is(124)));
     }
 
     @Test
@@ -132,8 +159,35 @@ class ListingControllerTest {
     }
 
     @Test
+    void ownerListMineReturnsTheirListings() throws Exception {
+        when(listingService.listMine(eq(99L), any())).thenReturn(
+                new PageImpl<>(List.of(stubListingWithProperty(50L, 99L, ListingStatus.LIVE))));
+
+        mockMvc.perform(get("/api/listings/mine")
+                        .with(asPrincipal(99L, Role.OWNER)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].id", is(50)))
+                .andExpect(jsonPath("$.content[0].ownerId", is(99)));
+    }
+
+    @Test
+    void listMineRequiresOwnerRole() throws Exception {
+        mockMvc.perform(get("/api/listings/mine")
+                        .with(asPrincipal(50L, Role.APPLICANT)))
+                .andExpect(status().isForbidden());
+
+        verify(listingService, never()).listMine(any(), any());
+    }
+
+    @Test
+    void listMineRequiresAuthentication() throws Exception {
+        mockMvc.perform(get("/api/listings/mine"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
     void publicBrowseReturnsLiveListingsWithEmbeddedPropertySummary() throws Exception {
-        when(listingService.browsePublic(any())).thenReturn(
+        when(listingService.browsePublic(any(), any(), any(), any(), any(), any(), any())).thenReturn(
                 new PageImpl<>(List.of(stubListingWithProperty(1L, 99L, ListingStatus.LIVE))));
 
         mockMvc.perform(get("/api/listings"))
@@ -180,7 +234,9 @@ class ListingControllerTest {
     }
 
     @Test
-    void invalidListingTransitionMapsTo400() throws Exception {
+    void invalidListingTransitionMapsTo409() throws Exception {
+        // Persona audit (Amaka): the spec documented this as 409 Conflict (the listing's
+        // current state is the conflict, the input is well-formed). Mapped from 400 → 409.
         when(listingService.update(eq(99L), eq(50L), any(UpdateListingCommand.class)))
                 .thenThrow(new InvalidListingTransitionException(ListingStatus.CLOSED, ListingStatus.LIVE));
 
@@ -190,7 +246,7 @@ class ListingControllerTest {
                         .content("""
                                 { "status": "LIVE" }
                                 """))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isConflict());
     }
 
     private static Listing stubListing(Long id, Long ownerId, ListingStatus status) {

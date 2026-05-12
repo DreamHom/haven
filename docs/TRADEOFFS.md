@@ -768,6 +768,23 @@ remain as-is; they were classified as legitimate scoped trade-offs.
 - **Cost**: new component + one Kafka AdminClient call per scrape per topic. AdminClient timeout (5s) bounded; failures emit `-1` so dashboards distinguish "not measured" from "0 depth". Scrape adds a few hundred ms when broker is healthy.
 - **Revisit**: when the AdminClient overhead matters (i.e. scrape interval drops below 5s), cache the last value and refresh on a separate schedule.
 
+## Phase 17 — Account-settings surface (merged in from PR #6, hardened in `checklist/v1`)
+
+### `PATCH /api/me` rewrites email directly (no verify-the-new-address flow)
+- **Why**: the platform has no email-delivery infrastructure yet. A proper change-email flow needs: generate single-use token → mail it to the *new* address → user clicks → swap on the user row. Until that pipeline exists, gating email change behind it would block the Settings page entirely. The temporary shortcut is "any authenticated caller can rewrite their own email synchronously".
+- **Cost**: an attacker who briefly holds a victim's JWT can swap the address of record before initiating a password reset to *their* email — classic account-takeover pivot. Mitigated by bumping `tokenVersion` on email change (so the leaked JWT dies on its next request, before the attacker can use it to chain to password reset), but the legitimate user has no defence if the attacker controls both the swap and the password-reset trigger in the same minute.
+- **Revisit**: as soon as email delivery lands. Move email change to a two-step flow (`POST /api/me/email-change-requests` → token → confirm), keep `PATCH /api/me` for everything else.
+
+### `userId` (not `id`) is canonical inside the `/api/me/*` family
+- **Why**: Dayo's persona audit flagged the mixed `id` / `userId` field naming as a real frontend papercut. PR #6 originally used `id` on `MyAccountProfile`; we renamed it to `PrivateUserProfile.userId` so every response under `/api/me` (`MeResponse`, `PrivateUserProfile`) uses `userId`. Admin writes still return `id` — that's a separate concern outside this family.
+- **Cost**: temporary asymmetry between the `/me` family (`userId`) and admin/public projections (`id`). Two names for one concept, but they're consistently grouped now.
+- **Revisit**: a v2 contract pass to unify the full surface on one name. Likely `id` because it's the broader-used token across REST APIs — but it's a frontend-breaking rename, so explicit deprecation cycle required.
+
+### `/error` is `permitAll()` (not auth-gated)
+- **Why**: Spring Boot dispatches every servlet forward (validation 400s, type-mismatch 400s, 404 on unmapped paths) through `/error` for body rendering. If the security filter auth-gates `/error`, every error response gets rewritten to 401 with `instance: "/error"`, masking the real failure shape. Persona audit (Dayo) caught it on `RejectWithEmptyReason` — empty body → 400 expected → seen as 401. Fixed by adding `/error` to the `permitAll` matcher list in `SecurityConfig`.
+- **Cost**: `/error` itself is now anonymous-reachable. The endpoint returns a generic Spring error page when hit directly — no sensitive data, just `{"status":404,"error":"Not Found","path":"/error"}` or similar.
+- **Revisit**: when we adopt a custom `ErrorController` that returns Problem+JSON on every dispatch (not just controller-thrown exceptions), we can re-evaluate whether anonymous reach to `/error` is still appropriate. Likely still fine, since the content is generic-shape, but worth a re-look.
+
 ---
 
 ## Deferred (not built — explicit Phase 14+ scope)

@@ -1,0 +1,48 @@
+meta {
+  name: 06-UploadPhoto
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{host}}/api/listings/{{amakaListingId}}/photos
+  body: multipartForm
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{amakaJwt}}
+}
+
+body:multipart-form {
+  file: @file(/Users/lukasio/DreamDevs/DreamHomes/haven/audit/assets/amaka/lekki-flat-living-room.jpg) @contentType(image/jpeg)
+  caption: Living room — north-facing balcony view
+}
+
+assert {
+  res.status: eq 201
+  res.body.id: isDefined
+  res.body.url: isDefined
+  res.body.displayOrder: isNumber
+}
+
+script:post-response {
+  bru.setVar("amakaPhotoId", res.body.id);
+}
+
+docs {
+  # Funke arrived with my phone. We're uploading the living-room photo
+  # first.
+
+  ✅ Upload worked. I got back a photo ID, a URL, and a displayOrder.
+
+  ⚠️ I can only upload ONE FILE PER REQUEST. To put 6 photos up I have to
+  hit this endpoint 6 times. On a slow Abuja connection, a bulk-upload
+  endpoint would save me a lot of time and data. Funke says "is this
+  buffering?" three times.
+
+  ⚠️ I had to upload my own picture and trust the platform with the storage.
+  No information back about file size limits, or what gets done with the
+  image (resized? watermarked? CDN'd?). Spec only says "image/jpeg, png,
+  webp" but doesn't tell me how big a file I can send.
+}

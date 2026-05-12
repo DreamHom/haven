@@ -1,0 +1,32 @@
+meta {
+  name: 02-WhoAmI
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/api/me
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{jwt}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+script:post-response {
+  if (res && res.body && (res.body.userId || res.body.id)) {
+    bru.setVar("dayoSelfId", res.body.userId || res.body.id);
+  }
+}
+
+docs {
+  # Confirm I'm logged in as the admin — not somebody else's stale token.
+
+  I shouldn't have to do this — but since `LoginResponse` only returns the
+  token, this is the cheapest sanity check. If the response role isn't
+  ADMIN something is badly wrong with the seeded principal.
+}

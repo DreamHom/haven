@@ -1,0 +1,52 @@
+meta {
+  name: 01-SearchForEmeka-NoEndpoint
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/api/users?search=Emeka
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{biodunJwt}}
+}
+
+assert {
+  res.status: gte 400
+}
+
+docs {
+  # Asserting "any 4xx" because the API gates unknown paths behind
+  # Spring Security and returns 401 instead of a clean 404. Either way
+  # the endpoint does not exist.
+  #
+  # 🚫 SHOWSTOPPER FINDING.
+  #
+  # I want to invite Emeka as my agent on these 4 listings. The spec
+  # says POST /listings/{id}/agent-assignment takes an `agentId` —
+  # an integer. So I need Emeka's user ID.
+  #
+  # I do not have Emeka's user ID. I have his name, his licence number
+  # in my phone, his Glo number. NOT his "DreamHomes user ID".
+  #
+  # I scrolled the spec for any user-search endpoint. There is NONE.
+  # - No GET /users with a query param
+  # - No GET /agents
+  # - No GET /agents/search?name=Emeka
+  # - No GET /agents/by-license/...
+  # - The only user-lookup is GET /users/{id}/profile and that needs
+  #   the ID I am trying to find!
+  #
+  # So how am I supposed to know it is the integer 23 and not 24 or 41?
+  #
+  # In real life I'd have to call Emeka, ask him to log in, ask him to
+  # call HIS /me, ask him to read me his userId over the phone, then
+  # type it into 12 separate POST calls. For a 47-year-old developer
+  # this is the kind of thing that makes me close the app and call
+  # the billboard guy back.
+  #
+  # I am asserting 404 here just to log the gap in the report.
+}

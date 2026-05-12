@@ -46,5 +46,20 @@ public enum NotificationKind {
      * Sync — fired by {@code ListingReportService} when a user reports a listing. One row
      * per admin so the moderation queue surfaces new reports without polling.
      */
-    LISTING_REPORTED
+    LISTING_REPORTED,
+
+    /** Sync — fired after admin resolves or dismisses a report; recipient is the reporter. */
+    LISTING_REPORT_RESOLVED,
+
+    /** Sync — fired on registration as a "welcome + next step" pointer. */
+    WELCOME,
+
+    /** Sync — fired immediately on verification submission so the submitter sees acknowledgement. */
+    VERIFICATION_SUBMITTED,
+
+    /** Sync — fired to the applicant immediately on inspection booking. */
+    INSPECTION_BOOKED,
+
+    /** Sync — fired to the applicant on offer submission so they have a confirmation in-platform. */
+    OFFER_RECEIVED_BY_PLATFORM
 }

@@ -92,14 +92,16 @@ class AdminListingServiceTest {
     }
 
     @Test
-    void takedownTransitionsLiveListingToClosedAndNotifiesOwner() {
+    void takedownTransitionsLiveListingToTakenDownAndNotifiesOwner() {
+        // Takedown now flips to TAKEN_DOWN (distinct from owner-closed CLOSED) so
+        // moderation history can separate "admin took down" from "deal closed normally".
         when(listingService.findById(11L))
                 .thenReturn(listing(11L, 50L, ListingStatus.LIVE, null))
-                .thenReturn(listing(11L, 50L, ListingStatus.CLOSED, null));
+                .thenReturn(listing(11L, 50L, ListingStatus.TAKEN_DOWN, null));
 
         service.takedown(7L, 11L, "Reported as fraudulent");
 
-        verify(listingService).forceStatus(eq(11L), eq(ListingStatus.CLOSED), any());
+        verify(listingService).forceStatus(eq(11L), eq(ListingStatus.TAKEN_DOWN), any());
 
         ArgumentCaptor<AdminAuditLog> auditCap = ArgumentCaptor.forClass(AdminAuditLog.class);
         verify(auditLogRepository).save(auditCap.capture());
@@ -113,14 +115,14 @@ class AdminListingServiceTest {
     }
 
     @Test
-    void takedownOfPausedListingAlsoTransitionsToClosed() {
+    void takedownOfPausedListingAlsoTransitionsToTakenDown() {
         when(listingService.findById(11L))
                 .thenReturn(listing(11L, 50L, ListingStatus.PAUSED, null))
-                .thenReturn(listing(11L, 50L, ListingStatus.CLOSED, null));
+                .thenReturn(listing(11L, 50L, ListingStatus.TAKEN_DOWN, null));
 
         service.takedown(7L, 11L, "policy violation");
 
-        verify(listingService).forceStatus(eq(11L), eq(ListingStatus.CLOSED), any());
+        verify(listingService).forceStatus(eq(11L), eq(ListingStatus.TAKEN_DOWN), any());
     }
 
     @Test
@@ -145,6 +147,7 @@ class AdminListingServiceTest {
         Instant now = Instant.now();
         return new ListingResponse(id, 1L, ownerId, ListingType.SALE,
                 new BigDecimal("80000000.00"), "NGN", null, null, null,
-                status, approvedAt, 0L, now, now, null);
+                null, null, null, null,
+                status, approvedAt, 0L, now, now, null, null, null);
     }
 }

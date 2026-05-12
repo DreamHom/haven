@@ -38,7 +38,7 @@ class NotificationServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new NotificationService(notificationRepository, new ObjectMapper().findAndRegisterModules());
+        service = new NotificationService(notificationRepository, new ObjectMapper().findAndRegisterModules(), new com.dreamhomes.haven.notification.NotificationSseEmitters());
     }
 
     @Test

@@ -1,5 +1,7 @@
 package com.dreamhomes.haven.auth.service;
 
+import com.dreamhomes.haven.notification.NotificationApi;
+import com.dreamhomes.haven.notification.model.NotificationKind;
 import com.dreamhomes.haven.user.exception.EmailAlreadyTakenException;
 import com.dreamhomes.haven.user.dto.NewUser;
 import com.dreamhomes.haven.user.dto.RegisteredUser;
@@ -14,6 +16,7 @@ import org.springframework.stereotype.Service;
 import java.util.Locale;
 import java.util.Optional;
 import com.dreamhomes.haven.auth.dto.LoginCommand;
+import com.dreamhomes.haven.auth.dto.LoginResult;
 import com.dreamhomes.haven.auth.dto.RegisterCommand;
 import com.dreamhomes.haven.auth.exception.InvalidCredentialsException;
 
@@ -42,8 +45,10 @@ public class AuthService {
     private final UserCredentialsService userCredentialsService;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final NotificationApi notificationApi;
+    private final com.dreamhomes.haven.auth.blocklist.JwtBlocklistRepository jwtBlocklistRepository;
 
-    public String login(LoginCommand cmd) {
+    public LoginResult login(LoginCommand cmd) {
         String email = normalize(cmd.email());
         Optional<UserCredentials> maybe = userCredentialsService.loadByEmail(email);
         String hashToCheck = maybe.map(UserCredentials::passwordHash).orElse(DUMMY_HASH);
@@ -60,7 +65,9 @@ public class AuthService {
             throw new InvalidCredentialsException();
         }
         log.info("Login succeeded for userId={} role={}", creds.id(), creds.role());
-        return jwtService.issue(creds.id(), creds.email(), creds.role(), creds.tokenVersion());
+        String token = jwtService.issue(creds.id(), creds.email(), creds.role(), creds.tokenVersion());
+        return new LoginResult(token, creds.id(), creds.role(), creds.fullName(),
+                jwtService.expirationSeconds());
     }
 
     /**
@@ -70,7 +77,37 @@ public class AuthService {
      */
     public void logout(Long userId) {
         userCredentialsService.bumpTokenVersion(userId);
-        log.info("Logged out userId={}", userId);
+        log.info("Logged out userId={} scope=all (tokenVersion bumped)", userId);
+    }
+
+    /**
+     * Per-device logout: blocklist just this JWT's jti. Other tokens this user holds
+     * remain valid. {@code authorizationHeader} is the raw {@code Authorization} header
+     * value the request arrived with — the filter has already validated the token, so the
+     * parse here will succeed (or surface as a 500-able failure, which never happens in
+     * the happy path that exercises this code).
+     */
+    public void logoutDevice(Long userId, String authorizationHeader) {
+        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
+            // Filter would already have rejected an unauthenticated request — this is
+            // defence in depth, fold to all-device logout rather than do nothing.
+            logout(userId);
+            return;
+        }
+        String token = authorizationHeader.substring("Bearer ".length());
+        java.util.UUID jti = jwtService.parseJti(token);
+        if (jti == null) {
+            // Token pre-dates the V28 jti claim — fall back to bump-token-version.
+            logout(userId);
+            return;
+        }
+        jwtBlocklistRepository.save(com.dreamhomes.haven.auth.blocklist.JwtBlocklistEntry.builder()
+                .jti(jti)
+                .userId(userId)
+                .expiresAt(jwtService.parseExpiry(token))
+                .revokedAt(java.time.Instant.now())
+                .build());
+        log.info("Logged out userId={} scope=device (jti={} blocklisted)", userId, jti);
     }
 
     /**
@@ -97,10 +134,20 @@ public class AuthService {
                     cmd.phone(),
                     cmd.licenseNumber()));
             log.info("Registered userId={} role={}", registered.id(), cmd.role());
+            notificationApi.recordSync(NotificationKind.WELCOME, registered.id(),
+                    java.util.Map.of("fullName", cmd.fullName(), "role", cmd.role().name()));
         } catch (EmailAlreadyTakenException race) {
             // TOCTOU: existsByEmail returned false but the colliding insert landed first.
             // Swallow — same anti-enumeration contract as the up-front duplicate check.
             log.info("Register lost race for email='{}' (returning 202 to avoid enumeration)", email);
+        } catch (org.springframework.dao.DataIntegrityViolationException collision) {
+            // AGENT registration enforces a unique license_number on agent_profiles.
+            // A duplicate license is just as identity-leaky as a duplicate email — silently
+            // swallow under the same anti-enumeration contract. Persona audit (Emeka):
+            // re-running the bru flow with the same license number used to surface as a 500
+            // forwarded to /error → 401, looking like a server crash.
+            log.info("Register collision for email='{}' role={} (returning 202 to avoid enumeration): {}",
+                    email, cmd.role(), collision.getMostSpecificCause().getMessage());
         }
     }
 

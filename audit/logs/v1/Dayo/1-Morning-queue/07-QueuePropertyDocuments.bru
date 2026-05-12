@@ -1,0 +1,38 @@
+meta {
+  name: 07-QueuePropertyDocuments
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{host}}/api/admin/verifications?type=PROPERTY_DOCUMENTS&page=0&size=20
+  auth: bearer
+}
+
+params:query {
+  type: PROPERTY_DOCUMENTS
+  page: 0
+  size: 20
+}
+
+auth:bearer {
+  token: {{jwt}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+script:post-response {
+  if (res && res.body && Array.isArray(res.body.content) && res.body.content.length > 0) {
+    bru.setVar("propertyVerificationId", res.body.content[0].id);
+    bru.setVar("propertySubmitterId", res.body.content[0].submitterUserId);
+    bru.setVar("propertyTargetPropertyId", res.body.content[0].targetPropertyId);
+  }
+}
+
+docs {
+  # Fourth and last queue-fanout call. Now I've made 4 round-trips just to
+  # see what's on my desk this morning. A real T&S console would burn out
+  # an admin in a week.
+}

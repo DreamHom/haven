@@ -1,6 +1,6 @@
 # DreamHomes Personas
 
-The six humans the platform exists for. Each `.md` file in this folder is the
+The seven humans the platform exists for. Each `.md` file in this folder is the
 canonical answer to "who is this for, what do they need to do, what does
 success look like, and what should we test."
 
@@ -27,6 +27,7 @@ When a feature ships, the persona doc that covers it should be updated:
 | [Biodun](biodun-the-developer.md) | Owner with assigned agent | Ibadan (developing in Ojodu) | Delegation: list 12 units, hand them to an agent, approve from anywhere. |
 | [Ngozi](ngozi-the-skeptic.md) | Applicant (rent-to-buy) | Lagos | Trust signals so visible she'll engage despite past burns. |
 | [Dayo](dayo-the-platform-guardian.md) | Admin | Internal — DreamHomes trust & safety | Tooling sharp enough to make every approved badge mean something. |
+| [Silas](silas-the-integrator.md) | Frontend integrator | DreamHomes engineering | Wires every screen against the OpenAPI spec. Surfaces shape/symmetry/embed/error-branch gaps the customer-facing personas can't see because they never have to *render* the data. |
 
 ## How each persona doc is structured
 

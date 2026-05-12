@@ -1,5 +1,7 @@
 package com.dreamhomes.haven.verification.service;
 
+import com.dreamhomes.haven.notification.NotificationApi;
+import com.dreamhomes.haven.notification.model.NotificationKind;
 import com.dreamhomes.haven.property.PropertyService;
 import com.dreamhomes.haven.property.exception.PropertyNotFoundException;
 import com.dreamhomes.haven.user.model.Role;
@@ -9,6 +11,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,6 +47,17 @@ public class VerificationService {
     private final UserProfileService userProfileService;
     private final PropertyService propertyService;
     private final ObjectMapper objectMapper;
+    private final NotificationApi notificationApi;
+
+    /**
+     * Returns the caller's own submissions, newest first. Backs
+     * {@code GET /api/verifications/mine} — the read-side the persona audit
+     * surfaced as missing for every persona that submits a verification.
+     */
+    @Transactional(readOnly = true)
+    public Page<Verification> listMine(Long submitterUserId, Pageable pageable) {
+        return verificationRepository.findBySubmitterUserIdOrderBySubmittedAtDesc(submitterUserId, pageable);
+    }
 
     @Transactional
     public Verification submit(Long submitterUserId, SubmitVerificationCommand cmd) {
@@ -105,6 +120,10 @@ public class VerificationService {
                 .build());
         log.info("Submitted verificationId={} type={} submitterId={} targetUserId={} targetPropertyId={}",
                 saved.getId(), saved.getType(), submitterId, targetUserId, targetPropertyId);
+        // Persona audit (Ngozi): every submission should land in the user's notifications
+        // tray so the "did the system actually receive my docs?" question has a yes.
+        notificationApi.recordSync(NotificationKind.VERIFICATION_SUBMITTED, submitterId,
+                java.util.Map.of("verificationId", saved.getId(), "type", saved.getType().name()));
         return saved;
     }
 

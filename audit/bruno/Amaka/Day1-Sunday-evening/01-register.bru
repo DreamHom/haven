@@ -1,0 +1,37 @@
+meta {
+  name: 01 Register as OWNER
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{host}}/auth/register
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "amaka.okafor.lekki+{{run_tag}}@gmail.com",
+    "password": "Lekki!Flat#2026!Amaka",
+    "fullName": "Amaka Okafor",
+    "displayName": "Amaka O.",
+    "phone": "+2348031234567",
+    "role": "OWNER",
+    "publicRole": true
+  }
+}
+
+assert {
+  res.status: eq 202
+}
+
+docs {
+  Day 1, Sunday evening. My colleague Ifeoma told me about DreamHomes last week
+  and finally I sit down with my laptop after dinner to register. I'm using my
+  Lekki email so it's clear which property cluster I manage.
+
+  I'm an OWNER — no agent, no license number. Just me.
+
+  Expecting a 202 with no body (the spec says it's the anti-enumeration contract).
+}

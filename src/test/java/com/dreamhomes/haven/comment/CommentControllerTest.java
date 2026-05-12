@@ -50,6 +50,7 @@ class CommentControllerTest {
     @Autowired MockMvc mockMvc;
     @MockBean CommentService commentService;
     @MockBean JwtService jwtService;
+    @MockBean com.dreamhomes.haven.auth.blocklist.JwtBlocklistRepository jwtBlocklistRepository;
     @MockBean UserCredentialsService userCredentialsService;
 
     @Test

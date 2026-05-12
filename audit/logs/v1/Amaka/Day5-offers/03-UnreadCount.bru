@@ -1,0 +1,25 @@
+meta {
+  name: 03-UnreadCount
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{host}}/api/notifications/mine/unread-count
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{amakaJwt}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  # Just the badge number for the bell icon — useful for the phone UI.
+
+  ✅ Returns a JSON object. Cheap and right-sized.
+}

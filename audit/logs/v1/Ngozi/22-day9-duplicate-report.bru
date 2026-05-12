@@ -1,0 +1,33 @@
+meta {
+  name: 22-day9-duplicate-report
+  type: http
+  seq: 22
+}
+
+post {
+  url: {{host}}/api/listings/17/report
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{ngozi_token}}
+}
+
+body:json {
+  {
+    "reason": "OFF_PLATFORM_FEES",
+    "details": "Re-submitting in case the first one didn't go through."
+  }
+}
+
+assert {
+  res.status: lte 500
+}
+
+docs {
+  # I'm anxious — did my report go through? I'm hitting the button
+  # again. I expect 409 Conflict with a clear message like "you've
+  # already reported this listing" — that would actually calm me
+  # down. A second 201 would worry me (was the first one even saved?).
+}

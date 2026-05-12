@@ -107,13 +107,16 @@ class AdminVerificationDecisionIT extends AbstractPostgresIT {
         assertThat(auditRows.get(0).getTargetType()).isEqualTo(AuditTargetType.VERIFICATION);
         assertThat(auditRows.get(0).getTargetId()).isEqualTo(verificationId);
 
-        // 7. Owner has a sync notification waiting.
+        // 7. Owner has the approval notification at the top, plus the VERIFICATION_SUBMITTED
+        //    ack that fired when they submitted in step 1 — the new sync ack from Batch 6
+        //    means the tray now reads "submitted -> approved" instead of just "approved".
         List<Notification> notifs = notificationRepository
                 .findByRecipientIdOrderByCreatedAtDesc(owner.getId());
-        assertThat(notifs).hasSize(1);
+        assertThat(notifs).hasSize(2);
         assertThat(notifs.get(0).getKind()).isEqualTo(NotificationKind.VERIFICATION_APPROVED);
         assertThat(notifs.get(0).getSource()).isEqualTo(NotificationSource.SYNC);
         assertThat(notifs.get(0).getEventId()).isNull();
+        assertThat(notifs.get(1).getKind()).isEqualTo(NotificationKind.VERIFICATION_SUBMITTED);
     }
 
     @Test

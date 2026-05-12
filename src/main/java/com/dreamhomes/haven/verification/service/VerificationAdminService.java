@@ -47,8 +47,33 @@ public class VerificationAdminService {
 
     @Transactional(readOnly = true)
     public Page<VerificationAdminView> listPending(VerificationType type, Pageable pageable) {
+        return list(type, VerificationStatus.PENDING, pageable);
+    }
+
+    /**
+     * Unified admin queue read: both {@code type} and {@code status} are optional.
+     * Persona audit (Dayo) flagged that requiring {@code ?type=...} forced a
+     * four-call fan-out to assemble the morning queue.
+     */
+    @Transactional(readOnly = true)
+    public Page<VerificationAdminView> list(VerificationType type, VerificationStatus status, Pageable pageable) {
+        if (type != null && status != null) {
+            return verificationRepository
+                    .findByTypeAndStatusOrderBySubmittedAtAsc(type, status, pageable)
+                    .map(verificationAdminMapper::toView);
+        }
+        if (type != null) {
+            return verificationRepository
+                    .findByTypeOrderBySubmittedAtAsc(type, pageable)
+                    .map(verificationAdminMapper::toView);
+        }
+        if (status != null) {
+            return verificationRepository
+                    .findByStatusOrderBySubmittedAtAsc(status, pageable)
+                    .map(verificationAdminMapper::toView);
+        }
         return verificationRepository
-                .findByTypeAndStatusOrderBySubmittedAtAsc(type, VerificationStatus.PENDING, pageable)
+                .findAllByOrderBySubmittedAtAsc(pageable)
                 .map(verificationAdminMapper::toView);
     }
 

@@ -1,0 +1,43 @@
+meta {
+  name: 04-DuplicateSubmission
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{host}}/api/verifications
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{amakaJwt}}
+}
+
+body:json {
+  {
+    "type": "OWNER_IDENTITY",
+    "documentRefs": {
+      "certificateOfOccupancy": {
+        "url": "https://res.cloudinary.com/demo/image/upload/sample.jpg",
+        "label": "C of O — second attempt because I panicked"
+      }
+    }
+  }
+}
+
+assert {
+  res.status: eq 409
+}
+
+docs {
+  # I refreshed and didn't see my submission anywhere (because there's no
+  # endpoint to see it). So I clicked submit again, panicking that the first
+  # one didn't go through.
+
+  Spec promises 409 with detail "a pending verification of this type already
+  exists". That's good — at least the duplicate guard works.
+
+  But I shouldn't have been driven to this in the first place. If I could
+  see my pending submission this whole panic would never happen.
+}

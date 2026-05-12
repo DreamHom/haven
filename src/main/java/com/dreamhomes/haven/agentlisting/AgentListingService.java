@@ -167,9 +167,25 @@ public class AgentListingService {
 
     @Transactional(readOnly = true)
     public Page<AgentListing> listMine(Long callerId, Role callerRole, Pageable pageable) {
+        return listMine(callerId, callerRole, null, pageable);
+    }
+
+    /**
+     * Status-filtered overload. Persona audit (Emeka) flagged that the pipeline
+     * mixed REQUESTED + ACCEPTED + DECLINED + REVOKED with no way to separate
+     * "open invites" from "active deals".
+     */
+    @Transactional(readOnly = true)
+    public Page<AgentListing> listMine(Long callerId, Role callerRole,
+                                       com.dreamhomes.haven.agentlisting.model.AgentListingStatus status,
+                                       Pageable pageable) {
         return switch (callerRole) {
-            case AGENT -> agentListingRepository.findByAgentUserIdOrderByRequestedAtDesc(callerId, pageable);
-            case OWNER -> agentListingRepository.findByRequestedByOwnerIdOrderByRequestedAtDesc(callerId, pageable);
+            case AGENT -> status == null
+                    ? agentListingRepository.findByAgentUserIdOrderByRequestedAtDesc(callerId, pageable)
+                    : agentListingRepository.findByAgentUserIdAndStatusOrderByRequestedAtDesc(callerId, status, pageable);
+            case OWNER -> status == null
+                    ? agentListingRepository.findByRequestedByOwnerIdOrderByRequestedAtDesc(callerId, pageable)
+                    : agentListingRepository.findByRequestedByOwnerIdAndStatusOrderByRequestedAtDesc(callerId, status, pageable);
             default -> Page.empty(pageable);
         };
     }

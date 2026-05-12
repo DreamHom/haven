@@ -1,0 +1,29 @@
+meta {
+  name: 13-Confirm my session via /me
+  type: http
+  seq: 13
+}
+
+get {
+  url: {{host}}/api/me
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{temi_token}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.role: eq APPLICANT
+}
+
+docs {
+  Quick sanity-check on my login. /me should echo back my role and
+  user ID. I want to confirm my role defaulted to APPLICANT (since
+  I picked it) and that my JWT works.
+
+  As a real user I wouldn't call this directly — but the frontend
+  would on app boot, so this proves the contract.
+}

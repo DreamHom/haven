@@ -1,0 +1,34 @@
+meta {
+  name: 02-Login
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{host}}/api/auth/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "{{biodunEmail}}",
+    "password": "{{biodunPassword}}"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.token: isDefined
+}
+
+script:post-response {
+  bru.setVar("biodunJwt", res.body.token);
+}
+
+docs {
+  # Got a token. Like every other persona I have no idea what my user ID
+  # is from this response — I will have to call /me. For a developer who
+  # is going to be inviting an agent to 12 listings I need my own ID
+  # quite often.
+}

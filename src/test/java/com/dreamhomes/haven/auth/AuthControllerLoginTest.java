@@ -48,11 +48,16 @@ class AuthControllerLoginTest {
     JwtService jwtService;
 
     @MockBean
+    com.dreamhomes.haven.auth.blocklist.JwtBlocklistRepository jwtBlocklistRepository;
+
+    @MockBean
     com.dreamhomes.haven.user.service.UserCredentialsService userCredentialsService;
 
     @Test
     void successfulLoginReturns200WithTokenInBody() throws Exception {
-        when(authService.login(any())).thenReturn("jwt-token-value");
+        when(authService.login(any())).thenReturn(new com.dreamhomes.haven.auth.dto.LoginResult(
+                "jwt-token-value", 7L,
+                com.dreamhomes.haven.user.model.Role.OWNER, "Ada Lovelace", 3600L));
 
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -63,7 +68,12 @@ class AuthControllerLoginTest {
                                 }
                                 """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.token", is("jwt-token-value")));
+                .andExpect(jsonPath("$.token", is("jwt-token-value")))
+                .andExpect(jsonPath("$.tokenType", is("Bearer")))
+                .andExpect(jsonPath("$.expiresInSeconds", is(3600)))
+                .andExpect(jsonPath("$.userId", is(7)))
+                .andExpect(jsonPath("$.role", is("OWNER")))
+                .andExpect(jsonPath("$.fullName", is("Ada Lovelace")));
     }
 
     @Test

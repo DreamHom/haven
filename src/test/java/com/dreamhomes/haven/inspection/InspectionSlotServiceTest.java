@@ -108,6 +108,7 @@ class InspectionSlotServiceTest {
 
     @Test
     void listAvailableDelegatesToRepository() {
+        when(listingService.exists(7L)).thenReturn(true);
         when(slotRepository.findAvailableForListing(7L))
                 .thenReturn(java.util.List.of(InspectionSlot.builder().id(1L).build()));
 
@@ -115,5 +116,13 @@ class InspectionSlotServiceTest {
 
         assertThat(result).hasSize(1);
         verify(slotRepository).findAvailableForListing(7L);
+    }
+
+    @Test
+    void listAvailableReturns404WhenListingMissing() {
+        when(listingService.exists(404L)).thenReturn(false);
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.listAvailableForListing(404L))
+                .isInstanceOf(com.dreamhomes.haven.listing.exception.ListingNotFoundException.class);
     }
 }

@@ -1,0 +1,38 @@
+meta {
+  name: 03-RejectWithEmptyReason
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{host}}/api/admin/verifications/{{ownerVerificationId}}/reject
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{jwt}}
+}
+
+body:json {
+  {
+    "reason": ""
+  }
+}
+
+assert {
+  res.status: eq 400
+}
+
+docs {
+  # Persona Story 3 says empty reason → 400 before any DB write.
+  # Spec disagrees — `RejectVerificationRequest.reason` has minLength: 0.
+  # If this returns 200 then the contract is enforcing a sloppier rule
+  # than the persona doc requires, AND the spec's minLength annotation
+  # is misleading.
+  #
+  # Note: this request will only fire meaningfully if there's a PENDING
+  # ownerVerificationId still around — if the morning approve cleared
+  # it, this will probably 409 instead of testing what we want. Either
+  # way the resulting status is informative.
+}

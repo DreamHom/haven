@@ -1,0 +1,60 @@
+meta {
+  name: 03-PublishListing
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{host}}/api/listings
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{amakaJwt}}
+}
+
+body:json {
+  {
+    "propertyId": {{amakaPropertyId}},
+    "listingType": "RENT",
+    "askingPrice": 4500000,
+    "currency": "NGN",
+    "cautionFee": 450000,
+    "serviceCharge": 350000,
+    "agencyFee": 0
+  }
+}
+
+assert {
+  res.status: eq 201
+  res.body.id: isDefined
+  res.body.status: eq LIVE
+  res.body.askingPrice: eq 4500000
+}
+
+script:post-response {
+  bru.setVar("amakaListingId", res.body.id);
+}
+
+docs {
+  # ₦4.5M/year for the 2-bed in Lekki Phase 1 feels right for the area.
+  # ₦450k caution + ₦350k service charge. Zero agency fee — I'm not paying
+  # any agent because I'M doing this.
+
+  ✅ Listing created.
+
+  🐛 SPEC INCONSISTENCY: I expected status `OPEN` per my persona doc and the
+  endpoint description. The actual response status is `LIVE`. The
+  ListingResponse enum is [LIVE, PAUSED, CLOSED] but the prose description
+  reads "starts in `OPEN` status". That mismatch will burn anyone reading
+  the docs first.
+
+  ⚠️ No "currency" field validation feedback — I just had to guess "NGN" is
+  right. Spec says 3-char string but doesn't list the supported codes.
+
+  ⚠️ No title or description on the LISTING itself — only on the property.
+  So if I wanted to write "Move-in ready! Just-painted! Quick move!" as a
+  marketing headline, there's nowhere to put it. Schema doesn't expose
+  one.
+}

@@ -1,0 +1,54 @@
+meta {
+  name: 02-CreatePropertyAdmiralty
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{host}}/api/properties
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{amakaJwt}}
+}
+
+body:json {
+  {
+    "type": "APARTMENT",
+    "address": "Plot 14, Admiralty Way, Lekki Phase 1, Lagos",
+    "bedrooms": 2,
+    "bathrooms": 2,
+    "sizeSqm": 96.5,
+    "description": "2-bed, 2-bath apartment in a serviced compound off Admiralty Way. 24/7 security, treated water, gen backup, fitted kitchen with gas cooker, balcony with lagoon-side breeze. Tile flooring throughout. POP ceilings. Tenant pays own electricity (PHCN prepaid)."
+  }
+}
+
+assert {
+  res.status: eq 201
+  res.body.id: isDefined
+  res.body.ownerId: eq {{amakaUserId}}
+  res.body.address: contains Admiralty
+}
+
+script:post-response {
+  bru.setVar("amakaPropertyId", res.body.id);
+}
+
+docs {
+  # The Admiralty Way flat — that's the smaller one. 2 beds, 2 baths.
+
+  ✅ Worked first try. ownerId came back as my user — good, it ignored any
+  attempt to spoof.
+
+  ⚠️ I noticed the request didn't ask for things a real Lagos landlord
+  cares about: serviced/non-serviced, generator-included, year built, what
+  floor it's on, gated/non-gated. I crammed all of that into "description"
+  and hope the search can find it. Schema has nothing structured for any
+  of it.
+
+  ⚠️ Also: the response doesn't echo back a "view this property" URL or
+  give me any next-step hint. I have to know on my own that the next thing
+  is `POST /listings` referencing this property's ID.
+}

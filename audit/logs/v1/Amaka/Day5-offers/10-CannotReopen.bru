@@ -1,0 +1,34 @@
+meta {
+  name: 10-CannotReopen
+  type: http
+  seq: 10
+}
+
+patch {
+  url: {{host}}/api/listings/{{amakaListingId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{amakaJwt}}
+}
+
+body:json {
+  {
+    "status": "LIVE"
+  }
+}
+
+assert {
+  res.status: eq 409
+}
+
+docs {
+  # I changed my mind 2 hours later — tried to put it back LIVE.
+
+  ✅ 409 as the spec promised. Cannot reopen a closed listing. Fine in
+  principle, but as an owner who second-guesses I'd love a "duplicate
+  this listing" shortcut so I don't have to start from zero. The spec
+  doesn't expose anything like that.
+}

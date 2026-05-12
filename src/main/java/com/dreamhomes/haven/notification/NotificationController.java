@@ -40,6 +40,41 @@ public class NotificationController {
     private static final int MAX_PAGE_SIZE = 100;
 
     private final NotificationService notificationService;
+    private final NotificationSseEmitters sseEmitters;
+
+    @io.swagger.v3.oas.annotations.Operation(
+            summary = "Open a server-sent-events stream of my notifications",
+            description = """
+                    Opens a long-lived `text/event-stream` connection. Every notification
+                    written for the caller — synchronous or Kafka-driven — is pushed as an
+                    SSE event the moment it commits. The event `name` is the
+                    {@code NotificationKind}; the {@code data} payload is
+                    `{ "id": ..., "kind": ..., "payload": {...} }`.
+
+                    Persona audit (Temi, Ngozi): the previous "poll /notifications/mine
+                    every 10s" pattern was both wasteful and laggy. SSE collapses both:
+                    no wasted hits when there's nothing new, and the user sees the event
+                    within milliseconds of it being recorded.
+
+                    Single-instance only for now — a future Redis pub-sub layer would
+                    fan out across nodes. Clients should reconnect on disconnect (browsers'
+                    EventSource does this automatically with backoff).
+                    """
+    )
+    @io.swagger.v3.oas.annotations.responses.ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200",
+                    description = "SSE stream opened; events arrive as notifications are recorded."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401",
+                    ref = "#/components/responses/Unauthenticated")
+    })
+    @io.swagger.v3.oas.annotations.security.SecurityRequirement(name = "bearerAuth")
+    @GetMapping(value = "/stream",
+            produces = org.springframework.http.MediaType.TEXT_EVENT_STREAM_VALUE)
+    public org.springframework.web.servlet.mvc.method.annotation.SseEmitter stream(
+            @org.springframework.security.core.annotation.AuthenticationPrincipal
+            com.dreamhomes.haven.auth.JwtPrincipal principal) {
+        return sseEmitters.register(principal.userId());
+    }
 
     @Operation(
             summary = "List my notifications",
@@ -85,10 +120,12 @@ public class NotificationController {
             @AuthenticationPrincipal JwtPrincipal principal,
             @Parameter(description = "When true, return only notifications without `readAt`.", example = "false")
             @RequestParam(defaultValue = "false") boolean unreadOnly,
+            @Parameter(description = "Filter by notification kind (OFFER_SUBMITTED, VERIFICATION_APPROVED, etc).")
+            @RequestParam(required = false) com.dreamhomes.haven.notification.model.NotificationKind kind,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         Pageable pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), MAX_PAGE_SIZE));
-        return notificationService.listMine(principal.userId(), unreadOnly, pageable)
+        return notificationService.listMine(principal.userId(), unreadOnly, kind, pageable)
                 .map(NotificationResponse::from);
     }
 
@@ -137,5 +174,28 @@ public class NotificationController {
             @Parameter(description = "Notification ID to mark read.", example = "201")
             @PathVariable Long id) {
         return NotificationResponse.from(notificationService.markRead(principal.userId(), id));
+    }
+
+    @Operation(
+            summary = "Mark all my notifications as read",
+            description = """
+                    Bulk-flip every unread notification for the caller to read. Idempotent —
+                    already-read notifications are skipped. Returns the count actually flipped.
+                    Persona audit (Biodun, Temi) flagged that one-at-a-time mark-read is
+                    unusable past a handful of notifications.
+                    """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200",
+                    description = "Returns `{ \"marked\": <int> }` — count of notifications flipped.",
+                    content = @Content(examples = @ExampleObject(name = "MarkedFive", value = """
+                            { "marked": 5 }
+                            """))),
+            @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthenticated")
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @PostMapping("/mark-all-read")
+    public Map<String, Integer> markAllRead(@AuthenticationPrincipal JwtPrincipal principal) {
+        return Map.of("marked", notificationService.markAllRead(principal.userId()));
     }
 }

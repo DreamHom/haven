@@ -38,6 +38,40 @@ public class InspectionService {
     private final OutboxEventRepository outboxRepository;
     private final ObjectMapper objectMapper;
     private final ApplicationEventPublisher applicationEventPublisher;
+    private final com.dreamhomes.haven.notification.NotificationApi notificationApi;
+
+    /**
+     * Applicant's bookings. Backs {@code GET /api/inspections/mine} — the read-side
+     * Temi flagged as missing in the persona audit ("I booked a slot and have no
+     * way to see my upcoming inspections").
+     */
+    @Transactional(readOnly = true)
+    public org.springframework.data.domain.Page<InspectionRequest> listMine(
+            Long applicantId, org.springframework.data.domain.Pageable pageable) {
+        return requestRepository.findByApplicantIdOrderByCreatedAtDesc(applicantId, pageable);
+    }
+
+    /**
+     * Applicant withdraws a PENDING inspection request. Frees the slot for others.
+     * Persona audit (Temi): the previous shape locked the applicant in once they'd
+     * claimed a slot, with no recourse if something came up at work.
+     */
+    @Transactional
+    public InspectionRequest cancel(Long callerId, Long requestId) {
+        InspectionRequest request = requestRepository.findById(requestId)
+                .orElseThrow(() -> new com.dreamhomes.haven.inspection.exception.InspectionRequestNotFoundException(requestId));
+        if (!request.getApplicantId().equals(callerId)) {
+            throw new com.dreamhomes.haven.listing.exception.NotPropertyOwnerException();
+        }
+        if (request.getStatus() != InspectionRequestStatus.PENDING) {
+            throw new com.dreamhomes.haven.inspection.exception.InspectionRequestNotPendingException(requestId);
+        }
+        request.setStatus(InspectionRequestStatus.CANCELLED);
+        InspectionRequest saved = requestRepository.save(request);
+        log.info("Applicant {} cancelled inspection request {} (slot {} freed)",
+                callerId, requestId, saved.getSlotId());
+        return saved;
+    }
 
     @Transactional
     public InspectionRequest requestSlot(Long applicantId, RequestInspectionCommand cmd) {
@@ -97,6 +131,16 @@ public class InspectionService {
 
         log.info("Created inspectionRequestId={} slotId={} applicantId={} eventId={}",
                 saved.getId(), saved.getSlotId(), applicantId, eventId);
+        // Persona audit (Ngozi, Temi): the applicant who just booked deserves an immediate
+        // in-tray ack independent of the async Kafka fanout to owner + agent.
+        notificationApi.recordSync(
+                com.dreamhomes.haven.notification.model.NotificationKind.INSPECTION_BOOKED,
+                applicantId,
+                java.util.Map.of(
+                        "inspectionRequestId", saved.getId(),
+                        "slotId", saved.getSlotId(),
+                        "listingId", listing.id(),
+                        "startsAt", slot.getStartsAt().toString()));
         return saved;
     }
 

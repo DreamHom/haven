@@ -31,7 +31,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-
+/**
+ * Comment endpoints. Public listing detail pages embed the read endpoint; the post
+ * endpoint requires authentication; the delete endpoint authorises in the service.
+ */
 @RestController
 @RequiredArgsConstructor
 @Tag(name = "Comments")
@@ -64,7 +67,7 @@ public class CommentController {
                                     """))),
             @ApiResponse(responseCode = "404", ref = "#/components/responses/NotFound")
     })
-    @SecurityRequirements 
+    @SecurityRequirements // public
     @GetMapping("/api/listings/{listingId}/comments")
     public Page<CommentResponse> list(
             @Parameter(description = "Listing ID.", example = "17")

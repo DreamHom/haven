@@ -1,0 +1,24 @@
+meta {
+  name: 10 GET /listings/mine
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{host}}/listings/mine
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{jwt}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  Confirming I can see my own portfolio. Future me will come here every day to
+  see what's happening.
+}

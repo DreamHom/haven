@@ -45,6 +45,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api")
 @RequiredArgsConstructor
 @Tag(name = "Agent assignments")
+@org.springframework.validation.annotation.Validated
 public class AgentListingController {
 
     private static final int MAX_PAGE_SIZE = 100;
@@ -98,6 +99,43 @@ public class AgentListingController {
             @Valid @RequestBody RequestAgentAssignmentRequest request) {
         return agentListingMapper.toResponse(
                 agentListingService.request(principal.userId(), listingId, request.agentId()));
+    }
+
+    @Operation(
+            summary = "Invite agents to many listings in one call",
+            description = """
+                    Bulk variant of {@code POST /api/listings/{listingId}/agent-assignment}.
+                    Persona audit (Biodun): an owner with 60 freshly-listed units shouldn't
+                    have to fire 60 separate invite calls when they've already picked one
+                    or two agents to manage the whole tower. Each row pairs a listing with
+                    the agent to invite. Owner-of-listing + agent-role checks run per row.
+                    Whole batch is one transaction.
+
+                    **Limits**: at most 100 invitations per call.
+                    """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "All invitations created."),
+            @ApiResponse(responseCode = "400", ref = "#/components/responses/ValidationFailed"),
+            @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthenticated"),
+            @ApiResponse(responseCode = "403", ref = "#/components/responses/Forbidden"),
+            @ApiResponse(responseCode = "404", ref = "#/components/responses/NotFound"),
+            @ApiResponse(responseCode = "409", ref = "#/components/responses/Conflict")
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @PostMapping("/agent-listings/bulk")
+    @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasRole('OWNER')")
+    public java.util.List<AgentListingResponse> requestBulk(
+            @AuthenticationPrincipal JwtPrincipal principal,
+            @Valid @RequestBody @jakarta.validation.constraints.Size(min = 1, max = 100)
+            java.util.List<com.dreamhomes.haven.agentlisting.dto.BulkAssignmentRequest> requests) {
+        java.util.List<AgentListingResponse> out = new java.util.ArrayList<>(requests.size());
+        for (var r : requests) {
+            out.add(agentListingMapper.toResponse(
+                    agentListingService.request(principal.userId(), r.listingId(), r.agentId())));
+        }
+        return out;
     }
 
     @Operation(
@@ -232,10 +270,12 @@ public class AgentListingController {
     @GetMapping("/agent-listings/mine")
     public Page<AgentListingResponse> listMine(
             @AuthenticationPrincipal JwtPrincipal principal,
+            @io.swagger.v3.oas.annotations.Parameter(description = "Filter by status: REQUESTED, ACCEPTED, DECLINED, REVOKED.")
+            @RequestParam(required = false) com.dreamhomes.haven.agentlisting.model.AgentListingStatus status,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         Pageable pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), MAX_PAGE_SIZE));
-        return agentListingService.listMine(principal.userId(), principal.role(), pageable)
+        return agentListingService.listMine(principal.userId(), principal.role(), status, pageable)
                 .map(agentListingMapper::toResponse);
     }
 

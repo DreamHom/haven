@@ -50,6 +50,7 @@ class InspectionSlotControllerTest {
     @Autowired MockMvc mockMvc;
     @MockBean InspectionSlotService slotService;
     @MockBean JwtService jwtService;
+    @MockBean com.dreamhomes.haven.auth.blocklist.JwtBlocklistRepository jwtBlocklistRepository;
     @MockBean UserCredentialsService userCredentialsService;
 
     @Test

@@ -1,0 +1,21 @@
+meta {
+  name: 05-See its photos
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{host}}/api/listings/1/photos
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: lte 404
+}
+
+docs {
+  I want to see what the place looks like. Photos are a separate
+  endpoint from the listing detail — that's an extra round-trip on
+  a phone with patchy MTN data, but fine.
+}

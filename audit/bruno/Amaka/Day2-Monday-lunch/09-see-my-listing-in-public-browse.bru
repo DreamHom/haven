@@ -1,0 +1,20 @@
+meta {
+  name: 09 Public browse — is my listing visible?
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{host}}/listings?size=20
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  I want to make sure a random visitor can actually find my listing. No auth
+  on this call — same as a stranger opening the site.
+}

@@ -16,14 +16,23 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+import com.dreamhomes.haven.verification.dto.UploadedDocumentResponse;
+import com.dreamhomes.haven.verification.storage.VerificationDocumentStorage;
 
 /**
  * Submission endpoint for the four verification tracks. Admin queue + decision endpoints
@@ -36,6 +45,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class VerificationController {
 
     private final VerificationService verificationService;
+    private final VerificationDocumentStorage verificationDocumentStorage;
 
     @Operation(
             summary = "Submit a verification for admin review",
@@ -84,8 +94,71 @@ public class VerificationController {
                                        @Valid @RequestBody SubmitVerificationRequest request) {
         Verification saved = verificationService.submit(principal.userId(),
                 new SubmitVerificationCommand(request.type(), request.propertyId(), request.documentRefs()));
-        return new VerificationResponse(saved.getId(), saved.getType(), saved.getStatus(),
-                saved.getSubmitterUserId(), saved.getTargetUserId(), saved.getTargetPropertyId(),
-                saved.getDocumentRefs(), saved.getSubmittedAt(), saved.getDecidedAt());
+        return toResponse(saved);
+    }
+
+    @Operation(
+            summary = "List my verification submissions",
+            description = """
+                    Returns the caller's own verification submissions, newest first. Use this to
+                    check the status of a submission you made — PENDING / APPROVED / REJECTED.
+                    The persona audit found every persona who submits a verification had no way
+                    to see their own submissions; this is that read-side.
+
+                    Scoped strictly to the caller — there is no `?userId=` parameter; the admin
+                    queue (`GET /api/admin/verifications`) is the cross-user view.
+                    """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Paginated list of the caller's submissions."),
+            @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthenticated")
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @GetMapping("/mine")
+    public Page<VerificationResponse> listMine(@AuthenticationPrincipal JwtPrincipal principal,
+                                               @PageableDefault(size = 20) Pageable pageable) {
+        return verificationService.listMine(principal.userId(), pageable).map(this::toResponse);
+    }
+
+    @Operation(
+            summary = "Upload a verification document",
+            description = """
+                    Uploads a single file (NIN slip, C of O, agent licence, etc.) into
+                    the platform's R2 bucket under {@code verifications/{userId}/}.
+                    Returns the URL the file is hostable at; the client should paste
+                    that URL into the subsequent `POST /api/verifications` call inside
+                    `documentRefs`.
+
+                    Persona audit: every persona who submits a verification flagged
+                    the absence of a real upload endpoint. They were being asked to
+                    host their own NIN / C of O on a public CDN — a data-leakage
+                    scenario the verification flow itself was supposed to prevent.
+
+                    `multipart/form-data` request with field name `file`.
+                    """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "File uploaded. Response contains the public URL.",
+                    content = @Content(schema = @Schema(implementation = UploadedDocumentResponse.class),
+                            examples = @ExampleObject(name = "UploadedNin", value = """
+                                    { "url": "https://pub-abc.r2.dev/verifications/42/c3a8.jpg" }
+                                    """))),
+            @ApiResponse(responseCode = "400", ref = "#/components/responses/ValidationFailed"),
+            @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthenticated")
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @PostMapping(value = "/files", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @ResponseStatus(HttpStatus.CREATED)
+    public UploadedDocumentResponse uploadFile(
+            @AuthenticationPrincipal JwtPrincipal principal,
+            @RequestParam("file") MultipartFile file) {
+        String url = verificationDocumentStorage.upload(file, principal.userId());
+        return new UploadedDocumentResponse(url);
+    }
+
+    private VerificationResponse toResponse(Verification v) {
+        return new VerificationResponse(v.getId(), v.getType(), v.getStatus(),
+                v.getSubmitterUserId(), v.getTargetUserId(), v.getTargetPropertyId(),
+                v.getDocumentRefs(), v.getSubmittedAt(), v.getDecidedAt());
     }
 }

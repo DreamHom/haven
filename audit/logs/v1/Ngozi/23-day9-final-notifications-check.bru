@@ -1,0 +1,26 @@
+meta {
+  name: 23-day9-final-notifications-check
+  type: http
+  seq: 23
+}
+
+get {
+  url: {{host}}/api/notifications/mine/unread-count
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{ngozi_token}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  # End of Day 9. Did the platform tell me anything happened with my
+  # report, my offer, or my inspection? Unread count > 0 says someone
+  # is talking back to me. Unread count = 0 across the whole journey
+  # would be deafening silence.
+}

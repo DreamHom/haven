@@ -1,0 +1,34 @@
+meta {
+  name: 08-MissingStatusFilter
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{host}}/api/admin/verifications?type=OWNER_IDENTITY&status=APPROVED
+  auth: bearer
+}
+
+params:query {
+  type: OWNER_IDENTITY
+  status: APPROVED
+}
+
+auth:bearer {
+  token: {{jwt}}
+}
+
+docs {
+  # Probing: is `status` honoured even though the spec doesn't list it?
+
+  My persona doc has me looking at recently-APPROVED items occasionally to
+  spot-check approvals against new fraud patterns. The spec's `?type=`
+  filter is the only documented one. I'm sending `status=APPROVED` to see
+  if the server quietly supports it or just ignores it.
+
+  Either outcome is a finding:
+  - If it returns APPROVED items: the spec is lying about what filters
+    exist (undocumented surface).
+  - If it returns PENDING items (i.e. ignores my filter): I have no way
+    to retrospectively review my own approvals — a major audit gap.
+}

@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "DreamHomes Haven — persona audit",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

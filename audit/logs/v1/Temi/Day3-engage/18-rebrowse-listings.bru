@@ -1,0 +1,27 @@
+meta {
+  name: 18-Re-browse — anything new?
+  type: http
+  seq: 18
+}
+
+get {
+  url: {{host}}/api/listings?page=0&size=10
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{temi_token}}
+}
+
+docs {
+  Day 3. I'm checking if anything new has gone live since
+  yesterday. There's no "new since I last visited" filter or
+  "saved-search-with-alert" — I just have to re-scroll the same
+  list. As a real user I'd love an email alert when a place
+  matching my budget + area appears, like Property24 does.
+}
+
+assert {
+  res.status: eq 200
+}

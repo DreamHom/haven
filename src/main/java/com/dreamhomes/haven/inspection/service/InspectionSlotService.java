@@ -55,6 +55,10 @@ public class InspectionSlotService {
 
     @Transactional(readOnly = true)
     public List<InspectionSlot> listAvailableForListing(Long listingId) {
+        // 404 if the listing is missing — see B-2 in the persona audit.
+        if (!listingService.exists(listingId)) {
+            throw new com.dreamhomes.haven.listing.exception.ListingNotFoundException(listingId);
+        }
         return slotRepository.findAvailableForListing(listingId);
     }
 }

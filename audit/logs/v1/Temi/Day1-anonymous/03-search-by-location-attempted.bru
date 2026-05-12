@@ -1,0 +1,27 @@
+meta {
+  name: 03-Try filtering by location (Yaba)
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{host}}/api/listings?location=Yaba&priceMax=1000000&bedrooms=1&page=0&size=20
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  I'm trying my luck — typing what I'd hope works. As a Lagos
+  renter the first thing I do on Jiji or PropertyPro is filter by
+  area + budget. The spec doesn't document `location`, `priceMax`,
+  or `bedrooms` on this endpoint, so this is most likely going to
+  return an unfiltered page of everything.
+
+  If that's the case, the entire discovery experience for me as a
+  first-timer is "scroll until you spot Yaba in an address string,"
+  which is unworkable on a real Lagos catalogue.
+}

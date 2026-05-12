@@ -1,0 +1,38 @@
+meta {
+  name: 01-AuditLogsByActor
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/api/admin/audit-logs?actor_id={{dayoSelfId}}
+  auth: bearer
+}
+
+params:query {
+  actor_id: {{dayoSelfId}}
+}
+
+auth:bearer {
+  token: {{jwt}}
+}
+
+docs {
+  # Persona doc Story 7 says: "GET /admin/audit-logs (confirm exact path)".
+  # I am confirming. Spoiler — this endpoint is NOT in openapi.json.
+  # I am sending the request anyway because the persona would, and the
+  # 404 here IS the deliverable. The platform claims (in the persona doc)
+  # that "every admin write produces exactly one audit log row" — and yet
+  # there is NO READ ENDPOINT for those rows. The data may exist; the
+  # operator can never see it.
+  #
+  # This is the single most important finding of my entire audit. Without
+  # an audit log read endpoint I cannot:
+  # - self-audit before sensitive actions
+  # - investigate "did Dayo really suspend that account or was it
+  #   another admin?"
+  # - prove to a regulator that we have a moderation paper trail
+  # - spot a compromised admin account taking weird actions
+  #
+  # I am not asserting a status code — whatever this returns IS the finding.
+}

@@ -1,0 +1,32 @@
+meta {
+  name: 07-RepublishListing
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{host}}/api/admin/listings/{{targetListingId}}/approve
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{jwt}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  # Wait — the takedown was a mistake (agent provided ticket evidence
+  # that the screenshots were doctored). I want to undo it.
+
+  Spec has `POST /admin/listings/{id}/approve` summary "Re-publish a
+  previously taken-down listing". Good — reversibility exists. But:
+  - No `reason` field on the re-approve. So when I un-takedown, the
+    audit trail just says "approved" with no human context. Why did
+    I reverse my own decision? Lost forever.
+  - There's no admin endpoint to LIST taken-down listings, so I can't
+    even browse my own takedowns to spot ones I should reconsider.
+}

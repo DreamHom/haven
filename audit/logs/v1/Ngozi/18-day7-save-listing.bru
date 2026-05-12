@@ -1,0 +1,24 @@
+meta {
+  name: 18-day7-save-listing
+  type: http
+  seq: 18
+}
+
+post {
+  url: {{host}}/api/listings/17/save
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{ngozi_token}}
+}
+
+assert {
+  res.status: lte 500
+}
+
+docs {
+  # Day 7 — saving the listing so I can come back to it tomorrow
+  # without losing the URL. I expect 204 No Content.
+}

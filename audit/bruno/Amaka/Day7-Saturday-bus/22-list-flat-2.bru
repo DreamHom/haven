@@ -1,0 +1,43 @@
+meta {
+  name: 22 Publish listing for the second flat
+  type: http
+  seq: 22
+}
+
+post {
+  url: {{host}}/listings
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{jwt}}
+}
+
+body:json {
+  {
+    "propertyId": {{propertyId2}},
+    "listingType": "RENT",
+    "askingPrice": 2200000,
+    "currency": "NGN",
+    "cautionFee": 220000,
+    "serviceCharge": 120000,
+    "agencyFee": 0
+  }
+}
+
+assert {
+  res.status: eq 201
+  res.body.status: eq LIVE
+}
+
+script:post-response {
+  if (res.body && res.body.id) {
+    bru.setVar("listingId2", res.body.id);
+  }
+}
+
+docs {
+  Same solo-owner, agencyFee 0 setup. 2.2M Naira/year is the right rate for
+  a 1BR Lekki mini-flat.
+}

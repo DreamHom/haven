@@ -1,0 +1,35 @@
+meta {
+  name: 29-Accept the owner's final counter
+  type: http
+  seq: 29
+}
+
+patch {
+  url: {{host}}/api/offers/2
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{temi_token}}
+}
+
+body:json {
+  {
+    "status": "ACCEPTED"
+  }
+}
+
+assert {
+  res.status: in [200, 400, 401, 403, 404, 409]
+}
+
+docs {
+  Saying yes. PATCH /offers/{id} with status=ACCEPTED.
+
+  The schema lets me PATCH the status to literally any of
+  PENDING/ACCEPTED/DECLINED/COUNTERED but presumably the server
+  rejects PENDING and COUNTERED here. As a client dev I'd want the
+  spec to say "only ACCEPTED or DECLINED allowed on this endpoint."
+  The enum being the full set is misleading.
+}

@@ -1,0 +1,43 @@
+meta {
+  name: 03-CreateUnit-B1
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{host}}/api/properties
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{biodunJwt}}
+}
+
+body:json {
+  {
+    "type": "APARTMENT",
+    "address": "Unit B1, Plot 7 Berger Road, Ojodu, Lagos",
+    "bedrooms": 2,
+    "bathrooms": 2,
+    "sizeSqm": 78,
+    "description": "Brand new 2-bed off-plan apartment, first floor of new 12-unit block in Ojodu Berger. En-suite master, fully fitted kitchen, balcony, POP ceiling, ample parking. Estate has 24/7 security, borehole and treatment plant, paved compound."
+  }
+}
+
+assert {
+  res.status: eq 201
+}
+
+script:post-response {
+  if (res.body && res.body.id) {
+    bru.setVar("propertyB1", res.body.id);
+  }
+}
+
+docs {
+  # First of the 2-bed units. Different bedroom/bathroom count, different
+  # sqm. So even with bulk-create the schema would need a way to vary
+  # per-unit fields. A "12 units, 6× config-A and 6× config-B" wizard
+  # would be the dream.
+}

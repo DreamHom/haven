@@ -1,0 +1,45 @@
+meta {
+  name: 10 View my own public profile (what owners see)
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{host}}/api/users/{{emeka_id}}/profile
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{jwt}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.id: isDefined
+  res.body.role: eq AGENT
+  res.body.fullName: isDefined
+  res.body.suspended: eq false
+  res.body.reviewCount: isDefined
+  res.body.averageRating: isDefined
+}
+
+docs {
+  This is THE screen. This is what an owner like Biodun sees when he's
+  deciding between me and the agency down the road. Every trust signal that's
+  here is one less call I have to make to prove myself; every signal that's
+  missing is a deal I lose.
+
+  What I'm checking (persona doc Story 9 says these were "Future"):
+  - `closedDealCount` — do owners see how many deals I've actually closed?
+  - `responseRate` — do they see I reply within an hour?
+
+  Post-audit hinted these would be added. The PublicUserProfile schema in
+  the spec currently lists: id, fullName, displayName, role,
+  identityVerifiedAt, agentCredentialVerifiedAt, suspended, averageRating,
+  reviewCount, joinedAt — and that's it. So this is more of a "did they
+  actually ship it?" reality check.
+
+  My credentials are still PENDING in this run, so I expect
+  `agentCredentialVerifiedAt` = null. That's fine. But the *fields existing
+  at all* is what matters here.
+}

@@ -1,0 +1,23 @@
+meta {
+  name: 22-Log out at end of my session
+  type: http
+  seq: 22
+}
+
+post {
+  url: {{host}}/api/auth/logout
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{emeka_jwt}}
+}
+
+assert {
+  res.status: in [200, 204]
+}
+
+docs {
+  Wrap up the day. Clean session close.
+}
