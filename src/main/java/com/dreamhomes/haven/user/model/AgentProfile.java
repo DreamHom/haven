@@ -51,6 +51,9 @@ public class AgentProfile {
     @Column(name = "cac_registration_number", length = 64)
     private String cacRegistrationNumber;
 
+    @Column(length = 255)
+    private String agency;
+
     @Column(columnDefinition = "TEXT")
     private String bio;
 

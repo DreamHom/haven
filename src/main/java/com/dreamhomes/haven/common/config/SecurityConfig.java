@@ -21,16 +21,6 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
 
-/**
- * Deny-by-default security baseline.
- *
- * <p>Every request requires authentication unless a feature explicitly opens an endpoint
- * (e.g. public listing browse, auth/register, auth/login). Disabling CSRF and using a
- * stateless session policy reflect a JWT-bearing API — no server-side session state.
- *
- * <p>This baseline forces every new controller to declare its security posture by
- * either adding a permitAll() rule or being authenticated by default.
- */
 @Configuration
 @EnableMethodSecurity
 public class SecurityConfig {
@@ -71,13 +61,11 @@ public class SecurityConfig {
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/register", "/api/auth/login").permitAll()
-                        // Liveness/readiness probes for load balancers + k8s. /actuator/prometheus
-                        // is deliberately NOT in this list — scraping stays auth-gated.
+                 
                         .requestMatchers(org.springframework.http.HttpMethod.GET,
                                 "/actuator/health", "/actuator/health/**",
                                 "/actuator/info").permitAll()
-                        // OpenAPI spec + Swagger UI + Scalar renderer — public read so the
-                        // frontend can discover the surface area without a token.
+                     
                         .requestMatchers(org.springframework.http.HttpMethod.GET,
                                 "/v3/api-docs", "/v3/api-docs/**",
                                 "/swagger-ui.html", "/swagger-ui/**",

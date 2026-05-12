@@ -19,16 +19,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Per-IP rate limiting on the unauthenticated auth endpoints. Caps registration and
- * login attempts at 5 per minute per IP — enough room for a fumbled password, narrow
- * enough to make automated credential-stuffing slow.
- *
- * <p>State is in-memory only; for multi-instance deployments swap the
- * {@code ConcurrentHashMap} for a shared store (Redis, Hazelcast, etc.).
- *
- * <p>Returns {@code 429 Too Many Requests} with no body when exhausted.
- */
 @Component
 @Slf4j
 public class AuthRateLimitFilter extends OncePerRequestFilter {
@@ -43,10 +33,6 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
 
     private final Map<String, Bucket> buckets = new ConcurrentHashMap<>();
 
-    /**
-     * Toggle for slice tests that focus on controller behaviour and don't want to fight
-     * the bucket. Production and full ITs leave this at the default {@code true}.
-     */
     @Value("${haven.rate-limit.enabled:true}")
     private boolean enabled;
 
@@ -79,7 +65,7 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
     private static String clientKey(HttpServletRequest request) {
         String forwarded = request.getHeader("X-Forwarded-For");
         if (forwarded != null && !forwarded.isBlank()) {
-            // X-Forwarded-For can be a comma-separated chain; the leftmost is the originator.
+
             return forwarded.split(",")[0].trim();
         }
         return request.getRemoteAddr();

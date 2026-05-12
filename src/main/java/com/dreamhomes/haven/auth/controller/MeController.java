@@ -1,6 +1,11 @@
 package com.dreamhomes.haven.auth.controller;
 
 import com.dreamhomes.haven.auth.JwtPrincipal;
+import com.dreamhomes.haven.auth.dto.ChangeMyPasswordRequest;
+import com.dreamhomes.haven.auth.dto.UpdateMyAgentProfileRequest;
+import com.dreamhomes.haven.auth.dto.UpdateMyProfileRequest;
+import com.dreamhomes.haven.user.dto.MyAccountProfile;
+import com.dreamhomes.haven.user.service.UserAccountService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
@@ -9,18 +14,25 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * Tiny convenience endpoint — returns the authenticated principal as-is. Lives in the
- * auth feature now (used to be a one-class {@code me/} package); nothing else conceptually
- * lives there and the route is fundamentally about identity.
- */
+
 @RestController
 @Tag(name = "Auth")
+@RequiredArgsConstructor
 public class MeController {
+
+    private final UserAccountService userAccountService;
 
     @Operation(
             summary = "Identify the current authenticated user",
@@ -48,5 +60,120 @@ public class MeController {
     @GetMapping("/api/me")
     public JwtPrincipal me(@AuthenticationPrincipal JwtPrincipal principal) {
         return principal;
+    }
+
+    @Operation(
+            summary = "Read the current user's account settings profile",
+            description = """
+                    Returns the authenticated user's editable account fields, including \
+                    private identity data such as email, phone, and agent-license details.
+                    This is the companion read endpoint a settings page needs before it can \
+                    PATCH any of the write routes under `/api/me`.
+                    """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200",
+                    description = "Private account profile returned.",
+                    content = @Content(
+                            schema = @Schema(implementation = MyAccountProfile.class),
+                            examples = @ExampleObject(name = "AgentSettings", value = """
+                                    { "id": 23, "email": "agent@example.com",
+                                      "fullName": "Emeka Okonkwo", "displayName": "Emeka",
+                                      "phone": "+2348012345678", "role": "AGENT",
+                                      "identityVerifiedAt": "2026-04-12T10:00:00Z",
+                                      "agentCredentialVerifiedAt": "2026-04-13T11:00:00Z",
+                                      "licenseNumber": "RC-67890",
+                                      "agency": "Lekki Realty Co.",
+                                      "suspended": false,
+                                      "joinedAt": "2026-01-02T09:00:00Z" }
+                                    """))),
+            @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthenticated")
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @GetMapping("/api/me/profile")
+    public MyAccountProfile myProfile(@AuthenticationPrincipal JwtPrincipal principal) {
+        return userAccountService.findMyProfile(principal.userId());
+    }
+
+    @Operation(
+            summary = "Update the current user's basic account fields",
+            description = """
+                    Partially updates the authenticated user's own profile basics. Identity \
+                    always comes from the JWT subject; there is no userId path or body field, \
+                    so callers cannot edit another account.
+
+                    Email update is currently a direct write in this codebase. That is a \
+                    deliberate temporary shortcut until email-delivery infrastructure exists \
+                    for a proper verify-the-new-address flow.
+                    """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Profile updated.",
+                    content = @Content(schema = @Schema(implementation = MyAccountProfile.class))),
+            @ApiResponse(responseCode = "400", ref = "#/components/responses/ValidationFailed"),
+            @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthenticated"),
+            @ApiResponse(responseCode = "409", ref = "#/components/responses/Conflict")
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @PatchMapping("/api/me")
+    public MyAccountProfile updateMyProfile(@AuthenticationPrincipal JwtPrincipal principal,
+                                            @Valid @RequestBody UpdateMyProfileRequest request) {
+        return userAccountService.updateMyProfile(
+                principal.userId(),
+                request.email(),
+                request.fullName(),
+                request.displayName(),
+                request.phone());
+    }
+
+    @Operation(
+            summary = "Change the current user's password",
+            description = """
+                    Requires the current password for re-authentication, then stores the new \
+                    password hash and bumps `tokenVersion` so every previously-issued JWT for \
+                    the account is rejected on its next request.
+                    """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Password changed; other sessions invalidated."),
+            @ApiResponse(responseCode = "400", ref = "#/components/responses/ValidationFailed"),
+            @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthenticated"),
+            @ApiResponse(responseCode = "403", ref = "#/components/responses/Forbidden")
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @PostMapping("/api/me/password")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void changePassword(@AuthenticationPrincipal JwtPrincipal principal,
+                               @Valid @RequestBody ChangeMyPasswordRequest request) {
+        userAccountService.changePassword(principal.userId(),
+                request.currentPassword(),
+                request.newPassword());
+    }
+
+    @Operation(
+            summary = "Update the current agent's agent-profile fields",
+            description = """
+                    Agent-only settings endpoint. Supports license-renewal style edits without \
+                    exposing admin-only verification fields. If the license number changes, \
+                    `credentialVerifiedAt` is cleared so the new credential must be re-verified.
+                    """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Agent profile updated.",
+                    content = @Content(schema = @Schema(implementation = MyAccountProfile.class))),
+            @ApiResponse(responseCode = "400", ref = "#/components/responses/ValidationFailed"),
+            @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthenticated"),
+            @ApiResponse(responseCode = "403", ref = "#/components/responses/Forbidden"),
+            @ApiResponse(responseCode = "409", ref = "#/components/responses/Conflict")
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @PreAuthorize("hasRole('AGENT')")
+    @PatchMapping("/api/me/agent-profile")
+    public MyAccountProfile updateMyAgentProfile(@AuthenticationPrincipal JwtPrincipal principal,
+                                                 @Valid @RequestBody UpdateMyAgentProfileRequest request) {
+        return userAccountService.updateMyAgentProfile(
+                principal.userId(),
+                request.licenseNumber(),
+                request.agency());
     }
 }

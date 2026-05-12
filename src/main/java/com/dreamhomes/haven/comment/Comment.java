@@ -17,14 +17,7 @@ import lombok.Setter;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-/**
- * Public comment on a listing (PRD §4.9). Soft-delete via {@code deletedAt}: the row
- * stays for forensic and appeal purposes; partial indexes hide it from public reads.
- *
- * <p>{@code deletedAt + deletedByUserId + deletionReason} are wired together by the
- * {@code comments_delete_complete} CHECK constraint — services must populate them
- * atomically.
- */
+
 @Entity
 @EntityListeners(AuditingEntityListener.class)
 @Table(name = "comments")
