@@ -100,14 +100,16 @@ public class SecurityConfig {
                                 "/api/listings/*/reviews",
                                 "/api/listings/*/photos",
                                 "/api/users/*/profile",
-                                "/api/users/*/reviews").permitAll()
+                                "/api/users/*/reviews",
+                                "/api/agents").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.HEAD,
                                 "/api/listings", "/api/listings/*", "/api/listings/*/slots",
                                 "/api/listings/*/comments",
                                 "/api/listings/*/reviews",
                                 "/api/listings/*/photos",
                                 "/api/users/*/profile",
-                                "/api/users/*/reviews").permitAll()
+                                "/api/users/*/reviews",
+                                "/api/agents").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(e -> e.authenticationEntryPoint(problemEntryPoint))
                 .httpBasic(AbstractHttpConfigurer::disable)

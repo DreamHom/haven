@@ -36,12 +36,14 @@ class VerificationServiceSubmitTest {
     @Mock VerificationRepository verificationRepository;
     @Mock UserProfileService userProfileService;
     @Mock PropertyService propertyService;
+    @Mock com.dreamhomes.haven.notification.NotificationApi notificationApi;
 
     VerificationService service;
 
     @BeforeEach
     void setUp() {
-        service = new VerificationService(verificationRepository, userProfileService, propertyService, new ObjectMapper());
+        service = new VerificationService(verificationRepository, userProfileService, propertyService,
+                new ObjectMapper(), notificationApi);
     }
 
     @Test
@@ -50,7 +52,7 @@ class VerificationServiceSubmitTest {
         when(verificationRepository.existsByTypeAndTargetUserIdAndStatus(
                 VerificationType.OWNER_IDENTITY, 50L, VerificationStatus.PENDING))
                 .thenReturn(false);
-        when(verificationRepository.save(any(Verification.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(verificationRepository.save(any(Verification.class))).thenAnswer(inv -> { Verification v = inv.getArgument(0); v.setId(99L); return v; });
 
         Verification result = service.submit(50L, new SubmitVerificationCommand(
                 VerificationType.OWNER_IDENTITY, null, idDocs()));
@@ -106,7 +108,7 @@ class VerificationServiceSubmitTest {
         when(verificationRepository.existsByTypeAndTargetPropertyIdAndStatus(
                 VerificationType.PROPERTY_DOCUMENTS, 7L, VerificationStatus.PENDING))
                 .thenReturn(false);
-        when(verificationRepository.save(any(Verification.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(verificationRepository.save(any(Verification.class))).thenAnswer(inv -> { Verification v = inv.getArgument(0); v.setId(99L); return v; });
 
         service.submit(50L, new SubmitVerificationCommand(
                 VerificationType.PROPERTY_DOCUMENTS, 7L, propertyDocs()));

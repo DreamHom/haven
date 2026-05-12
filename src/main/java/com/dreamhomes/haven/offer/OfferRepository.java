@@ -3,6 +3,8 @@ package com.dreamhomes.haven.offer;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import com.dreamhomes.haven.review.ReviewService;
@@ -37,4 +39,19 @@ public interface OfferRepository extends JpaRepository<Offer, Long> {
      * doesn't carry stale rows that an applicant could still try to act on.
      */
     List<Offer> findByListingIdAndStatusAndIdNot(Long listingId, OfferStatus status, Long excludeId);
+
+    /**
+     * Median response time in minutes for an owner — among offers they received and
+     * responded to (status moved off PENDING). Null when they have no responses on file.
+     * Backs the {@code medianResponseMinutes} trust signal on {@code GET /api/users/{id}/profile}.
+     * Native query because JPQL has no percentile aggregate.
+     */
+    @Query(value = """
+            SELECT percentile_cont(0.5) WITHIN GROUP
+                       (ORDER BY EXTRACT(EPOCH FROM (o.updated_at - o.created_at)) / 60.0)
+              FROM offers o
+             WHERE o.owner_id = :ownerId
+               AND o.status <> 'PENDING'
+            """, nativeQuery = true)
+    Double medianResponseMinutesForOwner(@Param("ownerId") Long ownerId);
 }

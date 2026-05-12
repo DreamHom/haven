@@ -35,6 +35,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/properties")
 @RequiredArgsConstructor
 @Tag(name = "Properties")
+@org.springframework.validation.annotation.Validated
 public class PropertyController {
 
     private final PropertyService propertyService;
@@ -76,6 +77,44 @@ public class PropertyController {
     public PropertyResponse create(@AuthenticationPrincipal JwtPrincipal principal,
                                    @Valid @RequestBody CreatePropertyRequest request) {
         Property saved = propertyService.create(principal.userId(), request.toCommand());
+        return toResponse(saved);
+    }
+
+    @Operation(
+            summary = "Register many properties in one call",
+            description = """
+                    Bulk variant of {@code POST /api/properties}. Persona audit (Biodun): a
+                    developer onboarding a 60-unit tower shouldn't fire 60 sequential HTTP
+                    calls. Each item is validated independently; the whole batch is one
+                    transaction — if any single item fails validation the whole call rolls
+                    back. Responses come back in the same order as the request.
+
+                    **Limits**: at most 100 properties per call. Body shape is a JSON array
+                    of {@link CreatePropertyRequest} objects.
+                    """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "All properties created."),
+            @ApiResponse(responseCode = "400", ref = "#/components/responses/ValidationFailed"),
+            @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthenticated"),
+            @ApiResponse(responseCode = "403", ref = "#/components/responses/Forbidden")
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @PostMapping("/bulk")
+    @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasRole('OWNER')")
+    public java.util.List<PropertyResponse> createBulk(
+            @AuthenticationPrincipal JwtPrincipal principal,
+            @Valid @RequestBody @jakarta.validation.constraints.Size(min = 1, max = 100)
+            java.util.List<CreatePropertyRequest> requests) {
+        java.util.List<PropertyResponse> out = new java.util.ArrayList<>(requests.size());
+        for (CreatePropertyRequest r : requests) {
+            out.add(toResponse(propertyService.create(principal.userId(), r.toCommand())));
+        }
+        return out;
+    }
+
+    private static PropertyResponse toResponse(Property saved) {
         return new PropertyResponse(saved.getId(), saved.getOwnerId(), saved.getType(),
                 saved.getAddress(), saved.getBedrooms(), saved.getBathrooms(),
                 saved.getSizeSqm(), saved.getDescription(), saved.getCreatedAt());

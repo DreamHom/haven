@@ -62,7 +62,7 @@ class OfferServiceSubmitTest {
         });
 
         service.submit(100L, new SubmitOfferCommand(
-                7L, new BigDecimal("75000000.00"), "NGN", "I love it"));
+                7L, new BigDecimal("75000000.00"), "NGN", "I love it", null));
 
         ArgumentCaptor<Offer> offerCap = ArgumentCaptor.forClass(Offer.class);
         verify(offerRepository).save(offerCap.capture());
@@ -99,7 +99,7 @@ class OfferServiceSubmitTest {
             return o;
         });
 
-        service.submit(100L, new SubmitOfferCommand(7L, new BigDecimal("100"), "NGN", null));
+        service.submit(100L, new SubmitOfferCommand(7L, new BigDecimal("100"), "NGN", null, null));
 
         verify(applicationEventPublisher).publishEvent(OutboxRowReadyEvent.INSTANCE);
     }
@@ -109,7 +109,7 @@ class OfferServiceSubmitTest {
         when(listingService.findById(7L)).thenReturn(listing(7L, 99L, ListingStatus.PAUSED));
 
         assertThatThrownBy(() -> service.submit(100L, new SubmitOfferCommand(
-                7L, new BigDecimal("100"), null, null)))
+                7L, new BigDecimal("100"), null, null, null)))
                 .isInstanceOf(ListingNotOpenForOffersException.class);
 
         verify(applicationEventPublisher, never()).publishEvent(any());
@@ -118,10 +118,14 @@ class OfferServiceSubmitTest {
     @Test
     void defaultsCurrencyToNgnWhenCallerOmitsIt() {
         when(listingService.findById(7L)).thenReturn(liveListing(7L, 99L));
-        when(offerRepository.save(any(Offer.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(offerRepository.save(any(Offer.class))).thenAnswer(inv -> {
+            Offer o = inv.getArgument(0);
+            o.setId(42L);
+            return o;
+        });
 
         Offer result = service.submit(100L, new SubmitOfferCommand(
-                7L, new BigDecimal("100"), null, null));
+                7L, new BigDecimal("100"), null, null, null));
 
         assertThat(result.getCurrency()).isEqualTo("NGN");
     }
@@ -131,7 +135,7 @@ class OfferServiceSubmitTest {
         when(listingService.findById(404L)).thenThrow(new ListingNotFoundException(404L));
 
         assertThatThrownBy(() -> service.submit(100L, new SubmitOfferCommand(
-                404L, new BigDecimal("100"), null, null)))
+                404L, new BigDecimal("100"), null, null, null)))
                 .isInstanceOf(ListingNotFoundException.class);
 
         verify(offerRepository, never()).save(any());
@@ -143,7 +147,7 @@ class OfferServiceSubmitTest {
         when(listingService.findById(7L)).thenReturn(listing(7L, 99L, ListingStatus.PAUSED));
 
         assertThatThrownBy(() -> service.submit(100L, new SubmitOfferCommand(
-                7L, new BigDecimal("100"), null, null)))
+                7L, new BigDecimal("100"), null, null, null)))
                 .isInstanceOf(ListingNotOpenForOffersException.class);
 
         verify(offerRepository, never()).save(any());
@@ -155,7 +159,7 @@ class OfferServiceSubmitTest {
         when(listingService.findById(7L)).thenReturn(listing(7L, 99L, ListingStatus.CLOSED));
 
         assertThatThrownBy(() -> service.submit(100L, new SubmitOfferCommand(
-                7L, new BigDecimal("100"), null, null)))
+                7L, new BigDecimal("100"), null, null, null)))
                 .isInstanceOf(ListingNotOpenForOffersException.class);
     }
 
@@ -167,6 +171,7 @@ class OfferServiceSubmitTest {
         Instant now = Instant.now();
         return new ListingResponse(listingId, 1L, ownerId, ListingType.SALE,
                 new BigDecimal("80000000.00"), "NGN", null, null, null,
-                status, null, 0L, now, now, null);
+                null, null, null, null,
+                status, null, 0L, now, now, null, null, null);
     }
 }

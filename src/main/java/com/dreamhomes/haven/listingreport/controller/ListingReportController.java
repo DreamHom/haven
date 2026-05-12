@@ -17,7 +17,11 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -72,5 +76,25 @@ public class ListingReportController {
                 new ReportListingCommand(request.reason(), request.details()));
         return new ListingReportResponse(saved.getId(), saved.getListingId(),
                 saved.getReason(), saved.getDetails(), saved.getCreatedAt());
+    }
+
+    @Operation(
+            summary = "List my filed reports",
+            description = """
+                    Reporter's own filings + their disposition (PENDING / RESOLVED / DISMISSED)
+                    + the admin's resolution note. Persona audit (Temi, Ngozi): "I filed a
+                    report and have zero way to know what happened to it."
+                    """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Paginated list of the caller's reports."),
+            @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthenticated")
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @GetMapping("/api/listings/reports/mine")
+    public Page<com.dreamhomes.haven.listingreport.dto.AdminListingReportResponse> listMine(
+            @AuthenticationPrincipal JwtPrincipal principal,
+            @PageableDefault(size = 20) Pageable pageable) {
+        return listingReportService.listMine(principal.userId(), pageable);
     }
 }

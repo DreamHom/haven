@@ -71,5 +71,9 @@ public abstract class AbstractPostgresIT {
         registry.add("ADMIN_EMAIL", () -> "admin@dreamhomes.test");
         registry.add("ADMIN_PASSWORD_HASH",
                 () -> "$2a$10$0DWKxqZlDpa8XPM9zh4oVeobo1/wGsLxey1nnTC/BBuC.n/ilb9F.");
+        // Force local photo storage in ITs even if .env has HAVEN_PHOTOS_STORAGE=r2.
+        // ITs assert the synthesised media.dreamhomes.com URL shape — they don't and
+        // shouldn't hit the real R2 bucket.
+        registry.add("haven.photos.storage", () -> "local");
     }
 }

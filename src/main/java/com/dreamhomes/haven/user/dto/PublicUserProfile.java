@@ -21,6 +21,8 @@ public record PublicUserProfile(
         boolean suspended,
         Double averageRating,
         Long reviewCount,
+        long closedDealCount,
+        Long medianResponseMinutes,
         Instant joinedAt
 ) {
 }

@@ -52,12 +52,13 @@ class AdminListingControllerTest {
     @Autowired MockMvc mockMvc;
     @MockBean AdminListingService adminListingService;
     @MockBean JwtService jwtService;
+    @MockBean com.dreamhomes.haven.auth.blocklist.JwtBlocklistRepository jwtBlocklistRepository;
     @MockBean UserCredentialsService userCredentialsService;
 
     @Test
     void adminApprovesListingReturns200WithApprovedAt() throws Exception {
         ListingResponse approved = listing(11L, ListingStatus.LIVE, Instant.now());
-        when(adminListingService.approve(eq(7L), eq(11L))).thenReturn(approved);
+        when(adminListingService.approve(eq(7L), eq(11L), org.mockito.ArgumentMatchers.isNull())).thenReturn(approved);
 
         mockMvc.perform(post("/api/admin/listings/11/approve")
                         .with(asPrincipal(7L, Role.ADMIN)))
@@ -107,7 +108,8 @@ class AdminListingControllerTest {
         Instant now = Instant.now();
         return new ListingResponse(id, 1L, 50L, ListingType.SALE,
                 new BigDecimal("80000000.00"), "NGN", null, null, null,
-                status, approvedAt, 0L, now, now, null);
+                null, null, null, null,
+                status, approvedAt, 0L, now, now, null, null, null);
     }
 
     private static RequestPostProcessor asPrincipal(Long userId, Role role) {

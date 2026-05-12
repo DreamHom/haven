@@ -64,6 +64,10 @@ public class CommentService {
 
     @Transactional(readOnly = true)
     public Page<Comment> list(Long listingId, Pageable pageable) {
+        // 404 if the listing is missing — see B-2 in the persona audit.
+        if (!listingService.exists(listingId)) {
+            throw new com.dreamhomes.haven.listing.exception.ListingNotFoundException(listingId);
+        }
         return commentRepository.findByListingIdAndDeletedAtIsNullOrderByCreatedAtAsc(listingId, pageable);
     }
 

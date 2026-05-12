@@ -6,6 +6,7 @@ import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import com.dreamhomes.haven.listing.model.ListingType;
 
 public record CreateListingRequest(
@@ -17,10 +18,16 @@ public record CreateListingRequest(
         // three at 0; @PositiveOrZero accepts that while still rejecting negatives.
         @PositiveOrZero BigDecimal cautionFee,
         @PositiveOrZero BigDecimal serviceCharge,
-        @PositiveOrZero BigDecimal agencyFee
+        @PositiveOrZero BigDecimal agencyFee,
+        // Optional marketing-copy fields (V27). Persona audit (Biodun, Amaka).
+        @Size(max = 255) String title,
+        @Size(max = 5000) String description,
+        @Size(max = 255) String headline,
+        LocalDate handoverDate
 ) {
     public CreateListingCommand toCommand() {
         return new CreateListingCommand(propertyId, listingType, askingPrice,
-                currency, cautionFee, serviceCharge, agencyFee);
+                currency, cautionFee, serviceCharge, agencyFee,
+                title, description, headline, handoverDate);
     }
 }

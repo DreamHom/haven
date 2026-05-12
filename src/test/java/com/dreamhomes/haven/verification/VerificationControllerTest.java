@@ -28,6 +28,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -51,7 +52,9 @@ class VerificationControllerTest {
     @Autowired MockMvc mockMvc;
     @MockBean VerificationService verificationService;
     @MockBean JwtService jwtService;
+    @MockBean com.dreamhomes.haven.auth.blocklist.JwtBlocklistRepository jwtBlocklistRepository;
     @MockBean UserCredentialsService userCredentialsService;
+    @MockBean com.dreamhomes.haven.verification.storage.VerificationDocumentStorage verificationDocumentStorage;
 
     @Test
     void ownerSubmitsIdentityVerificationReturns201WithSummary() throws Exception {
@@ -131,6 +134,34 @@ class VerificationControllerTest {
     void listMineRequiresAuthentication() throws Exception {
         mockMvc.perform(get("/api/verifications/mine"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void uploadFileReturns201WithR2Url() throws Exception {
+        when(verificationDocumentStorage.upload(any(), eq(50L)))
+                .thenReturn("https://pub-abc.r2.dev/verifications/50/c3a8.jpg");
+
+        org.springframework.mock.web.MockMultipartFile file =
+                new org.springframework.mock.web.MockMultipartFile(
+                        "file", "nin.jpg", "image/jpeg", "fake-image".getBytes());
+
+        mockMvc.perform(multipart("/api/verifications/files")
+                        .file(file)
+                        .with(asPrincipal(50L, Role.OWNER)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.url", is("https://pub-abc.r2.dev/verifications/50/c3a8.jpg")));
+    }
+
+    @Test
+    void uploadFileRequiresAuthentication() throws Exception {
+        org.springframework.mock.web.MockMultipartFile file =
+                new org.springframework.mock.web.MockMultipartFile(
+                        "file", "nin.jpg", "image/jpeg", "fake-image".getBytes());
+
+        mockMvc.perform(multipart("/api/verifications/files").file(file))
+                .andExpect(status().isUnauthorized());
+
+        verify(verificationDocumentStorage, never()).upload(any(), any());
     }
 
     private static Verification stub(Long id, VerificationType type) {

@@ -27,6 +27,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -51,6 +52,7 @@ class InspectionControllerTest {
     @Autowired MockMvc mockMvc;
     @MockBean InspectionService inspectionService;
     @MockBean JwtService jwtService;
+    @MockBean com.dreamhomes.haven.auth.blocklist.JwtBlocklistRepository jwtBlocklistRepository;
     @MockBean UserCredentialsService userCredentialsService;
 
     @Test
@@ -111,6 +113,27 @@ class InspectionControllerTest {
     void listMineRequiresAuthentication() throws Exception {
         mockMvc.perform(get("/api/inspections/mine"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void applicantCanCancelTheirPendingInspection() throws Exception {
+        when(inspectionService.cancel(eq(100L), eq(33L)))
+                .thenReturn(InspectionRequest.builder().id(33L).build());
+
+        mockMvc.perform(delete("/api/inspections/33")
+                        .with(asPrincipal(100L, Role.APPLICANT)))
+                .andExpect(status().isNoContent());
+
+        verify(inspectionService).cancel(100L, 33L);
+    }
+
+    @Test
+    void cancelRequiresApplicantRole() throws Exception {
+        mockMvc.perform(delete("/api/inspections/33")
+                        .with(asPrincipal(99L, Role.OWNER)))
+                .andExpect(status().isForbidden());
+
+        verify(inspectionService, never()).cancel(any(), any());
     }
 
     private static RequestPostProcessor asPrincipal(Long userId, Role role) {

@@ -28,6 +28,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -51,6 +52,7 @@ class OfferControllerTest {
     @Autowired MockMvc mockMvc;
     @MockBean OfferService offerService;
     @MockBean JwtService jwtService;
+    @MockBean com.dreamhomes.haven.auth.blocklist.JwtBlocklistRepository jwtBlocklistRepository;
     @MockBean UserCredentialsService userCredentialsService;
 
     @Test
@@ -89,7 +91,7 @@ class OfferControllerTest {
 
     @Test
     void ownerAcceptsOfferReturns200WithUpdatedStatus() throws Exception {
-        when(offerService.respond(eq(99L), eq(50L), eq(OfferStatus.ACCEPTED)))
+        when(offerService.respond(eq(99L), eq(50L), eq(OfferStatus.ACCEPTED), any()))
                 .thenAnswer(inv -> stub(50L, OfferStatus.ACCEPTED));
 
         mockMvc.perform(patch("/api/offers/50")
@@ -134,6 +136,26 @@ class OfferControllerTest {
     void listMineRequiresAuthentication() throws Exception {
         mockMvc.perform(get("/api/offers/mine"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void applicantCanWithdrawTheirPendingOffer() throws Exception {
+        when(offerService.withdraw(eq(100L), eq(42L))).thenReturn(stub(42L, OfferStatus.WITHDRAWN));
+
+        mockMvc.perform(delete("/api/offers/42")
+                        .with(asPrincipal(100L, Role.APPLICANT)))
+                .andExpect(status().isNoContent());
+
+        verify(offerService).withdraw(100L, 42L);
+    }
+
+    @Test
+    void withdrawRequiresApplicantRole() throws Exception {
+        mockMvc.perform(delete("/api/offers/42")
+                        .with(asPrincipal(99L, Role.OWNER)))
+                .andExpect(status().isForbidden());
+
+        verify(offerService, never()).withdraw(any(), any());
     }
 
     private static Offer stub(Long id, OfferStatus status) {

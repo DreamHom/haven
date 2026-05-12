@@ -15,6 +15,7 @@ import com.dreamhomes.haven.user.service.UserCredentialsService;
 public record UserCredentials(
         Long id,
         String email,
+        String fullName,
         String passwordHash,
         Role role,
         int tokenVersion,

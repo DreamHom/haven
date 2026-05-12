@@ -41,6 +41,11 @@ public class UserCredentialsService {
     }
 
     @Transactional(readOnly = true)
+    public Optional<UserCredentials> loadById(Long userId) {
+        return userRepository.findById(userId).map(userCredentialsMapper::toCredentials);
+    }
+
+    @Transactional(readOnly = true)
     public boolean existsByEmail(String email) {
         return userRepository.existsByEmail(email);
     }

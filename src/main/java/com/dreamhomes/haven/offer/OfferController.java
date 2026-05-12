@@ -23,6 +23,7 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -87,7 +88,7 @@ public class OfferController {
     public OfferResponse submit(@AuthenticationPrincipal JwtPrincipal principal,
                                 @Valid @RequestBody SubmitOfferRequest request) {
         return offerMapper.toResponse(offerService.submit(principal.userId(), new SubmitOfferCommand(
-                request.listingId(), request.amount(), request.currency(), request.message())));
+                request.listingId(), request.amount(), request.currency(), request.message(), request.intent())));
     }
 
     @Operation(
@@ -157,7 +158,32 @@ public class OfferController {
                                  @Parameter(description = "Offer ID to respond to.", example = "42")
                                  @PathVariable Long id,
                                  @Valid @RequestBody RespondToOfferRequest request) {
-        return offerMapper.toResponse(offerService.respond(principal.userId(), id, request.status()));
+        return offerMapper.toResponse(offerService.respond(
+                principal.userId(), id, request.status().toOfferStatus(), request.reason()));
+    }
+
+    @Operation(
+            summary = "Withdraw my offer",
+            description = """
+                    Applicant withdraws a PENDING offer they submitted. Frees the listing to
+                    receive a fresh offer from the same applicant. Returns 409 if the offer
+                    is no longer PENDING (owner already accepted/declined/countered). 403 if
+                    the caller is not the applicant on this offer.
+                    """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Offer withdrawn."),
+            @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthenticated"),
+            @ApiResponse(responseCode = "403", ref = "#/components/responses/Forbidden"),
+            @ApiResponse(responseCode = "404", ref = "#/components/responses/NotFound"),
+            @ApiResponse(responseCode = "409", ref = "#/components/responses/Conflict")
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasRole('APPLICANT')")
+    public void withdraw(@AuthenticationPrincipal JwtPrincipal principal, @PathVariable Long id) {
+        offerService.withdraw(principal.userId(), id);
     }
 
     @Operation(

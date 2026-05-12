@@ -66,6 +66,9 @@ class PropertyControllerTest {
     JwtService jwtService;
 
     @MockBean
+    com.dreamhomes.haven.auth.blocklist.JwtBlocklistRepository jwtBlocklistRepository;
+
+    @MockBean
     UserCredentialsService userCredentialsService;
 
     @Test

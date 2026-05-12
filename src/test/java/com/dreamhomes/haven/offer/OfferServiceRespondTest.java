@@ -35,15 +35,16 @@ class OfferServiceRespondTest {
 
     @Mock OfferRepository offerRepository;
     @Mock NotificationApi notificationApi;
+    @Mock com.dreamhomes.haven.listing.ListingService listingService;
 
     OfferService service;
 
     @BeforeEach
     void setUp() {
-        // submit() dependencies (listingService, outbox, objectMapper, eventPublisher) are unused
-        // here — pass null; respond() never touches them. notificationApi IS exercised by the
-        // sibling auto-decline path, so wire it.
-        service = new OfferService(offerRepository, null, null, notificationApi, null, null);
+        // submit() dependencies (outbox, objectMapper, eventPublisher) are unused here — pass
+        // null. notificationApi is exercised by the auto-decline path; listingService is now
+        // exercised on accept (auto-close-on-ACCEPT).
+        service = new OfferService(offerRepository, listingService, null, notificationApi, null, null);
     }
 
     @Test

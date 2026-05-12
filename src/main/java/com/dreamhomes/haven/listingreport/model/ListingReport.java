@@ -51,6 +51,20 @@ public class ListingReport {
     @Column(columnDefinition = "TEXT")
     private String details;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 16)
+    @Builder.Default
+    private ListingReportStatus status = ListingReportStatus.PENDING;
+
+    @Column(name = "resolution_note", columnDefinition = "TEXT")
+    private String resolutionNote;
+
+    @Column(name = "resolved_by_admin_id")
+    private Long resolvedByAdminId;
+
+    @Column(name = "resolved_at")
+    private Instant resolvedAt;
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

@@ -73,6 +73,9 @@ class ListingControllerTest {
     JwtService jwtService;
 
     @MockBean
+    com.dreamhomes.haven.auth.blocklist.JwtBlocklistRepository jwtBlocklistRepository;
+
+    @MockBean
     UserCredentialsService userCredentialsService;
 
     @Test
@@ -184,7 +187,7 @@ class ListingControllerTest {
 
     @Test
     void publicBrowseReturnsLiveListingsWithEmbeddedPropertySummary() throws Exception {
-        when(listingService.browsePublic(any())).thenReturn(
+        when(listingService.browsePublic(any(), any(), any(), any(), any(), any(), any())).thenReturn(
                 new PageImpl<>(List.of(stubListingWithProperty(1L, 99L, ListingStatus.LIVE))));
 
         mockMvc.perform(get("/api/listings"))

@@ -1,5 +1,9 @@
 package com.dreamhomes.haven.listing;
 
+import com.dreamhomes.haven.agentlisting.AgentListingRepository;
+import com.dreamhomes.haven.agentlisting.model.AgentListingStatus;
+import com.dreamhomes.haven.listingreport.ListingReportRepository;
+import com.dreamhomes.haven.listingreport.model.ListingReportStatus;
 import com.dreamhomes.haven.property.PropertyService;
 import com.dreamhomes.haven.property.exception.PropertyNotFoundException;
 import com.dreamhomes.haven.property.dto.PropertySummary;
@@ -39,6 +43,8 @@ public class ListingService {
     private final ListingRepository listingRepository;
     private final PropertyService propertyService;
     private final ListingMapper listingMapper;
+    private final AgentListingRepository agentListingRepository;
+    private final ListingReportRepository listingReportRepository;
 
     @Transactional
     public Listing create(Long callerId, CreateListingCommand cmd) {
@@ -57,6 +63,10 @@ public class ListingService {
                 .cautionFee(cmd.cautionFee())
                 .serviceCharge(cmd.serviceCharge())
                 .agencyFee(cmd.agencyFee())
+                .title(cmd.title())
+                .description(cmd.description())
+                .headline(cmd.headline())
+                .handoverDate(cmd.handoverDate())
                 .status(ListingStatus.LIVE)
                 .build());
         log.info("Created listingId={} propertyId={} ownerId={} type={}",
@@ -71,6 +81,30 @@ public class ListingService {
     @Transactional(readOnly = true)
     public Page<ListingWithProperty> browsePublic(Pageable pageable) {
         return withSummaries(listingRepository.findByStatus(ListingStatus.LIVE, pageable));
+    }
+
+    /**
+     * Filtered browse. Every parameter is optional. Persona audit (Temi, Ngozi, Emeka)
+     * flagged that the catalogue was a single unsorted, unfiltered dump and that
+     * query params like {@code ?location=Yaba&bedrooms=2} were silently ignored.
+     */
+    @Transactional(readOnly = true)
+    public Page<ListingWithProperty> browsePublic(
+            com.dreamhomes.haven.listing.model.ListingType listingType,
+            java.math.BigDecimal priceMin, java.math.BigDecimal priceMax,
+            Integer bedrooms,
+            com.dreamhomes.haven.property.model.PropertyType propertyType,
+            String location,
+            Pageable pageable) {
+        // If no filter is set, hit the simpler index-only query.
+        if (listingType == null && priceMin == null && priceMax == null
+                && bedrooms == null && propertyType == null
+                && (location == null || location.isBlank())) {
+            return browsePublic(pageable);
+        }
+        String locationFragment = (location == null || location.isBlank()) ? null : location;
+        return withSummaries(listingRepository.searchLive(
+                listingType, priceMin, priceMax, bedrooms, propertyType, locationFragment, pageable));
     }
 
     /**
@@ -129,6 +163,20 @@ public class ListingService {
         if (cmd.status() != null) {
             listing.setStatus(cmd.status());
         }
+        // Optional marketing-copy edits (V27 fields). Each independently nullable so
+        // the caller can change one without touching the rest.
+        if (cmd.title() != null) {
+            listing.setTitle(cmd.title());
+        }
+        if (cmd.description() != null) {
+            listing.setDescription(cmd.description());
+        }
+        if (cmd.headline() != null) {
+            listing.setHeadline(cmd.headline());
+        }
+        if (cmd.handoverDate() != null) {
+            listing.setHandoverDate(cmd.handoverDate());
+        }
         // updatedAt is bumped by JPA auditing on save (entity has @LastModifiedDate).
         Listing saved = listingRepository.save(listing);
         log.info("Updated listingId={} ownerId={} status={} price={}",
@@ -136,9 +184,17 @@ public class ListingService {
         return saved;
     }
 
-    /** CLOSED is terminal — no transitions out. Other transitions are free. */
+    /**
+     * Owner-driven state machine.
+     * <ul>
+     *   <li>CLOSED is terminal — owner cannot move out of it.</li>
+     *   <li>TAKEN_DOWN is admin-only — the owner cannot un-take-down their own listing
+     *       via PATCH. Admins do that via {@code POST /admin/listings/{id}/approve}.</li>
+     *   <li>Everything else (LIVE ↔ PAUSED, LIVE → CLOSED, PAUSED → CLOSED) is free.</li>
+     * </ul>
+     */
     private static boolean isAllowedTransition(ListingStatus from, ListingStatus to) {
-        return from != ListingStatus.CLOSED;
+        return from != ListingStatus.CLOSED && from != ListingStatus.TAKEN_DOWN;
     }
 
     // ============================ ListingService ============================
@@ -148,7 +204,24 @@ public class ListingService {
         Listing listing = listingRepository.findById(listingId)
                 .orElseThrow(() -> new ListingNotFoundException(listingId));
         PropertySummary summary = propertyService.findSummary(listing.getPropertyId()).orElse(null);
-        return listingMapper.toResponse(listing, summary);
+        return listingMapper.toResponse(listing, summary,
+                activeAgentUserId(listingId), pendingReportCount(listingId));
+    }
+
+    /** Active agent assigned to this listing (ACCEPTED row), or null when none. */
+    @Transactional(readOnly = true)
+    public Long activeAgentUserId(Long listingId) {
+        return agentListingRepository
+                .findFirstByListingIdAndStatus(listingId, AgentListingStatus.ACCEPTED)
+                .map(a -> a.getAgentUserId())
+                .orElse(null);
+    }
+
+    /** Number of PENDING reports filed against this listing — drives the trust pill. */
+    @Transactional(readOnly = true)
+    public long pendingReportCount(Long listingId) {
+        return listingReportRepository.countByListingIdAndStatus(
+                listingId, ListingReportStatus.PENDING);
     }
 
     @Transactional(readOnly = true)

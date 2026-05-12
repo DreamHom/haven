@@ -39,6 +39,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final UserCredentialsService userCredentialsService;
+    private final com.dreamhomes.haven.auth.blocklist.JwtBlocklistRepository jwtBlocklistRepository;
 
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request,
@@ -49,7 +50,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String token = header.substring(BEARER_PREFIX.length());
             try {
                 JwtPrincipal principal = jwtService.parse(token);
-                if (tokenVersionMatchesCurrent(principal)) {
+                java.util.UUID jti = jwtService.parseJti(token);
+                if (jti != null && jwtBlocklistRepository.existsByJti(jti)) {
+                    log.warn("Rejecting bearer token for userId={} — jti {} on blocklist (device-scoped logout)",
+                            principal.userId(), jti);
+                } else if (tokenVersionMatchesCurrent(principal)) {
                     UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
                             principal,
                             null,

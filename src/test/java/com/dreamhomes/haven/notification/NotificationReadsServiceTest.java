@@ -40,7 +40,7 @@ class NotificationReadsServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new NotificationService(notificationRepository, new com.fasterxml.jackson.databind.ObjectMapper());
+        service = new NotificationService(notificationRepository, new com.fasterxml.jackson.databind.ObjectMapper(), new com.dreamhomes.haven.notification.NotificationSseEmitters());
     }
 
     @Test
