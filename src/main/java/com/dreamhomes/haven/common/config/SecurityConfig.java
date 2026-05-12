@@ -80,6 +80,13 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        // Spring Boot's `/error` dispatcher renders the body for any servlet
+                        // forward (validation 400s, type-mismatch 400s, 404s on unmapped paths).
+                        // It MUST be permitAll, otherwise the auth filter rewrites every error
+                        // response to 401 — turning a "reason field empty" 400 into a misleading
+                        // "unauthenticated" 401. Persona audit (Dayo) caught this on the
+                        // RejectWithEmptyReason flow.
+                        .requestMatchers("/error").permitAll()
                         .requestMatchers("/api/auth/register", "/api/auth/login").permitAll()
                         // Liveness/readiness probes for load balancers + k8s. /actuator/prometheus
                         // is deliberately NOT in this list — scraping stays auth-gated.

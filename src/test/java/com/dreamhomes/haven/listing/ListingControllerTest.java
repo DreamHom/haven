@@ -234,7 +234,9 @@ class ListingControllerTest {
     }
 
     @Test
-    void invalidListingTransitionMapsTo400() throws Exception {
+    void invalidListingTransitionMapsTo409() throws Exception {
+        // Persona audit (Amaka): the spec documented this as 409 Conflict (the listing's
+        // current state is the conflict, the input is well-formed). Mapped from 400 → 409.
         when(listingService.update(eq(99L), eq(50L), any(UpdateListingCommand.class)))
                 .thenThrow(new InvalidListingTransitionException(ListingStatus.CLOSED, ListingStatus.LIVE));
 
@@ -244,7 +246,7 @@ class ListingControllerTest {
                         .content("""
                                 { "status": "LIVE" }
                                 """))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isConflict());
     }
 
     private static Listing stubListing(Long id, Long ownerId, ListingStatus status) {
