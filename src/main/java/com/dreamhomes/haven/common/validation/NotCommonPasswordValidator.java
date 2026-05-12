@@ -7,12 +7,7 @@ import java.util.Locale;
 import java.util.Set;
 
 public class NotCommonPasswordValidator implements ConstraintValidator<NotCommonPassword, String> {
-
-    /**
-     * A small starter deny-list. Real production setups would back this with a haveibeenpwned
-     * k-anonymity check or a much larger embedded list (e.g. SecLists rockyou-100k). Keep this
-     * sorted alphabetically for grep-ability.
-     */
+    
     private static final Set<String> COMMON = Set.of(
             "00000000",
             "11111111",
