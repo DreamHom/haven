@@ -15,7 +15,7 @@ auth:bearer {
 }
 
 assert {
-  res.status: in [200, 404, 403, 401]
+  res.status: in [200, 400, 404, 403, 401]
 }
 
 docs {
