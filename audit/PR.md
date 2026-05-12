@@ -127,9 +127,9 @@ to the caller (no `?userId=` parameter), and carry the appropriate
 
 | Layer | Count | Status |
 |---|---|---|
-| Unit (Mockito + WebMvc) | **334** | 0 fail / 0 error |
-| Integration (Testcontainers Postgres + Kafka) | **101** | 0 fail / 0 error |
-| **Total** | **435** | green |
+| Unit (Mockito + WebMvc) | **346** | 0 fail / 0 error |
+| Integration (Testcontainers Postgres + Kafka) | **104** | 0 fail / 0 error |
+| **Total** | **450** | green |
 
 Two IT regressions caught + fixed during this slice (pre-merge):
 - `AdminListingActionsIT` was still asserting `CLOSED` on takedown — updated for the new `TAKEN_DOWN` semantics.
@@ -200,9 +200,45 @@ in this PR:
 - `audit/logs/v1/Emeka/Day4-first-assignment/16-accept-assignment.bru`, `Day5-running-inspections/17-open-inspection-slot.bru`, `18-list-slots-on-listing.bru` — added 400 to the allowed-status list (the legitimate "no pending invite / no assigned listing yet" path now correctly returns 400 for the unresolved path-var, instead of being misread as 401).
 - `audit/logs/v1/Biodun/Day3-listings/05-UploadPhoto-A1.bru` — fixed asset path (`../assets/…` → `../../assets/…`).
 
+## 🪪 Account-settings surface (merged in from #6, hardened on the way in)
+
+Silas Osunba ([#6](https://github.com/DreamHom/haven/pull/6)) caught a real gap the
+persona audit had missed: the frontend Settings page can't preload `phone`, `licenseNumber`,
+or `agency` because none of those fields are readable for the authenticated user themselves
+through any existing endpoint. His PR added the read + write surface; that work has been
+merged into this branch with a handful of security/correctness improvements applied on top.
+
+### New endpoints (originally Silas's #6)
+
+| Endpoint | Auth | Purpose |
+|---|---|---|
+| `GET /api/me/profile` | bearer | Heavy settings preload — private projection with email, phone, license, agency, badges, joinedAt. Sibling to the lightweight `GET /api/me` identity ping. |
+| `PATCH /api/me` | bearer | Partial update of `email`, `fullName`, `displayName`, `phone`. At least one field required. Email is normalised to lowercase; blank phone clears the field. |
+| `POST /api/me/password` | bearer | Re-auth with current password, then store new hash + bump `tokenVersion` to revoke every outstanding JWT for the account. |
+| `PATCH /api/me/agent-profile` | bearer + `hasRole('AGENT')` | Agent-only license + agency edits. License change clears `credentialVerifiedAt` so the new credential must be re-verified. |
+
+New DTOs: `MyAccountProfile`, `UpdateMyProfileRequest`, `ChangeMyPasswordRequest`, `UpdateMyAgentProfileRequest`.
+
+New service: `UserAccountService` (identity always sourced from JWT subject; no path/body `userId`).
+
+New exceptions: `CurrentPasswordIncorrectException`, `AgentLicenseAlreadyTakenException`, `AgentProfileNotFoundException`, `NotAnAgentException`.
+
+New migration: **V29** `add_agent_profile_agency` (originally V21 in Silas's PR — renamed to V29 to slot after the eight migrations this branch already shipped).
+
+### Hardening applied to Silas's work
+
+| Concern | Fix |
+|---|---|
+| **Email change didn't revoke sessions** — a leaked JWT could swap email + initiate a password reset for the attacker's address. | `UserAccountService.updateMyProfile` now bumps `tokenVersion` whenever email actually changes, matching the contract `changePassword` already had. |
+| **TOCTOU race on email uniqueness** — `existsByEmail` + `save` could both pass concurrently, then the unique index throws `DataIntegrityViolationException` → 500. | Wrapped `save` in `try/catch` translating to `EmailAlreadyTakenException` (409), matching how `AuthService.register` already handles the same race. |
+| **TOCTOU race on agent-license uniqueness** | Same `try/catch` translation to `AgentLicenseAlreadyTakenException` (409). |
+| **License-change always cleared the verification badge** — even when the patch sent the same license back (frontend resending all fields). | Added a `!trimmed.equals(existing.licenseNumber)` guard before clearing `credentialVerifiedAt`. No-op patches no longer trigger re-verification. |
+| **Password-change endpoint wasn't rate-limited** — leaked-token + change-password is a common account-takeover shape. | Added `/api/me/password` to `AuthRateLimitFilter.RATE_LIMITED_PATHS`, so it shares the same per-IP bucket as login/register (30/min default). |
+| **Stripped JavaDocs in ~30 unrelated files** (`JpaAuditingConfig`, `OpenApiConfig`, `OutboxRelay`, `KafkaErrorHandlerConfig`, `JwtAuthenticationFilter`, validators, package-infos, etc.) | Restored from pre-merge HEAD. Silas only changed behaviour in the files genuinely needed for the feature; the doc-stripping was unrelated diff churn. |
+
 ## Test plan
 
-- [x] `mvn verify` green (334 unit + 101 IT, 0 failures)
+- [x] `mvn verify` green (346 unit + 104 IT = 450 tests, 0 failures)
 - [x] App boots with new env (`HAVEN_JWT_*`, `ADMIN_*`, optional `HAVEN_PHOTOS_*`)
 - [x] Smoke test: register OWNER → submit verification → `GET /verifications/mine` returns it
 - [x] All 5 `/mine` endpoints respond 200 for a fresh user (empty paginated body)

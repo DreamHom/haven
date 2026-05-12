@@ -31,8 +31,12 @@ import java.util.concurrent.ConcurrentHashMap;
  * {@code Retry-After} header when exhausted.
  *
  * <p>Tuning: the persona audit caught the prior 5/min ceiling tripping legitimate
- * 6-persona QA runs and password-manager retries. Defaults are now 15/min — override
- * via {@code haven.rate-limit.auth.capacity} / {@code window-seconds} per environment.
+ * 6-persona QA runs and password-manager retries. Default is 30/min — override via
+ * {@code haven.rate-limit.auth.capacity} / {@code window-seconds} per environment.
+ *
+ * <p>{@code /api/me/password} is included so the password-change path gets the same
+ * brute-force protection login does — leaked-token + change-password is a common
+ * account-takeover shape and shouldn't have unbounded attempts per IP.
  */
 @Component
 @Slf4j
@@ -40,15 +44,12 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
 
     private static final Set<String> RATE_LIMITED_PATHS = Set.of(
             "/api/auth/login",
-            "/api/auth/register"
+            "/api/auth/register",
+            "/api/me/password"
     );
 
     private final Map<String, Bucket> buckets = new ConcurrentHashMap<>();
 
-    /**
-     * Toggle for slice tests that focus on controller behaviour and don't want to fight
-     * the bucket. Production and full ITs leave this at the default {@code true}.
-     */
     @Value("${haven.rate-limit.enabled:true}")
     private boolean enabled;
 
@@ -97,7 +98,7 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
     private static String clientKey(HttpServletRequest request) {
         String forwarded = request.getHeader("X-Forwarded-For");
         if (forwarded != null && !forwarded.isBlank()) {
-            // X-Forwarded-For can be a comma-separated chain; the leftmost is the originator.
+
             return forwarded.split(",")[0].trim();
         }
         return request.getRemoteAddr();
