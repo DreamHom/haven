@@ -11,8 +11,7 @@ metadata:
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
 spec:
   rules:
-    - host: api.example.com
-      http:
+    - http:
         paths:
           - path: /
             pathType: Prefix

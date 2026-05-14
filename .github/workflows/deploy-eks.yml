@@ -6,6 +6,10 @@ on:
     branches:
       - main
 
+concurrency:
+  group: deploy-eks-main
+  cancel-in-progress: true
+
 permissions:
   contents: read
   id-token: write
@@ -17,6 +21,7 @@ env:
   K8S_NAMESPACE: haven
   K8S_DEPLOYMENT: haven-api
   K8S_CONTAINER: haven-api
+  K8S_KAFKA_DEPLOYMENT: haven-kafka
 
 jobs:
   deploy:
@@ -58,10 +63,31 @@ jobs:
       - name: Update kubeconfig
         run: aws eks update-kubeconfig --name "$EKS_CLUSTER_NAME" --region "$AWS_REGION"
 
-      - name: Apply Kubernetes manifests
+      - name: Create or update Kubernetes secret
+        env:
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
+          ADMIN_FULL_NAME: ${{ secrets.ADMIN_FULL_NAME }}
+          ADMIN_PASSWORD_HASH: ${{ secrets.ADMIN_PASSWORD_HASH }}
+          HAVEN_JWT_PRIVATE_KEY: ${{ secrets.HAVEN_JWT_PRIVATE_KEY }}
+          HAVEN_JWT_PUBLIC_KEY: ${{ secrets.HAVEN_JWT_PUBLIC_KEY }}
+          HAVEN_PHOTOS_R2_SECRET_ACCESS_KEY: ${{ secrets.HAVEN_PHOTOS_R2_SECRET_ACCESS_KEY }}
         run: |
           kubectl apply -f k8s/namespace.yaml
+          kubectl -n "$K8S_NAMESPACE" create secret generic haven-secrets \
+            --from-literal=DB_PASSWORD="$DB_PASSWORD" \
+            --from-literal=ADMIN_EMAIL="$ADMIN_EMAIL" \
+            --from-literal=ADMIN_FULL_NAME="$ADMIN_FULL_NAME" \
+            --from-literal=ADMIN_PASSWORD_HASH="$ADMIN_PASSWORD_HASH" \
+            --from-literal=HAVEN_JWT_PRIVATE_KEY="$HAVEN_JWT_PRIVATE_KEY" \
+            --from-literal=HAVEN_JWT_PUBLIC_KEY="$HAVEN_JWT_PUBLIC_KEY" \
+            --from-literal=HAVEN_PHOTOS_R2_SECRET_ACCESS_KEY="$HAVEN_PHOTOS_R2_SECRET_ACCESS_KEY" \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Apply Kubernetes manifests
+        run: |
           kubectl apply -f k8s/configmap.yaml
+          kubectl apply -f k8s/kafka.yaml
           kubectl apply -f k8s/service.yaml
           kubectl apply -f k8s/deployment.yaml
           kubectl apply -f k8s/ingress.yaml
@@ -75,4 +101,6 @@ jobs:
             "$K8S_CONTAINER"="$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
 
       - name: Wait for rollout
-        run: kubectl -n "$K8S_NAMESPACE" rollout status deployment/"$K8S_DEPLOYMENT" --timeout=180s
+        run: |
+          kubectl -n "$K8S_NAMESPACE" rollout status deployment/"$K8S_KAFKA_DEPLOYMENT" --timeout=180s
+          kubectl -n "$K8S_NAMESPACE" rollout status deployment/"$K8S_DEPLOYMENT" --timeout=300s
