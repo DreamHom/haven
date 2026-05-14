@@ -1,5 +1,6 @@
 package com.dreamhomes.haven.auth;
 
+import com.dreamhomes.haven.auth.cookie.JwtCookieService;
 import com.dreamhomes.haven.user.service.UserCredentialsService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -26,6 +27,10 @@ import com.dreamhomes.haven.auth.service.JwtService;
  * token via {@link JwtService}, and populates the {@link SecurityContextHolder} with a
  * pre-authenticated principal carrying the user's role authority ({@code ROLE_<ROLE>}).
  *
+ * <p>When {@code haven.auth.jwt-cookie.enabled} is true, a valid JWT may also be read from
+ * the configured httpOnly cookie if the {@code Authorization} header is absent — enabling
+ * cookie-first browser clients without duplicating the token in JavaScript.
+ *
  * <p>If the header is missing, malformed, or the token is invalid, the filter leaves the
  * security context empty and lets the request proceed — downstream rules
  * ({@code anyRequest().authenticated()}) decide whether the request is rejected.
@@ -40,14 +45,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
     private final UserCredentialsService userCredentialsService;
     private final com.dreamhomes.haven.auth.blocklist.JwtBlocklistRepository jwtBlocklistRepository;
+    private final JwtCookieService jwtCookieService;
 
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request,
                                     @NonNull HttpServletResponse response,
                                     @NonNull FilterChain chain) throws ServletException, IOException {
         String header = request.getHeader("Authorization");
+        String token = null;
         if (header != null && header.startsWith(BEARER_PREFIX)) {
-            String token = header.substring(BEARER_PREFIX.length());
+            token = header.substring(BEARER_PREFIX.length());
+        } else {
+            token = jwtCookieService.readToken(request).orElse(null);
+        }
+        if (token != null && !token.isBlank()) {
             try {
                 JwtPrincipal principal = jwtService.parse(token);
                 java.util.UUID jti = jwtService.parseJti(token);

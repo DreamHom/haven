@@ -58,6 +58,29 @@ public class User {
     @Column(length = 32)
     private String phone;
 
+    /**
+     * Optional narrative for public profile pages (owners, agents, applicants). Never
+     * contains email or phone — those stay on private surfaces only.
+     */
+    @Column(name = "public_bio", columnDefinition = "TEXT")
+    private String publicBio;
+
+    /** Public avatar / headshot URL (all roles). Optional. */
+    @Column(name = "profile_image_url", length = 2048)
+    private String profileImageUrl;
+
+    /**
+     * Opaque JSON preferences for email/push/in-app toggles. Stored as TEXT until a
+     * structured schema stabilises across clients.
+     */
+    @Column(name = "notification_preferences", nullable = false, columnDefinition = "TEXT")
+    @Builder.Default
+    private String notificationPreferences = "{}";
+
+    /** When set, the account is closed — login and JWT loads fail as if the user vanished. */
+    @Column(name = "account_deleted_at")
+    private Instant accountDeletedAt;
+
     @CreatedDate
 
     @Column(name = "created_at", nullable = false, updatable = false)

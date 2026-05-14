@@ -45,6 +45,8 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
     private static final Set<String> RATE_LIMITED_PATHS = Set.of(
             "/api/auth/login",
             "/api/auth/register",
+            "/api/auth/forgot-password",
+            "/api/auth/reset-password",
             "/api/me/password"
     );
 

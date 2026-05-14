@@ -48,6 +48,10 @@ public class InspectionRequest {
     @Column(columnDefinition = "TEXT")
     private String notes;
 
+    /** Assigned agent logistics (keys, gate, parking) — optional; not applicant-authored. */
+    @Column(name = "agent_extras", columnDefinition = "TEXT")
+    private String agentExtras;
+
     @CreatedDate
 
     @Column(name = "created_at", nullable = false, updatable = false)

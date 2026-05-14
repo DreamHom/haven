@@ -13,9 +13,12 @@ import java.util.Optional;
 import com.dreamhomes.haven.property.dto.CreatePropertyCommand;
 import com.dreamhomes.haven.property.dto.PropertyResponse;
 import com.dreamhomes.haven.property.dto.PropertySummary;
+import com.dreamhomes.haven.property.dto.UpdatePropertyCommand;
 import com.dreamhomes.haven.property.exception.InvalidPropertyForTypeException;
 import com.dreamhomes.haven.property.exception.PropertyNotFoundException;
 import com.dreamhomes.haven.property.model.Property;
+import com.dreamhomes.haven.property.model.PropertyType;
+import com.dreamhomes.haven.user.model.Role;
 
 /**
  * Implementation of {@link PropertyService}. The internal {@link #create} method is the
@@ -33,10 +36,7 @@ public class PropertyService {
 
     @Transactional
     public Property create(Long ownerId, CreatePropertyCommand cmd) {
-        if (cmd.type().requiresRoomCounts() && (cmd.bedrooms() == null || cmd.bathrooms() == null)) {
-            throw new InvalidPropertyForTypeException(
-                    cmd.type() + " requires both bedrooms and bathrooms");
-        }
+        requireRoomCountsIfNeeded(cmd.type(), cmd.bedrooms(), cmd.bathrooms());
         Property saved = propertyRepository.save(Property.builder()
                 .ownerId(ownerId)
                 .type(cmd.type())
@@ -45,9 +45,56 @@ public class PropertyService {
                 .bathrooms(cmd.bathrooms())
                 .sizeSqm(cmd.sizeSqm())
                 .description(cmd.description())
+                .latitude(cmd.latitude())
+                .longitude(cmd.longitude())
                 .build());
         log.info("Created propertyId={} ownerId={} type={}", saved.getId(), ownerId, saved.getType());
         return saved;
+    }
+
+    /**
+     * Partial update. Caller must own the property or be {@link Role#ADMIN}. {@code type}
+     * is immutable on this path — bedroom/bathroom rules are re-checked after each patch.
+     */
+    @Transactional
+    public PropertyResponse update(Long callerUserId, Role role, Long propertyId, UpdatePropertyCommand cmd) {
+        Property p = propertyRepository.findById(propertyId)
+                .orElseThrow(() -> new PropertyNotFoundException(propertyId));
+        boolean owner = p.getOwnerId().equals(callerUserId);
+        boolean admin = role == Role.ADMIN;
+        if (!owner && !admin) {
+            throw new PropertyNotFoundException(propertyId);
+        }
+        if (cmd.address() != null) {
+            p.setAddress(cmd.address());
+        }
+        if (cmd.bedrooms() != null) {
+            p.setBedrooms(cmd.bedrooms());
+        }
+        if (cmd.bathrooms() != null) {
+            p.setBathrooms(cmd.bathrooms());
+        }
+        if (cmd.sizeSqm() != null) {
+            p.setSizeSqm(cmd.sizeSqm());
+        }
+        if (cmd.description() != null) {
+            p.setDescription(cmd.description());
+        }
+        if (cmd.latitude() != null && cmd.longitude() != null) {
+            p.setLatitude(cmd.latitude());
+            p.setLongitude(cmd.longitude());
+        }
+        requireRoomCountsIfNeeded(p.getType(), p.getBedrooms(), p.getBathrooms());
+        Property saved = propertyRepository.save(p);
+        log.info("Updated propertyId={} by userId={} admin={}", propertyId, callerUserId, admin);
+        return propertyMapper.toResponse(saved);
+    }
+
+    private static void requireRoomCountsIfNeeded(PropertyType type, Integer bedrooms, Integer bathrooms) {
+        if (type.requiresRoomCounts() && (bedrooms == null || bathrooms == null)) {
+            throw new InvalidPropertyForTypeException(
+                    type + " requires both bedrooms and bathrooms");
+        }
     }
 
     @Transactional(readOnly = true)

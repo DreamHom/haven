@@ -5,6 +5,7 @@ import com.dreamhomes.haven.listing.dto.CreateListingRequest;
 import com.dreamhomes.haven.listing.dto.ListingResponse;
 import com.dreamhomes.haven.listing.dto.ListingWithProperty;
 import com.dreamhomes.haven.listing.dto.UpdateListingRequest;
+import com.dreamhomes.haven.listing.model.Listing;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -54,6 +55,10 @@ public class ListingController {
                     Trying to list someone else's property returns 403.
 
                     **Role gate**: `OWNER` only. Agents publish via the agent-assignment flow.
+
+                    Optional marketing: `virtualTourUrl` (max 2048 chars), `priceNegotiable` \
+                    (defaults to `false` when omitted). The response includes `ownerPublicBio` \
+                    when the owner has set `publicBio` on their account (`PATCH /api/me`).
                     """
     )
     @ApiResponses({
@@ -79,8 +84,9 @@ public class ListingController {
     @PreAuthorize("hasRole('OWNER')")
     public ListingResponse create(@AuthenticationPrincipal JwtPrincipal principal,
                                   @Valid @RequestBody CreateListingRequest request) {
-        return listingMapper.toResponse(
-                listingService.create(principal.userId(), request.toCommand()), null);
+        Listing saved =
+                listingService.create(principal.userId(), request.toCommand());
+        return listingResponseWithOwnerBio(saved);
     }
 
     @Operation(
@@ -92,7 +98,8 @@ public class ListingController {
                     any single listing fails validation or ownership check the whole batch
                     rolls back. Responses come back in the same order.
 
-                    **Limits**: at most 100 listings per call.
+                    **Limits**: at most 100 listings per call. Each response item includes \
+                    `ownerPublicBio` when the owner has set `publicBio` on their account.
                     """
     )
     @ApiResponses({
@@ -112,8 +119,8 @@ public class ListingController {
             java.util.List<CreateListingRequest> requests) {
         java.util.List<ListingResponse> out = new java.util.ArrayList<>(requests.size());
         for (CreateListingRequest r : requests) {
-            out.add(listingMapper.toResponse(
-                    listingService.create(principal.userId(), r.toCommand()), null));
+            out.add(listingResponseWithOwnerBio(
+                    listingService.create(principal.userId(), r.toCommand())));
         }
         return out;
     }
@@ -173,7 +180,8 @@ public class ListingController {
             @PageableDefault(size = 20) Pageable pageable) {
         return listingService.browsePublic(listingType, priceMin, priceMax, bedrooms,
                         propertyType, location, pageable)
-                .map(lwp -> listingMapper.toResponse(lwp.listing(), lwp.property()));
+                .map(lwp -> listingMapper.toResponse(lwp.listing(), lwp.property(), null, null,
+                        lwp.ownerPublicBio()));
     }
 
     @Operation(
@@ -211,7 +219,8 @@ public class ListingController {
     public Page<ListingResponse> listMine(@AuthenticationPrincipal JwtPrincipal principal,
                                           @PageableDefault(size = 20) Pageable pageable) {
         return listingService.listMine(principal.userId(), pageable)
-                .map(lwp -> listingMapper.toResponse(lwp.listing(), lwp.property()));
+                .map(lwp -> listingMapper.toResponse(lwp.listing(), lwp.property(), null, null,
+                        lwp.ownerPublicBio()));
     }
 
     @Operation(
@@ -240,14 +249,16 @@ public class ListingController {
         ListingWithProperty lwp = listingService.findPubliclyVisible(id);
         return listingMapper.toResponse(lwp.listing(), lwp.property(),
                 listingService.activeAgentUserId(id),
-                listingService.pendingReportCount(id));
+                listingService.pendingReportCount(id),
+                lwp.ownerPublicBio());
     }
 
     @Operation(
             summary = "Update a listing (price / status / description)",
             description = """
                     Partial update of caller's own listing. Allowed mutations: title, \
-                    description, price, status. **Status transitions are state-machine \
+                    description, headline, handoverDate, `virtualTourUrl`, `priceNegotiable`, \
+                    price, status. **Status transitions are state-machine \
                     validated** — `LIVE ↔ PAUSED` is allowed, `LIVE → CLOSED` is allowed, \
                     but `CLOSED → LIVE` is rejected with 409.
 
@@ -257,6 +268,9 @@ public class ListingController {
 
                     **Concurrency**: the entity carries `@Version`. A racing PATCH against \
                     the same row produces 409.
+
+                    **Response**: includes `ownerPublicBio` when the listing owner has set \
+                    `publicBio` (`PATCH /api/me`).
                     """
     )
     @ApiResponses({
@@ -271,12 +285,18 @@ public class ListingController {
     })
     @SecurityRequirement(name = "bearerAuth")
     @PatchMapping("/{id}")
-    @PreAuthorize("hasRole('OWNER')")
+    @PreAuthorize("hasAnyRole('OWNER', 'AGENT')")
     public ListingResponse update(@AuthenticationPrincipal JwtPrincipal principal,
                                   @Parameter(description = "Listing ID.", example = "17")
                                   @PathVariable Long id,
                                   @Valid @RequestBody UpdateListingRequest request) {
-        return listingMapper.toResponse(
-                listingService.update(principal.userId(), id, request.toCommand()), null);
+        Listing saved =
+                listingService.update(principal.userId(), principal.role(), id, request.toCommand());
+        return listingResponseWithOwnerBio(saved);
+    }
+
+    private ListingResponse listingResponseWithOwnerBio(Listing listing) {
+        String ownerBio = listingService.findOwnerPublicBio(listing.getOwnerId()).orElse(null);
+        return listingMapper.toResponse(listing, null, null, null, ownerBio);
     }
 }

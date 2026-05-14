@@ -26,6 +26,9 @@ public interface ListingMapper {
     @Mapping(target = "description", source = "listing.description")
     @Mapping(target = "headline", source = "listing.headline")
     @Mapping(target = "handoverDate", source = "listing.handoverDate")
+    @Mapping(target = "virtualTourUrl", source = "listing.virtualTourUrl")
+    @Mapping(target = "floorPlanUrl", source = "listing.floorPlanUrl")
+    @Mapping(target = "priceNegotiable", source = "listing.priceNegotiable")
     @Mapping(target = "status", source = "listing.status")
     @Mapping(target = "approvedAt", source = "listing.approvedAt")
     @Mapping(target = "viewCount", source = "listing.viewCount")
@@ -34,15 +37,18 @@ public interface ListingMapper {
     @Mapping(target = "property", source = "property")
     @Mapping(target = "assignedAgentId", source = "assignedAgentId")
     @Mapping(target = "pendingReportCount", source = "pendingReportCount")
+    @Mapping(target = "petsAllowed", source = "listing.petsAllowed")
+    @Mapping(target = "utilitiesNote", source = "listing.utilitiesNote")
+    @Mapping(target = "ownerPublicBio", source = "ownerPublicBio")
     ListingResponse toResponse(Listing listing, PropertySummary property,
-                               Long assignedAgentId, Long pendingReportCount);
+                               Long assignedAgentId, Long pendingReportCount, String ownerPublicBio);
 
     /**
      * List/browse callsites don't pay the cost of looking up trust signals (each one is
      * an extra query per row). Detail endpoints use the 4-arg overload after resolving
-     * {@code assignedAgentId} + {@code pendingReportCount}.
+     * {@code assignedAgentId} + {@code pendingReportCount} + {@code ownerPublicBio}.
      */
     default ListingResponse toResponse(Listing listing, PropertySummary property) {
-        return toResponse(listing, property, null, null);
+        return toResponse(listing, property, null, null, null);
     }
 }

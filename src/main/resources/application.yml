@@ -71,6 +71,23 @@ cors:
 # clickable explainer for each error family. Override per environment via
 # HAVEN_ERRORS_TYPE_BASE once a hosted docs site exists (e.g. `https://docs.dreamhomes.com/errors/`).
 haven:
+  auth:
+    jwt-cookie:
+      # When true, login sets an httpOnly SameSite=Lax JWT cookie (name below) and the
+      # auth filter accepts the token from that cookie if Authorization is absent.
+      # Use with a first-party or same-site SPA; pair with CORS allowed-origins (not "*").
+      enabled: ${HAVEN_AUTH_JWT_COOKIE_ENABLED:false}
+      name: ${HAVEN_AUTH_JWT_COOKIE_NAME:haven_access}
+      secure: ${HAVEN_AUTH_JWT_COOKIE_SECURE:true}
+      path: ${HAVEN_AUTH_JWT_COOKIE_PATH:/}
+      # Optional cookie Domain attribute (e.g. .dreamhomes.com). Leave empty for host-only cookies.
+      domain: ${HAVEN_AUTH_JWT_COOKIE_DOMAIN:}
+      # Strict | Lax | None — None requires secure=true in browsers.
+      same-site: ${HAVEN_AUTH_JWT_COOKIE_SAME_SITE:Lax}
+    # When true, forgot-password responses include `debugResetToken` and the same raw token
+    # is logged at WARN (console / appender) for local debugging — never enable in production.
+    # Must stay false outside controlled environments.
+    debug-return-reset-token: ${HAVEN_AUTH_DEBUG_RESET_TOKEN:false}
   jwt:
     # RS256 keypair — production MUST set HAVEN_JWT_PRIVATE_KEY + HAVEN_JWT_PUBLIC_KEY
     # to PEM-encoded RSA keys (PKCS#8 private, X.509 SubjectPublicKeyInfo public).
@@ -111,6 +128,9 @@ haven:
       # or a CDN in front). Combined with the object key to produce the URL recorded
       # on the ListingPhoto row.
       public-base-url: ${HAVEN_PHOTOS_R2_PUBLIC_BASE_URL:}
+    agent-marketing:
+      # Max multipart size per agent gallery image (bytes). Default 8 MiB.
+      max-bytes: ${HAVEN_PHOTOS_AGENT_MARKETING_MAX_BYTES:8388608}
 
 # Actuator: expose only the endpoints we want to publicly probe.
 # health = liveness/readiness for k8s/load-balancer probes (PUBLIC — see SecurityConfig).

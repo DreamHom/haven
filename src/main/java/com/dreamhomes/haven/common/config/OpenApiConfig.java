@@ -92,9 +92,9 @@ public class OpenApiConfig {
                 ))
                 .tags(List.of(
                         new Tag().name("Auth").description("Register, log in, and identify the current user."),
-                        new Tag().name("Users").description("Public profiles, agent badges, and the user-facing view of the trust signals admins manage."),
-                        new Tag().name("Properties").description("The physical asset — what the listing is *of*. Owned by a single user; one property may back many listings over time."),
-                        new Tag().name("Listings").description("The thing applicants browse, save, comment on, request inspections for, and submit offers against."),
+                        new Tag().name("Users").description("Public profiles (including optional `publicBio`), agent badges, and the user-facing view of the trust signals admins manage."),
+                        new Tag().name("Properties").description("The physical asset — what the listing is *of*. Owned by a single user; one property may back many listings over time. Create accepts optional WGS-84 `latitude`/`longitude` (both or neither). Owners (and admins) may **PATCH** non-type fields."),
+                        new Tag().name("Listings").description("The thing applicants browse, save, comment on, request inspections for, and submit offers against. Responses embed `PropertySummary` (address, trust badges, optional lat/lng) plus listing fields such as `virtualTourUrl` and `priceNegotiable`."),
                         new Tag().name("Listing photos").description("Owner / assigned-agent uploads that drive the visual hero of a listing."),
                         new Tag().name("Inspections").description("Slots an owner / agent opens (`POST /api/listings/{id}/slots`), and inspection requests an applicant claims against them (`POST /api/inspections`). **Owner approve/decline of a PENDING request is not yet a backend feature** — see the `DELETE /api/inspections/{id}` description for the current state machine and what the FE should render until that ships."),
                         new Tag().name("Offers").description("Applicant-submitted bids on a listing, including counter-offer chains and accept/decline state machine."),

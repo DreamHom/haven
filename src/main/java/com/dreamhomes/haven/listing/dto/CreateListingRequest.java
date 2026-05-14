@@ -23,11 +23,37 @@ public record CreateListingRequest(
         @Size(max = 255) String title,
         @Size(max = 5000) String description,
         @Size(max = 255) String headline,
-        LocalDate handoverDate
+        LocalDate handoverDate,
+        String virtualTourUrl,
+        Boolean priceNegotiable,
+        @Size(max = 2048) String floorPlanUrl,
+        @Size(max = 128) String petsAllowed,
+        @Size(max = 4000) String utilitiesNote
 ) {
     public CreateListingCommand toCommand() {
         return new CreateListingCommand(propertyId, listingType, askingPrice,
                 currency, cautionFee, serviceCharge, agencyFee,
-                title, description, headline, handoverDate);
+                title, description, headline, handoverDate,
+                normaliseTourUrl(virtualTourUrl),
+                Boolean.TRUE.equals(priceNegotiable),
+                normaliseTourUrl(floorPlanUrl),
+                trimToNull(petsAllowed),
+                trimToNull(utilitiesNote));
+    }
+
+    private static String trimToNull(String raw) {
+        if (raw == null) {
+            return null;
+        }
+        String t = raw.trim();
+        return t.isEmpty() ? null : t;
+    }
+
+    private static String normaliseTourUrl(String raw) {
+        if (raw == null) {
+            return null;
+        }
+        String t = raw.trim();
+        return t.isEmpty() ? null : t;
     }
 }

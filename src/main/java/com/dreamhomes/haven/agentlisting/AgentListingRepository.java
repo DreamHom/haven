@@ -35,4 +35,6 @@ public interface AgentListingRepository extends JpaRepository<AgentListing, Long
      * from V13 guarantees at most one ACCEPTED per listing.
      */
     Optional<AgentListing> findFirstByListingIdAndStatus(Long listingId, AgentListingStatus status);
+
+    boolean existsByListingIdAndAgentUserIdAndStatus(Long listingId, Long agentUserId, AgentListingStatus status);
 }

@@ -21,14 +21,18 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * Self-service "current user" surface — identity bootstrap + private settings reads + writes.
@@ -40,6 +44,7 @@ import org.springframework.web.bind.annotation.RestController;
  *       phone, license, agency, badges. Heavier; called only when the settings page opens.</li>
  *   <li>{@code PATCH /api/me} — partial update of email/fullName/displayName/phone.</li>
  *   <li>{@code POST /api/me/password} — password change with session revocation.</li>
+ *   <li>{@code POST /api/me/avatar} — multipart profile image; URL stored on {@code profile_image_url}.</li>
  *   <li>{@code PATCH /api/me/agent-profile} — agent-only license + agency edits.</li>
  * </ul>
  *
@@ -54,14 +59,35 @@ public class MeController {
     private final UserAccountService userAccountService;
 
     @Operation(
+            summary = "Close the current account (soft delete)",
+            description = """
+                    Irreversibly closes the caller's account for client sign-out flows: sets \
+                    `account_deleted_at`, anonymises the email to free the address for a future \
+                    registration, replaces the password hash, and bumps `tokenVersion` so all \
+                    JWTs stop working immediately.
+                    """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Account closed."),
+            @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthenticated")
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @DeleteMapping("/api/me")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteMyAccount(@AuthenticationPrincipal JwtPrincipal principal) {
+        userAccountService.softDeleteAccount(principal.userId());
+    }
+
+    @Operation(
             summary = "Identify the current authenticated user",
             description = """
                     Returns the authenticated user's id, email, name, and role. Useful for the \
                     frontend on app boot to confirm a stored JWT is still valid and to display \
                     the user's role + name without a second profile call.
 
-                    Does one DB read to pull `fullName`; not a hot-path call (frontend caches \
-                    the response for the session).
+                    **Vista / login shell:** the same JWT can be sent from the `/login` route — \
+                    a `200` here means the user is already signed in (redirect to dashboard); \
+                    `401` means show the sign-in form.
                     """
     )
     @ApiResponses({
@@ -87,7 +113,8 @@ public class MeController {
             summary = "Read the current user's account settings profile",
             description = """
                     Returns the authenticated user's editable account fields, including \
-                    private identity data such as email, phone, and agent-license details.
+                    private identity data such as email, phone, agent-license details, and \
+                    `publicBio` (mirrors the anonymous `GET /api/users/{id}/profile` field).
                     This is the companion read endpoint a settings page needs before it can \
                     PATCH any of the write routes under `/api/me`.
                     """
@@ -123,6 +150,10 @@ public class MeController {
                     always comes from the JWT subject; there is no userId path or body field, \
                     so callers cannot edit another account.
 
+                    Supported fields (omit to leave unchanged): `email`, `fullName`, \
+                    `displayName`, `phone`, `publicBio` (public narrative on \
+                    `GET /api/users/{id}/profile`; max 4000 chars; blank string clears).
+
                     Email update is currently a direct write in this codebase. That is a \
                     deliberate temporary shortcut until email-delivery infrastructure exists \
                     for a proper verify-the-new-address flow.
@@ -144,7 +175,10 @@ public class MeController {
                 request.email(),
                 request.fullName(),
                 request.displayName(),
-                request.phone());
+                request.phone(),
+                request.publicBio(),
+                request.profileImageUrl(),
+                request.notificationPreferences());
     }
 
     @Operation(
@@ -200,5 +234,27 @@ public class MeController {
     public PrivateUserProfile updateMyAgentProfile(@AuthenticationPrincipal JwtPrincipal principal,
                                                  @Valid @RequestBody UpdateMyAgentProfileRequest request) {
         return userAccountService.updateMyAgentProfile(principal.userId(), request);
+    }
+
+    @Operation(
+            summary = "Upload my profile avatar",
+            description = """
+                    Multipart upload stored under the configured photo backend (`haven.photos.storage=r2` \
+                    in production). The returned public URL is written to `profile_image_url` on the user.
+                    """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200",
+                    description = "Avatar stored; private profile returned.",
+                    content = @Content(schema = @Schema(implementation = PrivateUserProfile.class))),
+            @ApiResponse(responseCode = "400", ref = "#/components/responses/ValidationFailed"),
+            @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthenticated")
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @PostMapping(value = "/api/me/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public PrivateUserProfile uploadAvatar(
+            @AuthenticationPrincipal JwtPrincipal principal,
+            @RequestPart("file") MultipartFile file) {
+        return userAccountService.uploadMyAvatar(principal.userId(), file);
     }
 }

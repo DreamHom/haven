@@ -15,6 +15,10 @@ public record CreateListingCommand(
         String title,
         String description,
         String headline,
-        LocalDate handoverDate
-) {
+        LocalDate handoverDate,
+        String virtualTourUrl,
+        boolean priceNegotiable,
+        String floorPlanUrl,
+        String petsAllowed,
+        String utilitiesNote) {
 }

@@ -1,5 +1,7 @@
 package com.dreamhomes.haven.offer;
 
+import com.dreamhomes.haven.agentlisting.AgentListingRepository;
+import com.dreamhomes.haven.agentlisting.model.AgentListingStatus;
 import com.dreamhomes.haven.common.outbox.OutboxEvent;
 import com.dreamhomes.haven.common.outbox.OutboxEventRepository;
 import com.dreamhomes.haven.common.outbox.OutboxRowReadyEvent;
@@ -30,7 +32,6 @@ import com.dreamhomes.haven.offer.exception.CannotActOnOwnOfferException;
 import com.dreamhomes.haven.offer.exception.InvalidOfferTransitionException;
 import com.dreamhomes.haven.offer.exception.ListingNotOpenForOffersException;
 import com.dreamhomes.haven.offer.exception.OfferNotFoundException;
-import com.dreamhomes.haven.inspection.service.InspectionService;
 import com.dreamhomes.haven.offer.model.Offer;
 import com.dreamhomes.haven.offer.model.OfferStatus;
 @Service
@@ -42,6 +43,7 @@ public class OfferService {
 
     private final OfferRepository offerRepository;
     private final ListingService listingService;
+    private final AgentListingRepository agentListingRepository;
     private final OutboxEventRepository outboxRepository;
     private final NotificationApi notificationApi;
     private final ObjectMapper objectMapper;
@@ -56,7 +58,7 @@ public class OfferService {
     @Transactional(readOnly = true)
     public org.springframework.data.domain.Page<Offer> listMine(
             Long userId, org.springframework.data.domain.Pageable pageable) {
-        return offerRepository.findByApplicantIdOrOwnerIdOrderByCreatedAtDesc(userId, userId, pageable);
+        return offerRepository.findVisibleToNegotiationParty(userId, pageable);
     }
 
     @Transactional
@@ -163,7 +165,7 @@ public class OfferService {
         Offer offer = offerRepository.findById(offerId)
                 .orElseThrow(() -> new OfferNotFoundException(offerId));
 
-        if (!isParticipant(offer, callerId)) {
+        if (!canNegotiateOffer(offer, callerId)) {
             throw new NotPropertyOwnerException();
         }
         if (offer.getProposedByUserId().equals(callerId)) {
@@ -235,7 +237,7 @@ public class OfferService {
         Offer parent = offerRepository.findById(parentOfferId)
                 .orElseThrow(() -> new OfferNotFoundException(parentOfferId));
 
-        if (!isParticipant(parent, callerId)) {
+        if (!canNegotiateOffer(parent, callerId)) {
             throw new NotPropertyOwnerException();
         }
         if (parent.getProposedByUserId().equals(callerId)) {
@@ -274,8 +276,12 @@ public class OfferService {
         return child;
     }
 
-    private static boolean isParticipant(Offer offer, Long callerId) {
-        return callerId.equals(offer.getOwnerId()) || callerId.equals(offer.getApplicantId());
+    private boolean canNegotiateOffer(Offer offer, Long callerId) {
+        if (callerId.equals(offer.getOwnerId()) || callerId.equals(offer.getApplicantId())) {
+            return true;
+        }
+        return agentListingRepository.existsByListingIdAndAgentUserIdAndStatus(
+                offer.getListingId(), callerId, AgentListingStatus.ACCEPTED);
     }
 
     /**

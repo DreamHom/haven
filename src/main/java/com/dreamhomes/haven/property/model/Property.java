@@ -59,6 +59,12 @@ public class Property {
     @Column(columnDefinition = "TEXT")
     private String description;
 
+    /** WGS-84 latitude; must be paired with {@link #longitude} when set. */
+    private Double latitude;
+
+    /** WGS-84 longitude; must be paired with {@link #latitude} when set. */
+    private Double longitude;
+
     @CreatedDate
 
     @Column(name = "created_at", nullable = false, updatable = false)

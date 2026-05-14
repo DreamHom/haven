@@ -3,6 +3,7 @@ package com.dreamhomes.haven.property;
 import com.dreamhomes.haven.auth.JwtPrincipal;
 import com.dreamhomes.haven.property.dto.CreatePropertyRequest;
 import com.dreamhomes.haven.property.dto.PropertyResponse;
+import com.dreamhomes.haven.property.dto.UpdatePropertyRequest;
 import com.dreamhomes.haven.property.exception.PropertyNotFoundException;
 import com.dreamhomes.haven.property.model.Property;
 import com.dreamhomes.haven.user.model.Role;
@@ -24,6 +25,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -52,6 +54,9 @@ public class PropertyController {
                     A caller cannot create a property "for" another user.
 
                     **Role gate**: `OWNER` only. APPLICANT and AGENT receive 403.
+
+                    Optional **map pin**: `latitude` and `longitude` (WGS-84 decimals) — both \
+                    must be sent together or both omitted.
                     """
     )
     @ApiResponses({
@@ -64,6 +69,7 @@ public class PropertyController {
                                       "address": "12B Admiralty Way, Lekki Phase 1, Lagos",
                                       "bedrooms": 3, "bathrooms": 2, "sizeSqm": 145,
                                       "description": "Top-floor apartment with sea-view balcony.",
+                                      "latitude": 6.4541, "longitude": 3.3947,
                                       "createdAt": "2026-05-10T08:30:00Z" }
                                     """))),
             @ApiResponse(responseCode = "400", ref = "#/components/responses/ValidationFailed"),
@@ -117,7 +123,9 @@ public class PropertyController {
     private static PropertyResponse toResponse(Property saved) {
         return new PropertyResponse(saved.getId(), saved.getOwnerId(), saved.getType(),
                 saved.getAddress(), saved.getBedrooms(), saved.getBathrooms(),
-                saved.getSizeSqm(), saved.getDescription(), saved.getCreatedAt());
+                saved.getSizeSqm(), saved.getDescription(),
+                saved.getLatitude(), saved.getLongitude(),
+                saved.getCreatedAt());
     }
 
     @Operation(
@@ -171,5 +179,41 @@ public class PropertyController {
             throw new PropertyNotFoundException(id);
         }
         return propertyService.findById(id);
+    }
+
+    @Operation(
+            summary = "Update a property (partial)",
+            description = """
+                    Partial update of address, room counts, size, description, and/or map \
+                    coordinates. **Type is immutable** on this endpoint — an apartment stays \
+                    an apartment.
+
+                    **Authorisation**: the property owner, or an `ADMIN`, may patch. Anyone \
+                    else receives `404` (existence is not leaked to non-owners).
+
+                    **Room counts**: after the patch, the same rules as create apply — e.g. \
+                    `APARTMENT` must have both `bedrooms` and `bathrooms` set (either carried \
+                    over from before or supplied in this request).
+
+                    **Coordinates**: `latitude` and `longitude` must be sent together.
+                    """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200",
+                    description = "Property updated.",
+                    content = @Content(schema = @Schema(implementation = PropertyResponse.class))),
+            @ApiResponse(responseCode = "400", ref = "#/components/responses/ValidationFailed"),
+            @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthenticated"),
+            @ApiResponse(responseCode = "403", ref = "#/components/responses/Forbidden"),
+            @ApiResponse(responseCode = "404", ref = "#/components/responses/NotFound")
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @PatchMapping("/{id}")
+    @PreAuthorize("hasRole('OWNER') or hasRole('ADMIN')")
+    public PropertyResponse update(@AuthenticationPrincipal JwtPrincipal principal,
+                                   @Parameter(description = "Property ID.", example = "42")
+                                   @PathVariable Long id,
+                                   @Valid @RequestBody UpdatePropertyRequest request) {
+        return propertyService.update(principal.userId(), principal.role(), id, request.toCommand());
     }
 }

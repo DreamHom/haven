@@ -238,15 +238,16 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
                     <!-- ByteBuddy (used by Mockito) needs experimental mode on JDKs newer than its
-                         officially-supported set. -->
-                    <argLine>-Dnet.bytebuddy.experimental=true</argLine>
+                         officially-supported set. {@code EnableDynamicAgentLoading} keeps the inline
+                         mock maker attachable on JDK 21+ where dynamic agents are gated by default. -->
+                    <argLine>-Dnet.bytebuddy.experimental=true -XX:+EnableDynamicAgentLoading</argLine>
                 </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
                 <configuration>
-                    <argLine>-Dnet.bytebuddy.experimental=true</argLine>
+                    <argLine>-Dnet.bytebuddy.experimental=true -XX:+EnableDynamicAgentLoading</argLine>
                 </configuration>
                 <executions>
                     <execution>

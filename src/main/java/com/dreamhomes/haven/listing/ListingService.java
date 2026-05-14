@@ -2,6 +2,7 @@ package com.dreamhomes.haven.listing;
 
 import com.dreamhomes.haven.agentlisting.AgentListingRepository;
 import com.dreamhomes.haven.agentlisting.model.AgentListingStatus;
+import com.dreamhomes.haven.listing.exception.AgentCannotEditListingFieldsException;
 import com.dreamhomes.haven.listingreport.ListingReportRepository;
 import com.dreamhomes.haven.listingreport.model.ListingReportStatus;
 import com.dreamhomes.haven.property.PropertyService;
@@ -18,6 +19,7 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.HashMap;
 import java.util.stream.Collectors;
 import com.dreamhomes.haven.listing.dto.CreateListingCommand;
 import com.dreamhomes.haven.listing.dto.ListingResponse;
@@ -28,6 +30,7 @@ import com.dreamhomes.haven.listing.exception.ListingNotFoundException;
 import com.dreamhomes.haven.listing.exception.NotPropertyOwnerException;
 import com.dreamhomes.haven.listing.model.Listing;
 import com.dreamhomes.haven.listing.model.ListingStatus;
+import com.dreamhomes.haven.user.model.Role;
 
 /**
  * Implementation of {@link ListingService}. Cross-aggregate property reads go through
@@ -45,6 +48,7 @@ public class ListingService {
     private final ListingMapper listingMapper;
     private final AgentListingRepository agentListingRepository;
     private final ListingReportRepository listingReportRepository;
+    private final com.dreamhomes.haven.user.repository.UserRepository userRepository;
 
     @Transactional
     public Listing create(Long callerId, CreateListingCommand cmd) {
@@ -67,6 +71,11 @@ public class ListingService {
                 .description(cmd.description())
                 .headline(cmd.headline())
                 .handoverDate(cmd.handoverDate())
+                .virtualTourUrl(cmd.virtualTourUrl())
+                .floorPlanUrl(cmd.floorPlanUrl())
+                .priceNegotiable(cmd.priceNegotiable())
+                .petsAllowed(cmd.petsAllowed())
+                .utilitiesNote(cmd.utilitiesNote())
                 .status(ListingStatus.LIVE)
                 .build());
         log.info("Created listingId={} propertyId={} ownerId={} type={}",
@@ -119,13 +128,28 @@ public class ListingService {
 
     private Page<ListingWithProperty> withSummaries(Page<Listing> listings) {
         if (listings.isEmpty()) {
-            return listings.map(l -> new ListingWithProperty(l, null));
+            return listings.map(l -> new ListingWithProperty(l, null, null));
         }
         Set<Long> propertyIds = listings.stream()
                 .map(Listing::getPropertyId)
                 .collect(Collectors.toSet());
         Map<Long, PropertySummary> summaries = propertyService.findSummariesByIds(propertyIds);
-        return listings.map(l -> new ListingWithProperty(l, summaries.get(l.getPropertyId())));
+        Set<Long> ownerIds = listings.stream().map(Listing::getOwnerId).collect(Collectors.toSet());
+        Map<Long, String> bios = loadOwnerBios(ownerIds);
+        return listings.map(l -> new ListingWithProperty(l, summaries.get(l.getPropertyId()),
+                bios.get(l.getOwnerId())));
+    }
+
+    private Map<Long, String> loadOwnerBios(Set<Long> ownerIds) {
+        if (ownerIds.isEmpty()) {
+            return Map.of();
+        }
+        Map<Long, String> out = new HashMap<>();
+        for (com.dreamhomes.haven.user.repository.OwnerPublicBioRow row
+                : userRepository.findPublicBiosByUserIds(ownerIds)) {
+            out.put(row.getOwnerId(), row.getPublicBio());
+        }
+        return out;
     }
 
     /**
@@ -143,16 +167,24 @@ public class ListingService {
         }
         PropertySummary property = propertyService.findSummary(listing.getPropertyId())
                 .orElseThrow(() -> new PropertyNotFoundException(listing.getPropertyId()));
+        String ownerBio = userRepository.findPublicBioByUserId(listing.getOwnerId()).orElse(null);
         listingRepository.incrementViewCount(listingId);
-        return new ListingWithProperty(listing, property);
+        return new ListingWithProperty(listing, property, ownerBio);
     }
 
     @Transactional
-    public Listing update(Long callerId, Long listingId, UpdateListingCommand cmd) {
+    public Listing update(Long callerId, Role role, Long listingId, UpdateListingCommand cmd) {
         Listing listing = listingRepository.findById(listingId)
                 .orElseThrow(() -> new ListingNotFoundException(listingId));
-        if (!listing.getOwnerId().equals(callerId)) {
+        boolean owner = listing.getOwnerId().equals(callerId);
+        boolean assignedAgent = role == Role.AGENT
+                && agentListingRepository.existsByListingIdAndAgentUserIdAndStatus(
+                listingId, callerId, AgentListingStatus.ACCEPTED);
+        if (!owner && !assignedAgent) {
             throw new NotPropertyOwnerException();
+        }
+        if (assignedAgent && !owner && (cmd.status() != null || cmd.askingPrice() != null)) {
+            throw new AgentCannotEditListingFieldsException();
         }
         if (cmd.status() != null && !isAllowedTransition(listing.getStatus(), cmd.status())) {
             throw new InvalidListingTransitionException(listing.getStatus(), cmd.status());
@@ -163,8 +195,6 @@ public class ListingService {
         if (cmd.status() != null) {
             listing.setStatus(cmd.status());
         }
-        // Optional marketing-copy edits (V27 fields). Each independently nullable so
-        // the caller can change one without touching the rest.
         if (cmd.title() != null) {
             listing.setTitle(cmd.title());
         }
@@ -177,10 +207,24 @@ public class ListingService {
         if (cmd.handoverDate() != null) {
             listing.setHandoverDate(cmd.handoverDate());
         }
-        // updatedAt is bumped by JPA auditing on save (entity has @LastModifiedDate).
+        if (cmd.virtualTourUrl() != null) {
+            listing.setVirtualTourUrl(trimTourUrl(cmd.virtualTourUrl()));
+        }
+        if (cmd.floorPlanUrl() != null) {
+            listing.setFloorPlanUrl(trimTourUrl(cmd.floorPlanUrl()));
+        }
+        if (cmd.priceNegotiable() != null) {
+            listing.setPriceNegotiable(cmd.priceNegotiable());
+        }
+        if (cmd.petsAllowed() != null) {
+            listing.setPetsAllowed(trimToNull(cmd.petsAllowed()));
+        }
+        if (cmd.utilitiesNote() != null) {
+            listing.setUtilitiesNote(trimToNull(cmd.utilitiesNote()));
+        }
         Listing saved = listingRepository.save(listing);
-        log.info("Updated listingId={} ownerId={} status={} price={}",
-                saved.getId(), callerId, saved.getStatus(), saved.getAskingPrice());
+        log.info("Updated listingId={} callerId={} role={} status={} price={}",
+                saved.getId(), callerId, role, saved.getStatus(), saved.getAskingPrice());
         return saved;
     }
 
@@ -197,6 +241,24 @@ public class ListingService {
         return from != ListingStatus.CLOSED && from != ListingStatus.TAKEN_DOWN;
     }
 
+    private static String trimTourUrl(String raw) {
+        String t = raw.trim();
+        return t.isEmpty() ? null : t;
+    }
+
+    private static String trimToNull(String raw) {
+        if (raw == null) {
+            return null;
+        }
+        String t = raw.trim();
+        return t.isEmpty() ? null : t;
+    }
+
+    @Transactional(readOnly = true)
+    public Page<ListingWithProperty> adminCatalog(ListingStatus status, Pageable pageable) {
+        return withSummaries(listingRepository.adminCatalog(status, pageable));
+    }
+
     // ============================ ListingService ============================
 
     @Transactional(readOnly = true)
@@ -204,8 +266,15 @@ public class ListingService {
         Listing listing = listingRepository.findById(listingId)
                 .orElseThrow(() -> new ListingNotFoundException(listingId));
         PropertySummary summary = propertyService.findSummary(listing.getPropertyId()).orElse(null);
+        String ownerBio = userRepository.findPublicBioByUserId(listing.getOwnerId()).orElse(null);
         return listingMapper.toResponse(listing, summary,
-                activeAgentUserId(listingId), pendingReportCount(listingId));
+                activeAgentUserId(listingId), pendingReportCount(listingId), ownerBio);
+    }
+
+    /** Owner's {@code users.public_bio} for embedding on listing payloads (create/update/browse). */
+    @Transactional(readOnly = true)
+    public Optional<String> findOwnerPublicBio(Long ownerUserId) {
+        return userRepository.findPublicBioByUserId(ownerUserId);
     }
 
     /** Active agent assigned to this listing (ACCEPTED row), or null when none. */

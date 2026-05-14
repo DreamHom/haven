@@ -1,11 +1,15 @@
 package com.dreamhomes.haven.auth.controller;
 
 import com.dreamhomes.haven.auth.JwtPrincipal;
+import com.dreamhomes.haven.auth.cookie.JwtCookieService;
+import com.dreamhomes.haven.auth.dto.ForgotPasswordRequest;
+import com.dreamhomes.haven.auth.dto.ForgotPasswordResponse;
 import com.dreamhomes.haven.auth.dto.LoginCommand;
 import com.dreamhomes.haven.auth.dto.LoginRequest;
 import com.dreamhomes.haven.auth.dto.LoginResponse;
 import com.dreamhomes.haven.auth.dto.RegisterCommand;
 import com.dreamhomes.haven.auth.dto.RegisterRequest;
+import com.dreamhomes.haven.auth.dto.ResetPasswordRequest;
 import com.dreamhomes.haven.auth.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -33,6 +37,8 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final AuthService authService;
+    private final com.dreamhomes.haven.auth.passwordreset.PasswordResetService passwordResetService;
+    private final JwtCookieService jwtCookieService;
 
     @Operation(
             summary = "Register a new account",
@@ -87,6 +93,9 @@ public class AuthController {
                     server-side (default 1h). Subsequent authenticated calls send the JWT \
                     as `Authorization: Bearer <token>`.
 
+                    When `haven.auth.jwt-cookie.enabled` is true, the same JWT is also set in an \
+                    httpOnly `SameSite=Lax` cookie so first-party browser apps can omit localStorage.
+
                     A suspended account (where `users.suspended_at` is set by an admin) \
                     cannot log in — the request returns 403 with a clear reason. Same \
                     for an account whose `tokenVersion` was bumped out from under any \
@@ -114,11 +123,58 @@ public class AuthController {
     })
     @SecurityRequirements // public
     @PostMapping("/login")
-    public LoginResponse login(@Valid @RequestBody LoginRequest request) {
+    public LoginResponse login(@Valid @RequestBody LoginRequest request,
+                               jakarta.servlet.http.HttpServletResponse httpResponse) {
         com.dreamhomes.haven.auth.dto.LoginResult result =
                 authService.login(new LoginCommand(request.email(), request.password()));
+        jwtCookieService.addTokenCookie(httpResponse, result.token());
         return new LoginResponse(result.token(), "Bearer", result.expiresInSeconds(),
                 result.userId(), result.role(), result.fullName());
+    }
+
+    @Operation(
+            summary = "Request a password reset",
+            description = """
+                    Always returns 202 with `accepted: true` — the response does not reveal \
+                    whether the email exists. When a matching active account exists, a \
+                    single-use reset token is stored (hashed). Email delivery is not wired \
+                    yet; in non-production test profiles `debugResetToken` may echo the raw \
+                    token when `haven.auth.debug-return-reset-token` is true (same value is \
+                    also logged at WARN on the server).
+                    """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "202", description = "Anti-enumeration ack."),
+            @ApiResponse(responseCode = "400", ref = "#/components/responses/ValidationFailed"),
+            @ApiResponse(responseCode = "429", ref = "#/components/responses/RateLimited")
+    })
+    @SecurityRequirements
+    @PostMapping("/forgot-password")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public ForgotPasswordResponse forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        return new ForgotPasswordResponse(true,
+                passwordResetService.requestReset(request.email()).orElse(null));
+    }
+
+    @Operation(
+            summary = "Complete password reset with token",
+            description = """
+                    Consumes a reset token from the forgot-password flow, sets a new password, \
+                    and bumps `tokenVersion` so outstanding JWTs are revoked.
+                    """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Password updated."),
+            @ApiResponse(responseCode = "400", ref = "#/components/responses/ValidationFailed"),
+            @ApiResponse(responseCode = "429", ref = "#/components/responses/RateLimited")
+    })
+    @SecurityRequirements
+    @PostMapping("/reset-password")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void resetPassword(@Valid @RequestBody ResetPasswordRequest request,
+                              jakarta.servlet.http.HttpServletResponse httpResponse) {
+        passwordResetService.resetWithToken(request.token(), request.newPassword());
+        jwtCookieService.clearTokenCookie(httpResponse);
     }
 
     @Operation(
@@ -135,6 +191,8 @@ public class AuthController {
                       this account on the next request. The right choice for "lost device"
                       or "ended a session on a shared computer".
 
+                    When JWT cookies are enabled, the httpOnly session cookie is cleared as well.
+
                     Returns 204 No Content on success.
                     """
     )
@@ -148,13 +206,20 @@ public class AuthController {
     public void logout(@AuthenticationPrincipal JwtPrincipal principal,
                        @org.springframework.web.bind.annotation.RequestParam(name = "scope", defaultValue = "device")
                        String scope,
-                       jakarta.servlet.http.HttpServletRequest request) {
+                       jakarta.servlet.http.HttpServletRequest request,
+                       jakarta.servlet.http.HttpServletResponse response) {
+        String authorization = request.getHeader("Authorization");
+        if ((authorization == null || authorization.isBlank()) && jwtCookieService.isEnabled()) {
+            authorization = jwtCookieService.readToken(request)
+                    .map(t -> "Bearer " + t)
+                    .orElse(null);
+        }
         switch (scope.toLowerCase(java.util.Locale.ROOT)) {
             case "all" -> authService.logout(principal.userId());
-            case "device" -> authService.logoutDevice(principal.userId(),
-                    request.getHeader("Authorization"));
+            case "device" -> authService.logoutDevice(principal.userId(), authorization);
             default -> throw new IllegalArgumentException(
                     "Unknown logout scope: " + scope + " (expected device or all)");
         }
+        jwtCookieService.clearTokenCookie(response);
     }
 }

@@ -23,6 +23,27 @@ public interface OfferRepository extends JpaRepository<Offer, Long> {
             Long applicantId, Long ownerId, Pageable pageable);
 
     /**
+     * Offers visible to the owner, applicant, or the listing's ACCEPTED assigned agent
+     * (Vista: agent-side negotiation).
+     */
+    @Query(value = """
+            SELECT o FROM Offer o
+             WHERE o.applicantId = :userId OR o.ownerId = :userId
+                OR EXISTS (SELECT 1 FROM AgentListing a
+                            WHERE a.listingId = o.listingId AND a.agentUserId = :userId
+                              AND a.status = com.dreamhomes.haven.agentlisting.model.AgentListingStatus.ACCEPTED)
+             ORDER BY o.createdAt DESC
+            """,
+            countQuery = """
+            SELECT count(o) FROM Offer o
+             WHERE o.applicantId = :userId OR o.ownerId = :userId
+                OR EXISTS (SELECT 1 FROM AgentListing a
+                            WHERE a.listingId = o.listingId AND a.agentUserId = :userId
+                              AND a.status = com.dreamhomes.haven.agentlisting.model.AgentListingStatus.ACCEPTED)
+            """)
+    Page<Offer> findVisibleToNegotiationParty(@Param("userId") Long userId, Pageable pageable);
+
+    /**
      * "Was this applicant the buyer/renter on this listing?" — used by ReviewService to
      * gate post-deal reviews on participant identity. An ACCEPTED offer is the canonical
      * signal that the deal happened.

@@ -63,7 +63,7 @@ public class SecurityConfig {
         CorsConfiguration cfg = new CorsConfiguration();
         cfg.setAllowedOriginPatterns(allowedOrigins);
         cfg.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        cfg.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept"));
+        cfg.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "Cookie"));
         cfg.setExposedHeaders(List.of("Location"));
         cfg.setAllowCredentials(true);
         cfg.setMaxAge(3600L);
@@ -87,7 +87,8 @@ public class SecurityConfig {
                         // "unauthenticated" 401. Persona audit (Dayo) caught this on the
                         // RejectWithEmptyReason flow.
                         .requestMatchers("/error").permitAll()
-                        .requestMatchers("/api/auth/register", "/api/auth/login").permitAll()
+                        .requestMatchers("/api/auth/register", "/api/auth/login",
+                                "/api/auth/forgot-password", "/api/auth/reset-password").permitAll()
                         // Liveness/readiness probes for load balancers + k8s. /actuator/prometheus
                         // is deliberately NOT in this list — scraping stays auth-gated.
                         .requestMatchers(org.springframework.http.HttpMethod.GET,
@@ -106,6 +107,7 @@ public class SecurityConfig {
                                 "/api/listings/*/comments",
                                 "/api/listings/*/reviews",
                                 "/api/listings/*/photos",
+                                "/api/listings/*/videos",
                                 "/api/users/*/profile",
                                 "/api/users/*/reviews",
                                 "/api/agents").permitAll()
@@ -114,6 +116,7 @@ public class SecurityConfig {
                                 "/api/listings/*/comments",
                                 "/api/listings/*/reviews",
                                 "/api/listings/*/photos",
+                                "/api/listings/*/videos",
                                 "/api/users/*/profile",
                                 "/api/users/*/reviews",
                                 "/api/agents").permitAll()

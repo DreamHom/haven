@@ -20,6 +20,12 @@ public enum NotificationKind {
     VERIFICATION_REJECTED,
     /** Sync — fired by AdminListingService when an admin grants the verified-listing badge. */
     LISTING_APPROVED,
+    /**
+     * Sync — fired by {@link com.dreamhomes.haven.lead.ListingLeadService} when an applicant submits
+     * interest on a live listing; recipient is the listing owner.
+     * Payload JSON: {@code listingId} (number), {@code leadId} (number).
+     */
+    LISTING_LEAD_SUBMITTED,
     /** Sync — fired by AdminListingService when an admin takes a listing down. */
     LISTING_TAKEDOWN,
     /** Sync — fired by CommentService when a non-owner posts a comment on a listing. */

@@ -16,8 +16,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import com.dreamhomes.haven.inspection.dto.RequestInspectionCommand;
+import com.dreamhomes.haven.inspection.exception.InspectionRequestInvalidStateException;
+import com.dreamhomes.haven.inspection.exception.InspectionRequestNotFoundException;
 import com.dreamhomes.haven.inspection.exception.SlotAlreadyClaimedException;
 import com.dreamhomes.haven.inspection.exception.SlotNotFoundException;
 import com.dreamhomes.haven.inspection.model.InspectionRequest;
@@ -31,6 +34,9 @@ import com.dreamhomes.haven.inspection.repository.InspectionSlotRepository;
 @Slf4j
 @RequiredArgsConstructor
 public class InspectionService {
+
+    private static final List<InspectionRequestStatus> ACTIVE_SLOT_STATUSES =
+            List.of(InspectionRequestStatus.PENDING, InspectionRequestStatus.APPROVED);
 
     private final InspectionSlotRepository slotRepository;
     private final InspectionRequestRepository requestRepository;
@@ -144,11 +150,142 @@ public class InspectionService {
         return saved;
     }
 
+    @Transactional
+    public InspectionRequest approveByOwner(Long ownerUserId, Long requestId) {
+        return transitionFromPending(ownerUserId, requestId, InspectionRequestStatus.APPROVED, true);
+    }
+
+    @Transactional
+    public InspectionRequest declineByOwner(Long ownerUserId, Long requestId) {
+        return transitionFromPending(ownerUserId, requestId, InspectionRequestStatus.DECLINED, true);
+    }
+
+    @Transactional
+    public InspectionRequest rescheduleApprovedByAgent(Long agentUserId, Long requestId, Long newSlotId) {
+        InspectionRequest request = loadRequest(requestId);
+        if (request.getStatus() != InspectionRequestStatus.APPROVED) {
+            throw new InspectionRequestInvalidStateException(requestId,
+                    "must be APPROVED before it can be rescheduled");
+        }
+        Long listingId = requireListingIdForRequest(request);
+        Long assigned = listingService.activeAgentUserId(listingId);
+        if (assigned == null || !assigned.equals(agentUserId)) {
+            throw new com.dreamhomes.haven.listing.exception.NotPropertyOwnerException();
+        }
+        InspectionSlot currentSlot = slotRepository.findById(request.getSlotId())
+                .orElseThrow(() -> new SlotNotFoundException(request.getSlotId()));
+        InspectionSlot newSlot = slotRepository.findById(newSlotId)
+                .orElseThrow(() -> new SlotNotFoundException(newSlotId));
+        if (!currentSlot.getListingId().equals(newSlot.getListingId())) {
+            throw new com.dreamhomes.haven.inspection.exception.InspectionSlotListingMismatchException();
+        }
+        if (newSlotId.equals(request.getSlotId())) {
+            return request;
+        }
+        if (requestRepository.existsBySlotIdAndStatusInAndIdNot(newSlotId, ACTIVE_SLOT_STATUSES, requestId)) {
+            throw new SlotAlreadyClaimedException();
+        }
+        request.setSlotId(newSlotId);
+        try {
+            return requestRepository.save(request);
+        } catch (DataIntegrityViolationException ex) {
+            throw new SlotAlreadyClaimedException();
+        }
+    }
+
+    @Transactional
+    public InspectionRequest patchAgentExtras(Long agentUserId, Long requestId, String extras) {
+        InspectionRequest request = loadRequest(requestId);
+        if (request.getStatus() != InspectionRequestStatus.APPROVED) {
+            throw new InspectionRequestInvalidStateException(requestId,
+                    "must be APPROVED before agent extras can be set");
+        }
+        Long listingId = requireListingIdForRequest(request);
+        Long assigned = listingService.activeAgentUserId(listingId);
+        if (assigned == null || !assigned.equals(agentUserId)) {
+            throw new com.dreamhomes.haven.listing.exception.NotPropertyOwnerException();
+        }
+        request.setAgentExtras(trimToNull(extras));
+        return requestRepository.save(request);
+    }
+
+    @Transactional
+    public InspectionRequest markCompletedByAgent(Long agentUserId, Long requestId) {
+        InspectionRequest request = loadRequest(requestId);
+        if (request.getStatus() != InspectionRequestStatus.APPROVED) {
+            throw new InspectionRequestInvalidStateException(requestId,
+                    "must be APPROVED before it can be marked completed");
+        }
+        Long listingId = requireListingIdForRequest(request);
+        Long assigned = listingService.activeAgentUserId(listingId);
+        if (assigned == null || !assigned.equals(agentUserId)) {
+            throw new com.dreamhomes.haven.listing.exception.NotPropertyOwnerException();
+        }
+        request.setStatus(InspectionRequestStatus.COMPLETED);
+        return requestRepository.save(request);
+    }
+
+    @Transactional
+    public InspectionRequest markNoShow(Long callerId, Long requestId) {
+        InspectionRequest request = loadRequest(requestId);
+        if (request.getStatus() != InspectionRequestStatus.APPROVED) {
+            throw new InspectionRequestInvalidStateException(requestId,
+                    "must be APPROVED before it can be marked as no-show");
+        }
+        Long listingId = requireListingIdForRequest(request);
+        Long ownerId = listingService.ownerOf(listingId)
+                .orElseThrow(() -> new ListingNotFoundException(listingId));
+        Long assigned = listingService.activeAgentUserId(listingId);
+        boolean ok = callerId.equals(ownerId)
+                || (assigned != null && callerId.equals(assigned));
+        if (!ok) {
+            throw new com.dreamhomes.haven.listing.exception.NotPropertyOwnerException();
+        }
+        request.setStatus(InspectionRequestStatus.NO_SHOW);
+        return requestRepository.save(request);
+    }
+
+    private InspectionRequest transitionFromPending(Long ownerUserId, Long requestId,
+                                                    InspectionRequestStatus target, boolean requireOwner) {
+        InspectionRequest request = loadRequest(requestId);
+        if (request.getStatus() != InspectionRequestStatus.PENDING) {
+            throw new InspectionRequestInvalidStateException(requestId,
+                    "must be PENDING for owner decision");
+        }
+        Long listingId = requireListingIdForRequest(request);
+        Long ownerId = listingService.ownerOf(listingId)
+                .orElseThrow(() -> new ListingNotFoundException(listingId));
+        if (requireOwner && !ownerUserId.equals(ownerId)) {
+            throw new com.dreamhomes.haven.listing.exception.NotPropertyOwnerException();
+        }
+        request.setStatus(target);
+        return requestRepository.save(request);
+    }
+
+    private InspectionRequest loadRequest(Long requestId) {
+        return requestRepository.findById(requestId)
+                .orElseThrow(() -> new InspectionRequestNotFoundException(requestId));
+    }
+
+    private Long requireListingIdForRequest(InspectionRequest request) {
+        InspectionSlot slot = slotRepository.findById(request.getSlotId())
+                .orElseThrow(() -> new SlotNotFoundException(request.getSlotId()));
+        return slot.getListingId();
+    }
+
     private String serialize(Object event) {
         try {
             return objectMapper.writeValueAsString(event);
         } catch (JsonProcessingException e) {
             throw new IllegalStateException("Failed to serialise outbox payload", e);
         }
+    }
+
+    private static String trimToNull(String raw) {
+        if (raw == null) {
+            return null;
+        }
+        String t = raw.trim();
+        return t.isEmpty() ? null : t;
     }
 }

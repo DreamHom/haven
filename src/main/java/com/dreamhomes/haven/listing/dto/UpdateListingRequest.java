@@ -13,9 +13,15 @@ public record UpdateListingRequest(
         @Size(max = 255) String title,
         @Size(max = 5000) String description,
         @Size(max = 255) String headline,
-        LocalDate handoverDate
+        LocalDate handoverDate,
+        @Size(max = 2048) String virtualTourUrl,
+        Boolean priceNegotiable,
+        @Size(max = 2048) String floorPlanUrl,
+        @Size(max = 128) String petsAllowed,
+        @Size(max = 4000) String utilitiesNote
 ) {
     public UpdateListingCommand toCommand() {
-        return new UpdateListingCommand(askingPrice, status, title, description, headline, handoverDate);
+        return new UpdateListingCommand(askingPrice, status, title, description, headline, handoverDate,
+                virtualTourUrl, priceNegotiable, floorPlanUrl, petsAllowed, utilitiesNote);
     }
 }

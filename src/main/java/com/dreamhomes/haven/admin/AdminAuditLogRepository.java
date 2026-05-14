@@ -36,4 +36,7 @@ public interface AdminAuditLogRepository extends JpaRepository<AdminAuditLog, Lo
                                @Param("from") Instant from,
                                @Param("to") Instant to,
                                Pageable pageable);
+
+    java.util.Optional<AdminAuditLog> findFirstByTargetTypeAndTargetIdAndActionOrderByCreatedAtDesc(
+            AuditTargetType targetType, Long targetId, AdminAction action);
 }

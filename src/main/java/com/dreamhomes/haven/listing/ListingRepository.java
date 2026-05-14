@@ -78,4 +78,9 @@ public interface ListingRepository extends JpaRepository<Listing, Long> {
     @Transactional
     @Query("UPDATE Listing l SET l.viewCount = l.viewCount + 1 WHERE l.id = :id")
     int incrementViewCount(@Param("id") Long id);
+
+    /** Admin catalogue — optional status filter, newest first. */
+    @Query(value = "SELECT l FROM Listing l WHERE (:status IS NULL OR l.status = :status) ORDER BY l.createdAt DESC",
+            countQuery = "SELECT COUNT(l) FROM Listing l WHERE (:status IS NULL OR l.status = :status)")
+    Page<Listing> adminCatalog(@Param("status") ListingStatus status, Pageable pageable);
 }

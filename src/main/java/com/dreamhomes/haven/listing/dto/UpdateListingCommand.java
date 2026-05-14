@@ -18,5 +18,10 @@ public record UpdateListingCommand(
         String title,
         String description,
         String headline,
-        LocalDate handoverDate) {
+        LocalDate handoverDate,
+        String virtualTourUrl,
+        Boolean priceNegotiable,
+        String floorPlanUrl,
+        String petsAllowed,
+        String utilitiesNote) {
 }

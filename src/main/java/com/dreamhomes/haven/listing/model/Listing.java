@@ -84,6 +84,25 @@ public class Listing {
     @Column(name = "handover_date")
     private java.time.LocalDate handoverDate;
 
+    /** External virtual-tour link (Matterport, YouTube, etc.). */
+    @Column(name = "virtual_tour_url", length = 2048)
+    private String virtualTourUrl;
+
+    /** Optional floor-plan PDF/image URL (pointer only, same contract as photos). */
+    @Column(name = "floor_plan_url", length = 2048)
+    private String floorPlanUrl;
+
+    @Column(name = "price_negotiable", nullable = false)
+    @Builder.Default
+    private boolean priceNegotiable = false;
+
+    /** Free-text pets policy (e.g. "Cats only", "No pets"). */
+    @Column(name = "pets_allowed", length = 128)
+    private String petsAllowed;
+
+    @Column(name = "utilities_note", columnDefinition = "TEXT")
+    private String utilitiesNote;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 32)
     @Builder.Default
