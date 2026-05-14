@@ -119,4 +119,95 @@ class MeFlowEndToEndIT extends AbstractPostgresIT {
         assertThat(reloaded.getAgency()).isEqualTo("New Agency");
         assertThat(reloaded.getCredentialVerifiedAt()).isNull();
     }
+
+    @Test
+    void agentSetsDiscoveryFieldsViaPatchThenReadsThemBackOnPrivateAndPublicProfile() throws Exception {
+        // Agent self-edits the four public-discovery fields (PRD §4.2: fees, specializations,
+        // locations covered). The PATCH echoes the new state on the private settings DTO;
+        // the public profile endpoint surfaces the same values for any anonymous visitor.
+        User agent = jwtTestSupport.persistUser(Role.AGENT);
+        agentProfileRepository.save(AgentProfile.builder()
+                .userId(agent.getId())
+                .licenseNumber("LIC-" + agent.getId())
+                .createdAt(Instant.now())
+                .build());
+        String bearer = jwtTestSupport.bearerFor(agent);
+
+        mockMvc.perform(patch("/api/me/agent-profile")
+                        .header("Authorization", bearer)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "serviceAreas": ["Lekki", "Yaba", "VI"],
+                                  "languages": ["English", "Yoruba"],
+                                  "specializationTags": ["luxury", "rentals"],
+                                  "feeSchedule": "5% on sale, 1 month rent commission"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.serviceAreas[0]").value("Lekki"))
+                .andExpect(jsonPath("$.serviceAreas.length()").value(3))
+                .andExpect(jsonPath("$.languages[1]").value("Yoruba"))
+                .andExpect(jsonPath("$.specializationTags[0]").value("luxury"))
+                .andExpect(jsonPath("$.feeSchedule")
+                        .value("5% on sale, 1 month rent commission"));
+
+        // Sibling check — the public-projection endpoint sees the same values, proving
+        // the write reached the row and the public read goes through the same column.
+        mockMvc.perform(get("/api/users/" + agent.getId() + "/profile"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.serviceAreas[2]").value("VI"))
+                .andExpect(jsonPath("$.feeSchedule")
+                        .value("5% on sale, 1 month rent commission"));
+    }
+
+    @Test
+    void omittedDiscoveryFieldsInPatchDoNotClearExistingValues() throws Exception {
+        // null = "no change" semantic. A PATCH that touches only feeSchedule must leave
+        // the array fields alone — critical for partial-update UX where the FE only
+        // sends what changed.
+        User agent = jwtTestSupport.persistUser(Role.AGENT);
+        agentProfileRepository.save(AgentProfile.builder()
+                .userId(agent.getId())
+                .licenseNumber("LIC-" + agent.getId())
+                .serviceAreas(java.util.List.of("Lekki"))
+                .languages(java.util.List.of("English"))
+                .createdAt(Instant.now())
+                .build());
+        String bearer = jwtTestSupport.bearerFor(agent);
+
+        mockMvc.perform(patch("/api/me/agent-profile")
+                        .header("Authorization", bearer)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                { "feeSchedule": "₦200k consultation" }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.serviceAreas[0]").value("Lekki"))
+                .andExpect(jsonPath("$.languages[0]").value("English"))
+                .andExpect(jsonPath("$.feeSchedule").value("₦200k consultation"));
+    }
+
+    @Test
+    void emptyArrayInPatchExplicitlyClearsThatField() throws Exception {
+        // [] = "clear it" — distinct from null. The FE should send [] when the agent
+        // removes every tag, not omit the field.
+        User agent = jwtTestSupport.persistUser(Role.AGENT);
+        agentProfileRepository.save(AgentProfile.builder()
+                .userId(agent.getId())
+                .licenseNumber("LIC-" + agent.getId())
+                .specializationTags(java.util.List.of("luxury", "rentals"))
+                .createdAt(Instant.now())
+                .build());
+        String bearer = jwtTestSupport.bearerFor(agent);
+
+        mockMvc.perform(patch("/api/me/agent-profile")
+                        .header("Authorization", bearer)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                { "specializationTags": [] }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.specializationTags.length()").value(0));
+    }
 }

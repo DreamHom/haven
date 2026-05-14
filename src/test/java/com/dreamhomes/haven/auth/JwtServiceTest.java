@@ -8,8 +8,11 @@ import org.junit.jupiter.api.Test;
 
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
+import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Base64;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -116,6 +119,43 @@ class JwtServiceTest {
                 TTL, ISSUER, AUDIENCE))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("2048");
+    }
+
+    @Test
+    void constructorAcceptsPemWithLiteralBackslashNAsFromDotEnvFiles() {
+        // .env files can't carry real newlines inside a quoted value — the value arrives at
+        // Spring property substitution with `\n` as two literal characters (0x5C, 0x6E).
+        // JwtService must normalise that shape so dev setups using .env Just Work; without
+        // it, the base64 decoder rejects the backslash with "Illegal base64 character 5c".
+        String privPem = toPkcs8Pem(keyPair.getPrivate()).replace("\n", "\\n");
+        String pubPem = toSpkiPem(keyPair.getPublic()).replace("\n", "\\n");
+
+        JwtService svc = new JwtService(privPem, pubPem, TTL.toMillis(), ISSUER, AUDIENCE);
+
+        // Sanity-check the round trip — proves the parsed keys actually work end-to-end,
+        // not just that the constructor didn't throw.
+        String token = svc.issue(99L, "env@example.com", Role.OWNER, 1);
+        JwtPrincipal principal = svc.parse(token);
+        assertThat(principal.userId()).isEqualTo(99L);
+        assertThat(principal.email()).isEqualTo("env@example.com");
+    }
+
+    private static String toPkcs8Pem(PrivateKey key) {
+        return wrapPem("PRIVATE KEY", key.getEncoded());
+    }
+
+    private static String toSpkiPem(PublicKey key) {
+        return wrapPem("PUBLIC KEY", key.getEncoded());
+    }
+
+    private static String wrapPem(String label, byte[] der) {
+        String b64 = Base64.getEncoder().encodeToString(der);
+        StringBuilder sb = new StringBuilder("-----BEGIN ").append(label).append("-----\n");
+        for (int i = 0; i < b64.length(); i += 64) {
+            sb.append(b64, i, Math.min(i + 64, b64.length())).append('\n');
+        }
+        sb.append("-----END ").append(label).append("-----\n");
+        return sb.toString();
     }
 
     @Test

@@ -79,11 +79,11 @@ platform that made her feel like the system wasn't designed to cheat her.
 
 **Acceptance criteria**
 - [x] No payment endpoint involved in the inspection request flow.
-- [x] `POST /listings/{id}/inspection-requests` is free at the protocol level.
+- [x] `POST /api/inspections` is free at the protocol level.
 - [x] No "inspection fee" field anywhere in the API surface.
 
 **Endpoints involved**
-- `POST /listings/{id}/inspection-requests`
+- `POST /api/inspections`
 
 ---
 
@@ -98,7 +98,7 @@ platform that made her feel like the system wasn't designed to cheat her.
 - [x] Backed by the transactional outbox — no silent drops.
 
 **Endpoints involved**
-- *Driven by*: `POST /listings/{id}/inspection-requests`
+- *Driven by*: `POST /api/inspections`
 - *Agent surface*: `GET /notifications/mine`
 
 ---
@@ -164,7 +164,7 @@ Ngozi's deeply skeptical chronological flow:
 4. **Reads agent reviews** → `GET /users/{agent_id}/reviews` → looks for any 1-2 star outliers and reads the text carefully.
 5. **Decides to engage** → registers → `POST /auth/register`.
 6. **Submits applicant identity verification** (so her offer carries the badge) → `POST /verifications`.
-7. **Books an inspection** → `POST /listings/{id}/inspection-requests`.
+7. **Books an inspection** → `POST /api/inspections`.
 8. **Agent responds in 40 minutes** (notification timestamp visible).
 9. **Inspection happens. Property exists. Listing is accurate.**
 10. **Submits an offer** → `POST /listings/{id}/offers`.

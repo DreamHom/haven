@@ -13,14 +13,14 @@ Single PR consolidating two batches of work on `feat/post-audit-improvements`:
 
 | Area | Item |
 |---|---|
-| 🔐 Security | RS256 JWT signing (no shared HMAC secret); `/auth/register` always 202 (anti-enumeration); seeded-admin env vars fail-loud on missing |
+| 🔐 Security | RS256 JWT signing (private key signs, public key verifies); `/auth/register` always 202 (anti-enumeration); seeded-admin env vars fail-loud on missing |
 | 🛠 Behaviour | `POST /api/listings/{id}/report`; auto-decline sibling PENDING offers on accept; trust JPA auditing solely (drop manual `Instant.now()`) |
 | 🧰 Tooling | MapStruct adoption (12 mappers); `DatabaseCleanupTestExecutionListener` replaces 21 per-IT `@AfterEach` blocks |
 | 📈 Ops | `OutboxRelay` async publish (no `.get()`); `kafka.publish.duration` Timer; listener concurrency = topic partitions; `haven.outbox.dlt` depth gauge |
 
 ## Tier 1 — Security / correctness
 
-### 1.1 — JWT: HS256 → RS256
+### 1.1 — RS256 JWT signing
 - `JwtService` signs with private key, verifies with public key (PEM-encoded RSA, ≥ 2048 bits, mismatched-modulus rejected at startup).
 - Config: `haven.jwt.private-key` + `haven.jwt.public-key` (no defaults).
 - README documents the `openssl genpkey` workflow; `.env.example` updated.

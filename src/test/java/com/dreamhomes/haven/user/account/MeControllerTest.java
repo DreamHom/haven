@@ -25,8 +25,8 @@ import java.util.List;
 
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -130,12 +130,12 @@ class MeControllerTest {
                                 """))
                 .andExpect(status().isForbidden());
 
-        verify(userAccountService, never()).updateMyAgentProfile(eq(7L), anyString(), anyString());
+        verify(userAccountService, never()).updateMyAgentProfile(eq(7L), any());
     }
 
     @Test
     void agentCanUpdateAgentProfile() throws Exception {
-        when(userAccountService.updateMyAgentProfile(eq(11L), eq("LIC-2"), eq("Lekki Realty")))
+        when(userAccountService.updateMyAgentProfile(eq(11L), any()))
                 .thenReturn(profile(Role.AGENT));
 
         mockMvc.perform(patch("/api/me/agent-profile")
@@ -164,7 +164,11 @@ class MeControllerTest {
                 role == Role.AGENT ? "LIC-2" : null,
                 role == Role.AGENT ? "Lekki Realty" : null,
                 false,
-                Instant.parse("2026-01-01T00:00:00Z"));
+                Instant.parse("2026-01-01T00:00:00Z"),
+                List.of(),
+                List.of(),
+                List.of(),
+                null);
     }
 
     private static RequestPostProcessor asPrincipal(Long userId, Role role) {

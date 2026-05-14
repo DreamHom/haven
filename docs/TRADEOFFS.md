@@ -57,10 +57,10 @@ Last updated after Phase 15 (consolidation back to single Maven module after the
 
 ## Auth & security
 
-### HS256 (HMAC) JWT signing over RS256 (RSA)
-- **Why**: single-service deployment; symmetric key is simpler.
-- **Cost**: can't share verifier with an external service without sharing the secret.
-- **Revisit when**: a second service needs to verify tokens.
+### RS256 (RSA) JWT signing with `haven.jwt.private-key` + `haven.jwt.public-key`
+- **Why**: the private key signs, the public key verifies. Any future fan-out (vista SSR, mobile, internal services) can hold the public half and verify tokens without ever being able to mint one — that asymmetry is the whole point.
+- **Cost**: env vars are PEM-encoded multiline strings instead of a flat secret. Constructor validates: RSA-only, ≥ 2048 bits, modulus matches between private + public. `JwtService.stripPemHeaders` normalises literal `\n` escape sequences so `.env`-style single-line PEMs work alongside real-newline PEMs from `"$(cat private.pem)"`. README documents the `openssl genpkey` workflow.
+- **Revisit**: never. If we serve the public key via JWKS later, the verifier side gets simpler still.
 
 ### Token revocation via `token_version` column + DB lookup per request
 - **Why**: simple, no Redis dependency; logout invalidates all tokens for the user.
@@ -712,11 +712,6 @@ longer manifest as Maven modules — the codebase consolidated back in Phase 15.
 This block resolves the 13 entries flagged as "lazy coding or ops polish" by the
 honest re-audit of all 126 prior TRADEOFFS entries. Items not listed here
 remain as-is; they were classified as legitimate scoped trade-offs.
-
-### JWT signing: HS256 → RS256 (`haven.jwt.private-key` + `haven.jwt.public-key`)
-- **Why**: HMAC means every party that verifies a token also has the secret to mint one. RS256 splits that — the private key signs, the public key verifies. Future fan-out (mobile, vista, internal services) can hold only the public half.
-- **Cost**: env vars are now PEM-encoded multiline strings instead of a 32-byte hex secret. Constructor checks the keys are RSA, ≥ 2048 bits, and that the modulus matches between private + public. README documents the `openssl genpkey` workflow.
-- **Revisit**: never. If we move to JWKS-served public keys for vista, the verify side gets simpler still.
 
 ### `POST /auth/register` returns 202 Accepted in every branch (anti-enumeration)
 - **Why**: the previous 201/409 split let an attacker probe whether an email was registered just by hitting the endpoint. Always-202-with-empty-body removes that signal entirely. Service still inserts the user for fresh emails; duplicates and TOCTOU collisions are silently swallowed (logged for ops).

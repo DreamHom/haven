@@ -174,9 +174,16 @@ public class MeController {
     @Operation(
             summary = "Update the current agent's agent-profile fields",
             description = """
-                    Agent-only settings endpoint. Supports license-renewal style edits without \
-                    exposing admin-only verification fields. If the license number changes, \
+                    Agent-only settings endpoint. Supports license-renewal style edits **and** \
+                    the four public-discovery fields (`serviceAreas`, `languages`, \
+                    `specializationTags`, `feeSchedule`) that surface on the agent's public \
+                    profile per PRD §4.2. If the license number changes, \
                     `credentialVerifiedAt` is cleared so the new credential must be re-verified.
+
+                    **Partial-update semantics**: omit a field to leave its current value alone. \
+                    For the array fields, send `[]` to clear all entries (distinct from `null` = \
+                    no change). `feeSchedule` is normalised — a blank string after trim is stored \
+                    as `null`, matching the `agency` behaviour.
                     """
     )
     @ApiResponses({
@@ -192,9 +199,6 @@ public class MeController {
     @PatchMapping("/api/me/agent-profile")
     public PrivateUserProfile updateMyAgentProfile(@AuthenticationPrincipal JwtPrincipal principal,
                                                  @Valid @RequestBody UpdateMyAgentProfileRequest request) {
-        return userAccountService.updateMyAgentProfile(
-                principal.userId(),
-                request.licenseNumber(),
-                request.agency());
+        return userAccountService.updateMyAgentProfile(principal.userId(), request);
     }
 }

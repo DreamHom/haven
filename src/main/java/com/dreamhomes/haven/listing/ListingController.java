@@ -187,6 +187,17 @@ public class ListingController {
 
                     **Role gate**: `OWNER` only. Agents see their assignments via \
                     `GET /api/agent-listings/mine`.
+
+                    **Lead-management rollup** (Biodun's "dashboard" ask) is **not** in this \
+                    payload. Each `ListingResponse` carries `viewCount` (eagerly aggregated, \
+                    free), but offer count, pending-inspection count, and saves count are not \
+                    embedded. The frontend has to fan out:
+                    - `GET /api/offers/mine` then group by `listingId` for offer counts (the \
+                      response includes offers where the caller is *either* applicant or \
+                      listing owner — owners get all offers across their listings in one call).
+                    - `GET /api/listings/{id}/slots` per listing for upcoming inspections.
+                    A single `?include=engagement` rollup is on the roadmap; it is not built \
+                    yet, so do not assume any extra fields will appear here.
                     """
     )
     @ApiResponses({

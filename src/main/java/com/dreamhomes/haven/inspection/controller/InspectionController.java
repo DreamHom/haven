@@ -64,7 +64,7 @@ public class InspectionController {
                             schema = @Schema(implementation = InspectionResponse.class),
                             examples = @ExampleObject(name = "ClaimedSlot", value = """
                                     { "id": 33, "slotId": 12, "applicantId": 89,
-                                      "status": "REQUESTED", "notes": "Coming with my husband.",
+                                      "status": "PENDING", "notes": "Coming with my husband.",
                                       "createdAt": "2026-05-10T12:00:00Z",
                                       "updatedAt": "2026-05-10T12:00:00Z" }
                                     """))),
@@ -88,9 +88,14 @@ public class InspectionController {
     @Operation(
             summary = "List my inspection requests",
             description = """
-                    Returns the caller's own inspection bookings, newest first. Closes the
-                    gap Temi flagged: after booking a slot there was no way to see your
+                    Returns the caller's own inspection bookings, newest first. Closes the \
+                    gap Temi flagged: after booking a slot there was no way to see your \
                     upcoming inspections, no status, no recovery.
+
+                    **Observed statuses today**: `PENDING` (default after `POST`) or \
+                    `CANCELLED` (after the caller's own `DELETE`). `APPROVED` / `DECLINED` \
+                    are reserved for the future owner approve/decline endpoint and will not \
+                    appear in production responses until that endpoint ships.
                     """
     )
     @ApiResponses({
@@ -107,10 +112,20 @@ public class InspectionController {
     @Operation(
             summary = "Cancel my inspection request",
             description = """
-                    Withdraws a PENDING inspection request the caller made. Frees the slot for
-                    other applicants. Returns 409 if the request is no longer PENDING (owner
-                    already accepted/declined). Returns 403 if the caller didn't make the
-                    request. Persona audit (Temi) flagged the missing cancel surface.
+                    Withdraws a PENDING inspection request the caller made — status flips to \
+                    `CANCELLED`, the slot is freed for other applicants (the partial UQ on \
+                    `inspection_requests(slot_id) WHERE status IN ('PENDING','APPROVED')` \
+                    is what enforces the slot lock; the cancel drops out of that index).
+
+                    **Failure modes**:
+                    - `403` if the caller isn't the applicant on the row.
+                    - `404` if the row doesn't exist.
+                    - `409` if the row is already in a terminal state (`CANCELLED`, or — once \
+                      the future owner approve/decline endpoint ships — `APPROVED` / \
+                      `DECLINED`). In production today, the only terminal state reachable is \
+                      `CANCELLED`, so a 409 here means "you already cancelled this."
+
+                    Persona audit (Temi) flagged the missing cancel surface.
                     """
     )
     @ApiResponses({
