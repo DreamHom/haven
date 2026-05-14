@@ -151,7 +151,19 @@ public class JwtService {
     }
 
     private static byte[] stripPemHeaders(String pem, String label) {
-        String body = pem
+        // .env files can't carry real newlines inside a quoted value — when the PEM
+        // round-trips through one (the typical local-dev shape), `\n` arrives here
+        // as the two literal characters 0x5C 0x6E rather than a real newline.
+        // Normalise those escape sequences to real whitespace BEFORE the headers are
+        // stripped, otherwise the backslash survives into the base64 body and the
+        // decoder rejects it with "Illegal base64 character 5c". Real-newline PEMs
+        // (the production shape, set via `HAVEN_JWT_PRIVATE_KEY="$(cat private.pem)"`)
+        // pass through unchanged because they contain no backslash sequences.
+        String normalised = pem
+                .replace("\\r\\n", "\n")
+                .replace("\\n", "\n")
+                .replace("\\r", "\n");
+        String body = normalised
                 .replace("-----BEGIN " + label + "-----", "")
                 .replace("-----END " + label + "-----", "")
                 .replaceAll("\\s+", "");

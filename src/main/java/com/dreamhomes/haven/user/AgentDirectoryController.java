@@ -48,8 +48,13 @@ public class AgentDirectoryController {
     @SecurityRequirements // public
     @GetMapping
     public Page<PublicUserProfile> search(
-            @Parameter(description = "Substring of name (case-insensitive).")
-            @RequestParam(required = false) String q,
+            @Parameter(description = "Substring of name (case-insensitive). Empty / omitted = no filter.")
+            // defaultValue="" rather than required=false: a Java null arrives at the JPQL
+            // as an untyped JDBC bind, which Postgres coerces to bytea and then fails to
+            // resolve LOWER(bytea). Always handing the repo a real String dodges that —
+            // empty string flows through the LIKE '%%' branch which matches all rows,
+            // i.e. the intended "no filter" behaviour.
+            @RequestParam(value = "q", required = false, defaultValue = "") String q,
             @Parameter(description = "If true, only return identity-verified agents.")
             @RequestParam(name = "verified", defaultValue = "false") boolean verified,
             @PageableDefault(size = 20) Pageable pageable) {
