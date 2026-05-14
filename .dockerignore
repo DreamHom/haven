@@ -1,0 +1,11 @@
+.git
+.github
+target
+docs
+README.md
+PR.md
+.env
+.env.example
+docker-compose.yml
+*.pem
+*.log
