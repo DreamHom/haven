@@ -28,7 +28,7 @@ import com.dreamhomes.haven.auth.service.JwtService;
  * the validator unit tests; one smoke test for @Valid wiring is enough.
  */
 @WebMvcTest(AuthController.class)
-@Import(SecurityConfig.class)
+@Import({SecurityConfig.class, com.dreamhomes.haven.support.JwtCookieTestStubConfiguration.class})
 @TestPropertySource(properties = {
         "haven.rate-limit.enabled=false",
         "cors.allowed-origins=http://localhost:3000",
@@ -45,6 +45,9 @@ class AuthControllerLoginTest {
     AuthService authService;
 
     @MockBean
+    com.dreamhomes.haven.auth.passwordreset.PasswordResetService passwordResetService;
+
+    @MockBean
     JwtService jwtService;
 
     @MockBean
@@ -52,6 +55,9 @@ class AuthControllerLoginTest {
 
     @MockBean
     com.dreamhomes.haven.user.service.UserCredentialsService userCredentialsService;
+
+    @MockBean
+    com.dreamhomes.haven.auth.cookie.JwtCookieService jwtCookieService;
 
     @Test
     void successfulLoginReturns200WithTokenInBody() throws Exception {

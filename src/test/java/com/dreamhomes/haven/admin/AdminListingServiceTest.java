@@ -42,13 +42,19 @@ class AdminListingServiceTest {
     @Mock NotificationApi notificationApi;
     @Mock AdminAuditLogRepository auditLogRepository;
 
+    @Mock com.dreamhomes.haven.listing.ListingMapper listingMapper;
+    @Mock com.dreamhomes.haven.property.PropertyService propertyService;
+    @Mock com.dreamhomes.haven.photo.ListingPhotoRepository listingPhotoRepository;
+    @Mock com.dreamhomes.haven.lead.ListingLeadRepository listingLeadRepository;
+
     AdminListingService service;
 
     @BeforeEach
     void setUp() {
-        service = new AdminListingService(listingService, notificationApi,
+        service = new AdminListingService(listingService, listingMapper, notificationApi,
                 auditLogRepository, new ObjectMapper(),
-                new AdminMetrics(new SimpleMeterRegistry()));
+                new AdminMetrics(new SimpleMeterRegistry()),
+                propertyService, listingPhotoRepository, listingLeadRepository);
     }
 
     @Test
@@ -148,6 +154,7 @@ class AdminListingServiceTest {
         return new ListingResponse(id, 1L, ownerId, ListingType.SALE,
                 new BigDecimal("80000000.00"), "NGN", null, null, null,
                 null, null, null, null,
-                status, approvedAt, 0L, now, now, null, null, null);
+                null, false,
+                status, approvedAt, 0L, now, now, null, null, null, null, null, null, null);
     }
 }

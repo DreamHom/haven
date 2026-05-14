@@ -24,6 +24,7 @@ import com.dreamhomes.haven.listing.exception.NotPropertyOwnerException;
 import com.dreamhomes.haven.listing.model.Listing;
 import com.dreamhomes.haven.listing.model.ListingStatus;
 import com.dreamhomes.haven.listing.model.ListingType;
+import com.dreamhomes.haven.user.model.Role;
 
 @ExtendWith(MockitoExtension.class)
 class ListingServiceUpdateTest {
@@ -34,13 +35,22 @@ class ListingServiceUpdateTest {
     @Mock
     PropertyService propertyService;
 
+    @Mock
+    com.dreamhomes.haven.agentlisting.AgentListingRepository agentListingRepository;
+
+    @Mock
+    com.dreamhomes.haven.listingreport.ListingReportRepository listingReportRepository;
+
     ListingService listingService;
 
     @BeforeEach
     void setUp() {
         // propertyService is unused by update() — passing a mock instead of null so
         // the dependency injection looks honest and a future call would surface, not NPE.
-        listingService = new ListingService(listingRepository, propertyService, new com.dreamhomes.haven.listing.ListingMapperImpl(), org.mockito.Mockito.mock(com.dreamhomes.haven.agentlisting.AgentListingRepository.class), org.mockito.Mockito.mock(com.dreamhomes.haven.listingreport.ListingReportRepository.class));
+        listingService = new ListingService(listingRepository, propertyService,
+                new com.dreamhomes.haven.listing.ListingMapperImpl(),
+                agentListingRepository, listingReportRepository,
+                org.mockito.Mockito.mock(com.dreamhomes.haven.user.repository.UserRepository.class));
     }
 
     @Test
@@ -49,8 +59,8 @@ class ListingServiceUpdateTest {
         when(listingRepository.findById(50L)).thenReturn(Optional.of(existing));
         when(listingRepository.save(any(Listing.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        Listing result = listingService.update(99L, 50L, new UpdateListingCommand(
-                new BigDecimal("2000000.00"), ListingStatus.PAUSED, null, null, null, null));
+        Listing result = listingService.update(99L, Role.OWNER, 50L, new UpdateListingCommand(
+                new BigDecimal("2000000.00"), ListingStatus.PAUSED, null, null, null, null, null, null, null, null, null));
 
         assertThat(result.getAskingPrice()).isEqualByComparingTo("2000000.00");
         assertThat(result.getStatus()).isEqualTo(ListingStatus.PAUSED);
@@ -62,8 +72,8 @@ class ListingServiceUpdateTest {
     void rejectsUpdateByNonOwner() {
         when(listingRepository.findById(50L)).thenReturn(Optional.of(liveListingOwnedBy(200L)));
 
-        assertThatThrownBy(() -> listingService.update(99L, 50L,
-                new UpdateListingCommand(new BigDecimal("2000000.00"), null, null, null, null, null)))
+        assertThatThrownBy(() -> listingService.update(99L, Role.OWNER, 50L,
+                new UpdateListingCommand(new BigDecimal("2000000.00"), null, null, null, null, null, null, null, null, null, null)))
                 .isInstanceOf(NotPropertyOwnerException.class);
 
         verify(listingRepository, never()).save(any());
@@ -73,8 +83,8 @@ class ListingServiceUpdateTest {
     void throwsWhenListingDoesNotExist() {
         when(listingRepository.findById(404L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> listingService.update(99L, 404L,
-                new UpdateListingCommand(new BigDecimal("1.00"), null, null, null, null, null)))
+        assertThatThrownBy(() -> listingService.update(99L, Role.OWNER, 404L,
+                new UpdateListingCommand(new BigDecimal("1.00"), null, null, null, null, null, null, null, null, null, null)))
                 .isInstanceOf(ListingNotFoundException.class);
     }
 
@@ -84,8 +94,8 @@ class ListingServiceUpdateTest {
         closed.setStatus(ListingStatus.CLOSED);
         when(listingRepository.findById(50L)).thenReturn(Optional.of(closed));
 
-        assertThatThrownBy(() -> listingService.update(99L, 50L,
-                new UpdateListingCommand(null, ListingStatus.LIVE, null, null, null, null)))
+        assertThatThrownBy(() -> listingService.update(99L, Role.OWNER, 50L,
+                new UpdateListingCommand(null, ListingStatus.LIVE, null, null, null, null, null, null, null, null, null)))
                 .isInstanceOf(InvalidListingTransitionException.class);
 
         verify(listingRepository, never()).save(any());
@@ -98,8 +108,8 @@ class ListingServiceUpdateTest {
         when(listingRepository.findById(50L)).thenReturn(Optional.of(paused));
         when(listingRepository.save(any(Listing.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        Listing result = listingService.update(99L, 50L,
-                new UpdateListingCommand(null, ListingStatus.CLOSED, null, null, null, null));
+        Listing result = listingService.update(99L, Role.OWNER, 50L,
+                new UpdateListingCommand(null, ListingStatus.CLOSED, null, null, null, null, null, null, null, null, null));
 
         assertThat(result.getStatus()).isEqualTo(ListingStatus.CLOSED);
     }

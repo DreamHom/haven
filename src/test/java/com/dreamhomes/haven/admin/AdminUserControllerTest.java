@@ -37,7 +37,7 @@ import com.dreamhomes.haven.admin.controller.AdminUserController;
 import com.dreamhomes.haven.admin.service.AdminUserService;
 
 @WebMvcTest(AdminUserController.class)
-@Import(SecurityConfig.class)
+@Import({SecurityConfig.class, com.dreamhomes.haven.support.JwtCookieTestStubConfiguration.class})
 @TestPropertySource(properties = {
         "haven.rate-limit.enabled=false",
         "cors.allowed-origins=http://localhost:3000",

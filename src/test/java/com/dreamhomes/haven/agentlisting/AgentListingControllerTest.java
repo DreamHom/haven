@@ -35,7 +35,7 @@ import com.dreamhomes.haven.agentlisting.model.AgentListing;
 import com.dreamhomes.haven.agentlisting.model.AgentListingStatus;
 
 @WebMvcTest(AgentListingController.class)
-@Import({SecurityConfig.class, com.dreamhomes.haven.agentlisting.AgentListingMapperImpl.class})
+@Import({SecurityConfig.class, com.dreamhomes.haven.support.JwtCookieTestStubConfiguration.class, com.dreamhomes.haven.agentlisting.AgentListingMapperImpl.class})
 @TestPropertySource(properties = {
         "haven.rate-limit.enabled=false",
         "cors.allowed-origins=http://localhost:3000",

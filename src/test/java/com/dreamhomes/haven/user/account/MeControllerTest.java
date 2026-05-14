@@ -14,6 +14,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.TestPropertySource;
@@ -32,13 +33,14 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(MeController.class)
-@Import(SecurityConfig.class)
+@Import({SecurityConfig.class, com.dreamhomes.haven.support.JwtCookieTestStubConfiguration.class})
 @TestPropertySource(properties = {
         "haven.rate-limit.enabled=false",
         "cors.allowed-origins=http://localhost:3000",
@@ -76,7 +78,7 @@ class MeControllerTest {
     @Test
     void patchMyProfileUpdatesAuthenticatedUserOnly() throws Exception {
         when(userAccountService.updateMyProfile(eq(7L), eq("new@example.com"),
-                eq("Ada Lovelace"), eq("Ada"), eq("+2348000000000")))
+                eq("Ada Lovelace"), eq("Ada"), eq("+2348000000000"), eq(null), eq(null), eq(null)))
                 .thenReturn(profile(Role.OWNER));
 
         mockMvc.perform(patch("/api/me")
@@ -118,6 +120,18 @@ class MeControllerTest {
                 .andExpect(status().isNoContent());
 
         verify(userAccountService).changePassword(7L, "old-password", "new-password-123");
+    }
+
+    @Test
+    void uploadAvatarReturns200() throws Exception {
+        when(userAccountService.uploadMyAvatar(eq(7L), any())).thenReturn(profile(Role.OWNER));
+
+        mockMvc.perform(multipart("/api/me/avatar")
+                        .file(new MockMultipartFile("file", "a.jpg", "image/jpeg", new byte[]{1, 2, 3}))
+                        .with(asPrincipal(7L, Role.OWNER)))
+                .andExpect(status().isOk());
+
+        verify(userAccountService).uploadMyAvatar(eq(7L), any());
     }
 
     @Test
@@ -168,6 +182,9 @@ class MeControllerTest {
                 List.of(),
                 List.of(),
                 List.of(),
+                null,
+                null,
+                null,
                 null);
     }
 

@@ -31,7 +31,7 @@ import static org.hamcrest.Matchers.is;
  * validators (@StrictEmail, @NotCommonPassword, @Size) are tested in their own unit tests.
  */
 @WebMvcTest(AuthController.class)
-@Import(SecurityConfig.class)
+@Import({SecurityConfig.class, com.dreamhomes.haven.support.JwtCookieTestStubConfiguration.class})
 @TestPropertySource(properties = {
         "haven.rate-limit.enabled=false",
         "cors.allowed-origins=http://localhost:3000",
@@ -48,6 +48,9 @@ class AuthControllerRegisterTest {
     AuthService authService;
 
     @MockBean
+    com.dreamhomes.haven.auth.passwordreset.PasswordResetService passwordResetService;
+
+    @MockBean
     JwtService jwtService;
 
     @MockBean
@@ -55,6 +58,9 @@ class AuthControllerRegisterTest {
 
     @MockBean
     com.dreamhomes.haven.user.service.UserCredentialsService userCredentialsService;
+
+    @MockBean
+    com.dreamhomes.haven.auth.cookie.JwtCookieService jwtCookieService;
 
     @Test
     void successfulRegistrationReturns202WithEmptyBody() throws Exception {

@@ -36,6 +36,7 @@ public class DatabaseCleanupTestExecutionListener extends AbstractTestExecutionL
                 listing_reviews,
                 listing_saves,
                 listing_photos,
+                listing_leads,
                 inspection_requests,
                 inspection_slots,
                 offers,
@@ -48,6 +49,7 @@ public class DatabaseCleanupTestExecutionListener extends AbstractTestExecutionL
                 listings,
                 properties,
                 agent_profiles,
+                agent_marketing_media,
                 users
             RESTART IDENTITY CASCADE
             """;

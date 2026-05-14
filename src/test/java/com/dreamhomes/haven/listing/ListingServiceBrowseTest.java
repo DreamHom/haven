@@ -23,6 +23,7 @@ import java.util.Set;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -40,11 +41,16 @@ class ListingServiceBrowseTest {
     @Mock
     PropertyService propertyService;
 
+    @Mock
+    com.dreamhomes.haven.user.repository.UserRepository userRepository;
+
     ListingService listingService;
 
     @BeforeEach
     void setUp() {
-        listingService = new ListingService(listingRepository, propertyService, new com.dreamhomes.haven.listing.ListingMapperImpl(), org.mockito.Mockito.mock(com.dreamhomes.haven.agentlisting.AgentListingRepository.class), org.mockito.Mockito.mock(com.dreamhomes.haven.listingreport.ListingReportRepository.class));
+        listingService = new ListingService(listingRepository, propertyService, new com.dreamhomes.haven.listing.ListingMapperImpl(), org.mockito.Mockito.mock(com.dreamhomes.haven.agentlisting.AgentListingRepository.class), org.mockito.Mockito.mock(com.dreamhomes.haven.listingreport.ListingReportRepository.class), userRepository);
+        lenient().when(userRepository.findPublicBiosByUserIds(any()))
+                .thenReturn(List.of());
     }
 
     @Test
@@ -97,6 +103,6 @@ class ListingServiceBrowseTest {
     }
 
     private static PropertySummary summaryAt(Long id) {
-        return new PropertySummary(id, PropertyType.HOUSE, "Address " + id, 3, 2, null, null);
+        return new PropertySummary(id, PropertyType.HOUSE, "Address " + id, 3, 2, null, null, null, null);
     }
 }

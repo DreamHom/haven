@@ -37,7 +37,7 @@ import com.dreamhomes.haven.inspection.controller.InspectionSlotController;
 import com.dreamhomes.haven.inspection.service.InspectionSlotService;
 
 @WebMvcTest(InspectionSlotController.class)
-@Import({SecurityConfig.class, com.dreamhomes.haven.inspection.mapping.InspectionSlotMapperImpl.class})
+@Import({SecurityConfig.class, com.dreamhomes.haven.support.JwtCookieTestStubConfiguration.class, com.dreamhomes.haven.inspection.mapping.InspectionSlotMapperImpl.class})
 @TestPropertySource(properties = {
         "haven.rate-limit.enabled=false",
         "cors.allowed-origins=http://localhost:3000",
@@ -55,7 +55,7 @@ class InspectionSlotControllerTest {
 
     @Test
     void ownerCreatesSlotReturns201WithSlotSummary() throws Exception {
-        when(slotService.create(eq(99L), eq(7L), any(CreateSlotCommand.class)))
+        when(slotService.create(eq(99L), eq(Role.OWNER), eq(7L), any(CreateSlotCommand.class)))
                 .thenAnswer(inv -> InspectionSlot.builder()
                         .id(123L).listingId(7L)
                         .startsAt(Instant.parse("2026-06-01T10:00:00Z"))
@@ -89,7 +89,7 @@ class InspectionSlotControllerTest {
                                 """))
                 .andExpect(status().isForbidden());
 
-        verify(slotService, never()).create(any(), any(), any());
+        verify(slotService, never()).create(any(), any(), any(), any());
     }
 
     @Test

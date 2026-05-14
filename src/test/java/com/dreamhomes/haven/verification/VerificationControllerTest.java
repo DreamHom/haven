@@ -39,7 +39,7 @@ import com.dreamhomes.haven.verification.model.VerificationType;
 import com.dreamhomes.haven.verification.service.VerificationService;
 
 @WebMvcTest(VerificationController.class)
-@Import(SecurityConfig.class)
+@Import({SecurityConfig.class, com.dreamhomes.haven.support.JwtCookieTestStubConfiguration.class})
 @TestPropertySource(properties = {
         "haven.rate-limit.enabled=false",
         "cors.allowed-origins=http://localhost:3000",

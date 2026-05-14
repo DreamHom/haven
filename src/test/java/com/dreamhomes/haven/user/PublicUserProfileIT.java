@@ -17,6 +17,7 @@ import java.time.Instant;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -58,7 +59,28 @@ class PublicUserProfileIT extends AbstractPostgresIT {
                 .andExpect(jsonPath("$.phone").doesNotExist())
                 .andExpect(jsonPath("$.passwordHash").doesNotExist())
                 .andExpect(jsonPath("$.tokenVersion").doesNotExist())
+                .andExpect(jsonPath("$.agentMarketingGallery").isArray())
+                .andExpect(jsonPath("$.agentMarketingGallery.length()").value(0))
                 .andExpect(header().string("Cache-Control", containsString("public")));
+    }
+
+    @Test
+    void ownerCanSetPublicBioViaPatchMeAndVisitorsSeeItOnPublicProfile() throws Exception {
+        User owner = jwtTestSupport.persistUser(Role.OWNER);
+        String bearer = jwtTestSupport.bearerFor(owner);
+
+        mockMvc.perform(patch("/api/me")
+                        .header("Authorization", bearer)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                { "publicBio": "Family-run lettings in VI and Lekki." }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.publicBio").value("Family-run lettings in VI and Lekki."));
+
+        mockMvc.perform(get("/api/users/" + owner.getId() + "/profile"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.publicBio").value("Family-run lettings in VI and Lekki."));
     }
 
     @Test

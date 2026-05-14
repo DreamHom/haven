@@ -7,6 +7,7 @@ import com.dreamhomes.haven.property.dto.PropertySummary;
 import com.dreamhomes.haven.property.model.PropertyType;
 import com.dreamhomes.haven.user.model.Role;
 import com.dreamhomes.haven.user.service.UserCredentialsService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -24,9 +25,13 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 
+import java.util.Optional;
+
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -53,7 +58,7 @@ import com.dreamhomes.haven.listing.model.ListingType;
  * rules live in their own focused tests (validators, ListingServiceUpdateTest).
  */
 @WebMvcTest(ListingController.class)
-@Import({SecurityConfig.class, com.dreamhomes.haven.listing.ListingMapperImpl.class})
+@Import({SecurityConfig.class, com.dreamhomes.haven.support.JwtCookieTestStubConfiguration.class, com.dreamhomes.haven.listing.ListingMapperImpl.class})
 @TestPropertySource(properties = {
         "haven.rate-limit.enabled=false",
         "cors.allowed-origins=http://localhost:3000",
@@ -77,6 +82,11 @@ class ListingControllerTest {
 
     @MockBean
     UserCredentialsService userCredentialsService;
+
+    @BeforeEach
+    void stubOwnerBio() {
+        lenient().when(listingService.findOwnerPublicBio(anyLong())).thenReturn(Optional.empty());
+    }
 
     @Test
     void ownerCreatingListingReturns201WithListingSummary() throws Exception {
@@ -220,7 +230,7 @@ class ListingControllerTest {
 
     @Test
     void ownerPatchReturnsUpdatedListing() throws Exception {
-        when(listingService.update(eq(99L), eq(50L), any(UpdateListingCommand.class)))
+        when(listingService.update(eq(99L), eq(Role.OWNER), eq(50L), any(UpdateListingCommand.class)))
                 .thenAnswer(inv -> stubListing(50L, 99L, ListingStatus.PAUSED));
 
         mockMvc.perform(patch("/api/listings/50")
@@ -237,7 +247,7 @@ class ListingControllerTest {
     void invalidListingTransitionMapsTo409() throws Exception {
         // Persona audit (Amaka): the spec documented this as 409 Conflict (the listing's
         // current state is the conflict, the input is well-formed). Mapped from 400 → 409.
-        when(listingService.update(eq(99L), eq(50L), any(UpdateListingCommand.class)))
+        when(listingService.update(eq(99L), eq(Role.OWNER), eq(50L), any(UpdateListingCommand.class)))
                 .thenThrow(new InvalidListingTransitionException(ListingStatus.CLOSED, ListingStatus.LIVE));
 
         mockMvc.perform(patch("/api/listings/50")
@@ -262,8 +272,8 @@ class ListingControllerTest {
 
     private static ListingWithProperty stubListingWithProperty(Long id, Long ownerId, ListingStatus status) {
         PropertySummary summary = new PropertySummary(7L, PropertyType.APARTMENT,
-                "12 Lekki Phase 1, Lagos", 3, 2, null, null);
-        return new ListingWithProperty(stubListing(id, ownerId, status), summary);
+                "12 Lekki Phase 1, Lagos", 3, 2, null, null, null, null);
+        return new ListingWithProperty(stubListing(id, ownerId, status), summary, null);
     }
 
     private static RequestPostProcessor asPrincipal(Long userId, Role role) {
