@@ -15,14 +15,13 @@ auditing, R2 photo upload, admin analytics. Tests at 398 passing.
 
 ## Tier 1 — Security / correctness
 
-### 1.1 HS256 → RS256 JWT signing
+### 1.1 RS256 JWT signing
 - Generate RSA keypair (one-time openssl, document the command)
 - Add `haven.jwt.private-key` + `haven.jwt.public-key` config (PEM strings via env)
-- `JwtService` switches from `Keys.hmacShaKeyFor(...)` to `Keys.keyPairFor(RS256)`
-- Sign with private, verify with public
-- Fail-loud constructor validation if keys missing/malformed (mirror current `JWT_SECRET` pattern)
-- Update `JwtServiceTest` to use a known test keypair fixture
-- TRADEOFFS entry: replace the lazy "HS256 because simple" line with the new shape
+- `JwtService` signs with private, verifies with public (`Keys.keyPairFor(RS256)`)
+- Fail-loud constructor validation if keys missing/malformed (RSA-only, ≥ 2048 bits, matching modulus)
+- `JwtServiceTest` uses a known test keypair fixture
+- TRADEOFFS entry under Auth & security captures the chosen shape + the cost (PEM env vars vs flat secret)
 
 ### 1.2 `POST /auth/register` → 202 Accepted (no enumeration)
 - Service still does the work synchronously, but returns 202 with empty body

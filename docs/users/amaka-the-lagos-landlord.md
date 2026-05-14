@@ -132,11 +132,11 @@ in Abuja. DreamHomes gave her control she never had.
 - [x] Inspection request triggers a `Notification` row of kind `INSPECTION_REQUESTED` for me.
 - [x] Notification includes applicant ID + slot details.
 - [x] Backed by the transactional outbox — never silently dropped.
-- [x] Visible in `GET /notifications/mine` immediately.
+- [x] Visible in `GET /api/notifications/mine` immediately.
 
 **Endpoints involved**
-- *Driven by*: `POST /listings/{id}/inspection-requests`
-- *Surface*: `GET /notifications/mine`
+- *Driven by applicant*: `POST /api/inspections` (with `slotId` in body — the slot belongs to one of Amaka's listings, so the notification routes back to her).
+- *Surface*: `GET /api/notifications/mine`
 
 ---
 
@@ -154,9 +154,9 @@ in Abuja. DreamHomes gave her control she never had.
 - [x] State machine rejects illegal transitions (e.g. ACCEPTED → DECLINED) with 409.
 
 **Endpoints involved**
-- `POST /offers/{id}/respond` (accept / decline)
-- `POST /offers/{id}/counter`
-- *Driven from applicant side*: `POST /listings/{id}/offers`
+- `PATCH /api/offers/{id}` (body: `{ "status": "ACCEPTED" | "DECLINED", "reason": "..." }` — service rejects "responding to your own proposal" with 403, so OWNER and APPLICANT share this endpoint with fine-grained checks).
+- `POST /api/offers/{id}/counter` (creates a child offer; parent transitions to `COUNTERED`).
+- *Driven from applicant side*: `POST /api/listings/{id}/offers`.
 
 ---
 
@@ -172,12 +172,34 @@ in Abuja. DreamHomes gave her control she never had.
 - [x] Slot is publicly visible to applicants browsing the listing.
 
 **Endpoints involved**
-- `POST /listings/{id}/slots`
-- *Public*: `GET /listings/{id}/slots`
+- `POST /api/listings/{id}/slots`
+- *Public*: `GET /api/listings/{id}/slots`
 
 ---
 
-### Story 9 — Read and reply to comments on my listing ⬜ Future
+### Story 9 — Manage incoming inspection requests on my listings ⬜ Pending backend support
+
+**As an** owner
+**I want to** see PENDING inspection requests on my listings and approve or decline each one
+**So that** I can keep my calendar honest, decline no-shows in advance, and confirm to the applicant that I'll be there.
+
+**Current state on the backend**
+- Applicant creates the request via `POST /api/inspections` — works.
+- Owner receives a Kafka-backed `INSPECTION_REQUESTED` notification — works.
+- **There is no endpoint for the owner to see PENDING requests on their listings**, nor to approve / decline / no-show / reschedule one. `InspectionController` exposes only the applicant side (`POST` create, `GET /api/inspections/mine` for the requester, `DELETE /api/inspections/{id}` for the requester to cancel).
+- The data model already supports it — `InspectionRequest.status` is a 3-state enum (`PENDING | APPROVED | DECLINED`), but the only mutation in production today is `PENDING → cancelled-by-applicant`. The TRADEOFFS ledger flags this explicitly: *"3-state inspection request status vs design's 7 … Revisit when owner approve/decline + post-inspection notes ship."*
+
+**What the frontend should do until this lands**
+- Mark approve/decline controls on the inspection-request row as **disabled with a "coming soon"** tooltip, **OR** hide them entirely and rely on the notification + the slot's existence as the implicit "yes I'll be there" signal.
+- Do NOT call any speculative `PATCH /api/inspections/{id}` — there is no such route. The current production server returns 405 / 404 on every such attempt.
+
+**What the eventual contract probably looks like** *(not built yet — design sketch)*
+- `PATCH /api/inspections/{id}` with `{ "status": "APPROVED" | "DECLINED", "reason": "..." }`, OWNER role gate plus service-level "you must own the listing this slot belongs to" check.
+- A new `GET /api/inspections/incoming` (or filter on `/api/inspections/mine` based on role) returning PENDING requests on listings the caller owns.
+
+---
+
+### Story 10 — Read and reply to comments on my listing ⬜ Future
 
 **As an** owner
 **I want to** answer public Q&A on my listing
@@ -199,8 +221,8 @@ Amaka's chronological flow on a typical day:
 6. **Open inspection slots for the weekend** → `POST /listings/{id}/slots`.
 7. **Day later**: applicant requests an inspection → notification arrives at her phone via `GET /notifications/mine`.
 8. **Days later**: applicant submits an offer → another notification.
-9. **She accepts** → `POST /offers/{id}/respond`.
-10. **Deal closes**: she marks the listing CLOSED → `PUT /listings/{id}` with status update.
+9. **She accepts** → `PATCH /api/offers/{id}` with `{ "status": "ACCEPTED" }`.
+10. **Deal closes**: she marks the listing CLOSED → `PATCH /api/listings/{id}` with status update.
 11. **Months later**: the applicant who closed leaves her a review → her profile rating updates.
 
 ## Possible errors she encounters
