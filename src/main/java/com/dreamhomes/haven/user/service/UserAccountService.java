@@ -1,5 +1,6 @@
 package com.dreamhomes.haven.user.service;
 
+import com.dreamhomes.haven.auth.dto.UpdateMyAgentProfileRequest;
 import com.dreamhomes.haven.user.dto.PrivateUserProfile;
 import com.dreamhomes.haven.user.exception.AgentLicenseAlreadyTakenException;
 import com.dreamhomes.haven.user.exception.AgentProfileNotFoundException;
@@ -19,6 +20,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -123,7 +127,7 @@ public class UserAccountService {
     }
 
     @Transactional
-    public PrivateUserProfile updateMyAgentProfile(Long userId, String licenseNumber, String agency) {
+    public PrivateUserProfile updateMyAgentProfile(Long userId, UpdateMyAgentProfileRequest request) {
         User user = requireUser(userId);
         if (user.getRole() != Role.AGENT) {
             throw new NotAnAgentException();
@@ -132,8 +136,8 @@ public class UserAccountService {
         AgentProfile agentProfile = agentProfileRepository.findById(userId)
                 .orElseThrow(() -> new AgentProfileNotFoundException(userId));
 
-        if (licenseNumber != null) {
-            String trimmedLicense = licenseNumber.trim();
+        if (request.licenseNumber() != null) {
+            String trimmedLicense = request.licenseNumber().trim();
             // Only reset the verification badge when the license value
             // actually changes — patching the same number back in (e.g. the
             // frontend re-sending all fields on every save) should not clear
@@ -148,8 +152,24 @@ public class UserAccountService {
                 agentProfile.setCredentialVerifiedAt(null);
             }
         }
-        if (agency != null) {
-            agentProfile.setAgency(trimToNull(agency));
+        if (request.agency() != null) {
+            agentProfile.setAgency(trimToNull(request.agency()));
+        }
+        // Discovery fields: null = no change, present (even empty) = replace.
+        // This lets the FE send `[]` to clear a tag set without a special verb.
+        if (request.serviceAreas() != null) {
+            agentProfile.setServiceAreas(new ArrayList<>(request.serviceAreas()));
+        }
+        if (request.languages() != null) {
+            agentProfile.setLanguages(new ArrayList<>(request.languages()));
+        }
+        if (request.specializationTags() != null) {
+            agentProfile.setSpecializationTags(new ArrayList<>(request.specializationTags()));
+        }
+        if (request.feeSchedule() != null) {
+            // Mirror the agency normalisation: blank-after-trim collapses to NULL on
+            // the column so the wire shape is consistent.
+            agentProfile.setFeeSchedule(trimToNull(request.feeSchedule()));
         }
 
         try {
@@ -190,7 +210,16 @@ public class UserAccountService {
                 agentProfile == null ? null : agentProfile.getLicenseNumber(),
                 agentProfile == null ? null : agentProfile.getAgency(),
                 user.getSuspendedAt() != null,
-                user.getCreatedAt());
+                user.getCreatedAt(),
+                safeList(agentProfile == null ? null : agentProfile.getServiceAreas()),
+                safeList(agentProfile == null ? null : agentProfile.getLanguages()),
+                safeList(agentProfile == null ? null : agentProfile.getSpecializationTags()),
+                agentProfile == null ? null : agentProfile.getFeeSchedule());
+    }
+
+    private static List<String> safeList(List<String> raw) {
+        // Stable empty-list contract on the wire (mirrors UserProfileService.safeList).
+        return raw == null ? Collections.emptyList() : raw;
     }
 
     private static String normalize(String email) {

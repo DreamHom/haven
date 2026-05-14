@@ -1,6 +1,7 @@
 package com.dreamhomes.haven.user.dto;
 
 import java.time.Instant;
+import java.util.List;
 import com.dreamhomes.haven.user.model.Role;
 
 /**
@@ -10,6 +11,12 @@ import com.dreamhomes.haven.user.model.Role;
  * trust signals on agent / owner profile pages.
  *
  * <p>{@code agentCredentialVerifiedAt} is null unless {@link #role} is {@link Role#AGENT}.
+ *
+ * <p>The four agent-discovery fields ({@code serviceAreas}, {@code languages},
+ * {@code specializationTags}, {@code feeSchedule}) come from {@code AgentProfile} per
+ * PRD §4.2 ("fees, specializations, locations covered"). For non-agents (or agents who
+ * haven't filled them in) the arrays are empty and {@code feeSchedule} is null — the
+ * JSON shape stays stable across roles so the FE renderer doesn't have to branch.
  */
 public record PublicUserProfile(
         Long id,
@@ -23,6 +30,10 @@ public record PublicUserProfile(
         Long reviewCount,
         long closedDealCount,
         Long medianResponseMinutes,
-        Instant joinedAt
+        Instant joinedAt,
+        List<String> serviceAreas,
+        List<String> languages,
+        List<String> specializationTags,
+        String feeSchedule
 ) {
 }

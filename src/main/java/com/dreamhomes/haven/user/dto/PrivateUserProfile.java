@@ -3,6 +3,7 @@ package com.dreamhomes.haven.user.dto;
 import com.dreamhomes.haven.user.model.Role;
 
 import java.time.Instant;
+import java.util.List;
 
 /**
  * Private account-settings projection for the authenticated user. Sibling to
@@ -14,6 +15,12 @@ import java.time.Instant;
  * principal's vocabulary. The persona audit (Dayo) called out the mixed
  * {@code id}/{@code userId} field naming as a real frontend papercut — this DTO
  * stays on the {@code userId} side of the /me family.</p>
+ *
+ * <p>Agent-discovery fields ({@code serviceAreas}, {@code languages},
+ * {@code specializationTags}, {@code feeSchedule}) shadow the columns on
+ * {@code AgentProfile} so the settings form can preload them with one GET, then
+ * round-trip the same shape on PATCH. For non-agents the arrays are empty and
+ * {@code feeSchedule} is null — JSON shape is stable across roles.
  */
 public record PrivateUserProfile(
         Long userId,
@@ -27,6 +34,10 @@ public record PrivateUserProfile(
         String licenseNumber,
         String agency,
         boolean suspended,
-        Instant joinedAt
+        Instant joinedAt,
+        List<String> serviceAreas,
+        List<String> languages,
+        List<String> specializationTags,
+        String feeSchedule
 ) {
 }

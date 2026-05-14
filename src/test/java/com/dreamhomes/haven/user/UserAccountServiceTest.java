@@ -1,5 +1,6 @@
 package com.dreamhomes.haven.user;
 
+import com.dreamhomes.haven.auth.dto.UpdateMyAgentProfileRequest;
 import com.dreamhomes.haven.user.dto.PrivateUserProfile;
 import com.dreamhomes.haven.user.exception.AgentLicenseAlreadyTakenException;
 import com.dreamhomes.haven.user.exception.CurrentPasswordIncorrectException;
@@ -110,7 +111,8 @@ class UserAccountServiceTest {
         when(agentProfileRepository.findById(7L)).thenReturn(Optional.of(agentProfile));
         when(agentProfileRepository.findByLicenseNumber("LIC-2")).thenReturn(Optional.empty());
 
-        PrivateUserProfile updated = service.updateMyAgentProfile(7L, "LIC-2", "New Agency");
+        PrivateUserProfile updated = service.updateMyAgentProfile(7L,
+                new UpdateMyAgentProfileRequest("LIC-2", "New Agency", null, null, null, null));
 
         assertThat(updated.licenseNumber()).isEqualTo("LIC-2");
         assertThat(updated.agency()).isEqualTo("New Agency");
@@ -127,7 +129,8 @@ class UserAccountServiceTest {
         when(agentProfileRepository.findById(7L)).thenReturn(Optional.of(mine));
         when(agentProfileRepository.findByLicenseNumber("LIC-2")).thenReturn(Optional.of(theirs));
 
-        assertThatThrownBy(() -> service.updateMyAgentProfile(7L, "LIC-2", null))
+        assertThatThrownBy(() -> service.updateMyAgentProfile(7L,
+                        new UpdateMyAgentProfileRequest("LIC-2", null, null, null, null, null)))
                 .isInstanceOf(AgentLicenseAlreadyTakenException.class);
 
         verify(agentProfileRepository, never()).save(any());
@@ -193,7 +196,8 @@ class UserAccountServiceTest {
         when(userRepository.findById(7L)).thenReturn(Optional.of(user));
         when(agentProfileRepository.findById(7L)).thenReturn(Optional.of(agentProfile));
 
-        PrivateUserProfile updated = service.updateMyAgentProfile(7L, "LIC-1", "New Agency");
+        PrivateUserProfile updated = service.updateMyAgentProfile(7L,
+                new UpdateMyAgentProfileRequest("LIC-1", "New Agency", null, null, null, null));
 
         assertThat(updated.licenseNumber()).isEqualTo("LIC-1");
         assertThat(updated.agency()).isEqualTo("New Agency");

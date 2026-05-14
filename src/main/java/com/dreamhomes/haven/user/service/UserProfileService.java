@@ -10,6 +10,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import com.dreamhomes.haven.user.dto.PublicUserProfile;
 import com.dreamhomes.haven.user.exception.UserNotFoundException;
@@ -42,15 +44,24 @@ public class UserProfileService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException(userId));
 
-        Instant credentialVerifiedAt = null;
-        if (user.getRole() == Role.AGENT) {
-            credentialVerifiedAt = agentProfileRepository.findById(userId)
-                    .map(AgentProfile::getCredentialVerifiedAt)
-                    .orElse(null);
-        }
+        AgentProfile agentProfile = user.getRole() == Role.AGENT
+                ? agentProfileRepository.findById(userId).orElse(null)
+                : null;
 
         ReviewAggregate reviews = reviewService.aggregateForUser(userId);
 
+        return toPublicProfile(user, agentProfile, reviews);
+    }
+
+    /**
+     * Build the public-facing projection from a (user, optional-agent-profile, reviews) triple.
+     * The agent-discovery fields ({@code serviceAreas}, {@code languages},
+     * {@code specializationTags}, {@code feeSchedule}) come from {@code AgentProfile}; for
+     * non-agents (and agents who haven't filled them in) the arrays default to empty and
+     * the fee schedule is null so the JSON shape is identical across roles.
+     */
+    private PublicUserProfile toPublicProfile(User user, AgentProfile agentProfile, ReviewAggregate reviews) {
+        Instant credentialVerifiedAt = agentProfile == null ? null : agentProfile.getCredentialVerifiedAt();
         return new PublicUserProfile(
                 user.getId(),
                 user.getFullName(),
@@ -61,9 +72,21 @@ public class UserProfileService {
                 user.getSuspendedAt() != null,
                 reviews.averageRating(),
                 reviews.count(),
-                listingRepository.countByOwnerIdAndStatus(userId, ListingStatus.CLOSED),
-                roundedMedianMinutes(offerRepository.medianResponseMinutesForOwner(userId)),
-                user.getCreatedAt());
+                listingRepository.countByOwnerIdAndStatus(user.getId(), ListingStatus.CLOSED),
+                roundedMedianMinutes(offerRepository.medianResponseMinutesForOwner(user.getId())),
+                user.getCreatedAt(),
+                safeList(agentProfile == null ? null : agentProfile.getServiceAreas()),
+                safeList(agentProfile == null ? null : agentProfile.getLanguages()),
+                safeList(agentProfile == null ? null : agentProfile.getSpecializationTags()),
+                agentProfile == null ? null : agentProfile.getFeeSchedule());
+    }
+
+    private static List<String> safeList(List<String> raw) {
+        // Defensive: an AgentProfile row with a NULL array column (pre-V30 rows that somehow
+        // weren't backfilled, or a future code path that nulls them out) still produces a
+        // stable empty-array on the wire. The DB-level DEFAULT '{}' makes this near-unreachable
+        // but the cost of the guard is one branch.
+        return raw == null ? Collections.emptyList() : raw;
     }
 
     private static Long roundedMedianMinutes(Double minutes) {
@@ -92,23 +115,9 @@ public class UserProfileService {
             org.springframework.data.domain.Pageable pageable) {
         return userRepository.searchAgents(q, verified, pageable)
                 .map(user -> {
-                    java.time.Instant credentialVerifiedAt = agentProfileRepository.findById(user.getId())
-                            .map(com.dreamhomes.haven.user.model.AgentProfile::getCredentialVerifiedAt)
-                            .orElse(null);
-                    com.dreamhomes.haven.review.dto.ReviewAggregate reviews = reviewService.aggregateForUser(user.getId());
-                    return new PublicUserProfile(
-                            user.getId(),
-                            user.getFullName(),
-                            user.getDisplayName(),
-                            user.getRole(),
-                            user.getIdentityVerifiedAt(),
-                            credentialVerifiedAt,
-                            user.getSuspendedAt() != null,
-                            reviews.averageRating(),
-                            reviews.count(),
-                            listingRepository.countByOwnerIdAndStatus(user.getId(), ListingStatus.CLOSED),
-                            roundedMedianMinutes(offerRepository.medianResponseMinutesForOwner(user.getId())),
-                            user.getCreatedAt());
+                    AgentProfile agentProfile = agentProfileRepository.findById(user.getId()).orElse(null);
+                    ReviewAggregate reviews = reviewService.aggregateForUser(user.getId());
+                    return toPublicProfile(user, agentProfile, reviews);
                 });
     }
 }
