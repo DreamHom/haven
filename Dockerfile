@@ -1,14 +1,15 @@
-# syntax=docker/dockerfile:1.7
-#
 # Multi-stage build for Spring Boot 3.3 / Java 21.
 #
-# Stage 1 (build): Maven + JDK 21 image. Dependency layer is cached separately
-# from the source layer, so a code-only change rebuilds in seconds instead of
-# re-downloading the full dependency tree.
+# Stage 1 (build): Maven + JDK 21 image. POM copied + deps resolved as a
+# separate layer from source — code-only changes skip the dep download because
+# the Docker layer cache for the dep-resolution step still hits.
 #
 # Stage 2 (runtime): JRE-only base image — smaller surface, no Maven, no JDK.
 # Runs as a non-root user. Honors `PORT` env var (Railway injects it) and falls
 # back to 8080 for local docker-compose use.
+#
+# NOTE: deliberately not using BuildKit `--mount=type=cache` — Railway's builder
+# doesn't accept it. Layer caching alone is enough.
 
 FROM maven:3.9.9-eclipse-temurin-21 AS build
 WORKDIR /workspace
@@ -16,15 +17,13 @@ WORKDIR /workspace
 # 1. Copy only the POM first and resolve deps. This layer is cached across
 #    code-only rebuilds — only invalidated when pom.xml itself changes.
 COPY pom.xml .
-RUN --mount=type=cache,target=/root/.m2 \
-    mvn -B -q dependency:go-offline
+RUN mvn -B -q dependency:go-offline
 
 # 2. Copy sources and build. Tests are skipped because they require a running
 #    Postgres + embedded Kafka — CI runs them separately, the image only needs
 #    the packaged jar.
 COPY src src
-RUN --mount=type=cache,target=/root/.m2 \
-    mvn -B -q -DskipTests package
+RUN mvn -B -q -DskipTests package
 
 # ---
 
