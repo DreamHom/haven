@@ -34,7 +34,7 @@ Re-run in **Vista**: `rg -i "haven|prototype|publicapinotice|backendunavailable|
 
 **Haven** now exposes a large slice of what this document originally tracked as “missing”: password reset, soft delete, notification preferences, listing richness (pets/utilities, negotiable, virtual tour URL, coordinates), owner/agent inspection transitions, agent-scoped listing PATCH and slot creation, admin listing catalogue and moderation snapshot, comment flag queues, platform settings, ad campaign CRUD (without full billing vertical), listing leads with owner reveal and admin read, optional httpOnly JWT cookie, applicant/owner avatar upload, and agent marketing gallery with validation and reorder.
 
-**What still separates Vista from “done”** is mostly: **(a)** Vista **UI migration** off `localStorage` and stale `PrototypeNotice` / `PublicApiNotice` copy, **(b)** **email delivery** and full **BFF/session** hardening, **(c)** product gaps **not yet modeled in Haven** (Dream AI LLM + streaming, listing floor-plan/video gallery, agent secure handoff without raw PII, verification “request more info” loop, ads billing/delivery), and **(d)** **operational** reliability of public browse behind the Vista proxy.
+**What still separates Vista from “done”** is mostly: **(a)** Vista **UI migration** off `localStorage` and stale `PrototypeNotice` / `PublicApiNotice` copy, **(b)** **email delivery** and full **BFF/session** hardening, **(c)** product gaps **not yet modeled in Haven** (Dream AI **streaming / full-catalog search** / richer chat, agent secure handoff without raw PII, verification “request more info” loop, ads billing/delivery), and **(d)** **operational** reliability of public browse behind the Vista proxy.
 
 See **Appendix A** for the authoritative route-level mapping.
 
@@ -133,14 +133,14 @@ Haven **already** exposes server-side replacements for most buckets below. The t
 
 ---
 
-## 6. Dream AI (full stack gap)
+## 6. Dream AI
 
 | Layer | Haven today | Still open |
 | --- | --- | --- |
-| **Inventory** | Stub **`POST /api/dream-ai/suggestions`** uses public browse | Stable inventory + auth + caching |
-| **Reasoning** | Heuristic / stub | LLM + safety + citations |
-| **Transport** | n/a | SSE or chunked tokens |
-| **Auth / rate limits** | Use existing JWT | Quotas, abuse controls |
+| **Inventory** | **`POST /api/dream-ai/suggestions`** + **`POST /api/dream-ai/turns/stream`**: with **`HAVEN_ANTHROPIC_API_KEY`**, bounded **LIVE** catalogue → **Anthropic Claude 3.5 Haiku**; ids **re-validated**. **Without** the key: **stub** (`location=`). Persisted threads, **JSONB** messages, **`client_message_id`** idempotency, **SSE** MVP (see OpenAPI + [`dream-ai-capabilities.md`](dream-ai-capabilities.md)). | Full-catalog **semantic search** / embeddings; **provider token streaming**; **caching**; stricter **quotas** than `haven.dream-ai.rate-limit` |
+| **Reasoning** | Single-turn **`AssistantTurnV1`** (`reply` / `clarify` / `compare` / `no_results` / `error`) + optional markdown | Multi-turn with **citations**; **function/tool** rows; richer safety |
+| **Transport** | **JSON POST** + **SSE** (`trace` / `delta` / `final` / `problem`) | Chunked tokens from Anthropic; **NDJSON** alternative |
+| **Auth / rate limits** | JWT + **per-user Dream AI** token bucket (`DreamAiRateLimitFilter`) | Additional abuse tiers, geo/IP heuristics |
 
 ---
 
@@ -170,7 +170,7 @@ Haven **already** exposes server-side replacements for most buckets below. The t
 | Gap | Haven today | Still open |
 | --- | --- | --- |
 | **Owner approve / decline / no-show** | **`POST …/owner/approve`**, **`…/owner/decline`**, **`…/mark-no-show`** | — |
-| **Agent decisions** | **`POST …/agent/complete`** | **Reschedule / extra agent-only** transitions if PRD expands |
+| **Agent decisions** | **`POST …/agent/complete`**, **`POST …/agent/reschedule`**, **`PATCH …/agent/extras`** | Broader agent-only decline/cancel if PRD expands |
 | **Slot RBAC** | **Owner or assigned agent** **`POST …/slots`** | — |
 | **Applicant claim** | **`POST /inspections`** | — |
 
@@ -253,7 +253,7 @@ Unchanged: Vista **ErrorPanel** retry flows depend on Haven returning consistent
 
 ### Haven (backend) — remaining verticals
 
-1. Dream AI: real model + transport + quotas (replace stub).  
+1. Dream AI: full-catalog search + provider streaming + TOOL traces (beyond current JSON + SSE MVP + `haven.dream-ai.rate-limit`).
 2. Listing **media** extras (e.g. multipart video upload to storage, if product outgrows URL rows + `floor_plan_url`).  
 3. **Verification request-more-info** workflow.  
 4. **Ads** billing / delivery / reporting.  
@@ -300,7 +300,7 @@ Paths use the **`/api`** prefix as in OpenAPI. **Status:** `done` = shipped; `pa
 | 5–7 | Ad campaigns | `POST/GET/PATCH /api/me/ad-campaigns`, admin `GET/PATCH /api/admin/ad-campaigns/{id}` | `partial` (no billing vertical) |
 | 5–7 | Comment flags | `POST …/comments/{id}/flag`; `GET …/admin/comment-flags` + resolve/dismiss | `done` |
 | 5–7 | Notification prefs | `notificationPreferences` on `PATCH /api/me` | `done` |
-| 6 | Dream AI | `POST /api/dream-ai/suggestions` (stub) | `partial` |
+| 6 | Dream AI | `POST /api/dream-ai/suggestions` + `POST /api/dream-ai/turns/stream` — **Haiku** when key set (bounded catalogue); **stub** without; **AssistantTurnV1**, SSE, idempotency, rate limit, moderation (see [`dream-ai-capabilities.md`](dream-ai-capabilities.md)) | `partial` (no full-DB RAG / provider token streaming / TOOL traces) |
 | 7 | Public browse | `GET /api/listings`, `GET /api/agents`, … | `done` (reliability = ops + Vista proxy) |
 | 8 | Coordinates | Property create + `PATCH /api/properties/{id}`; `PropertySummary` on listings; Flyway `V37` backfills null lat/long to Lagos centroid | `done` (owners should refine real pin via PATCH) |
 | 8 | Pets / utilities | On listing create/update/`ListingResponse` | `done` |
