@@ -1,0 +1,38 @@
+meta {
+  name: 15 Tunde — Property Awolowo Road (serviced 2-bed)
+  type: http
+  seq: 15
+}
+
+post {
+  url: {{host}}/api/properties
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{tunde_token}}
+}
+
+body:json {
+  {
+    "type": "APARTMENT",
+    "address": "88 Awolowo Road, Ikoyi, Lagos",
+    "bedrooms": 2,
+    "bathrooms": 2,
+    "sizeSqm": 88,
+    "description": "Serviced 2-bed with daily cleaning, generator, gym in the building. All-bills-included.",
+    "latitude": 6.45630,
+    "longitude": 3.43520
+  }
+}
+
+assert {
+  res.status: eq 201
+}
+
+script:post-response {
+  if (res.status === 201 && res.body && res.body.id) {
+    bru.setVar("prop_tunde_awolowo", res.body.id);
+  }
+}

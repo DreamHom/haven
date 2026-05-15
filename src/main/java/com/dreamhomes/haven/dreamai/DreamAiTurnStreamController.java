@@ -92,20 +92,22 @@ public class DreamAiTurnStreamController {
             @ApiResponse(responseCode = "429", ref = "#/components/responses/DreamAiRateLimited"),
             @ApiResponse(responseCode = "502", description = "Anthropic error or unreadable model output (synchronous failure before SSE opens — rare).")
     })
-    @SecurityRequirement(name = "bearerAuth")
+    // Open access — same rationale as POST /api/dream-ai/suggestions: Vista's public
+    // /dream-ai page hits this SSR-side without a JWT. Anonymous calls don't persist
+    // chat rows; the SSE final event still carries the full turn payload.
     @PostMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    @PreAuthorize("hasAnyRole('OWNER', 'AGENT', 'APPLICANT', 'ADMIN')")
+    @PreAuthorize("permitAll()")
     public SseEmitter streamTurn(
             @AuthenticationPrincipal JwtPrincipal principal,
             @Parameter(description = "Same JSON body as synchronous turn POST.")
             @Valid @RequestBody DreamAiRunTurnRequest request) {
         SseEmitter emitter = new SseEmitter(SSE_TIMEOUT_MS);
-        long userId = principal.userId();
+        Long userId = principal == null ? null : principal.userId();
         STREAM_POOL.execute(() -> deliverStream(emitter, userId, request));
         return emitter;
     }
 
-    private void deliverStream(SseEmitter emitter, long userId, DreamAiRunTurnRequest request) {
+    private void deliverStream(SseEmitter emitter, Long userId, DreamAiRunTurnRequest request) {
         try {
             DreamAiRunTurnResponse response = dreamAiChatService.runTurn(userId, request);
             sendJsonEvent(emitter, "trace", Map.of("traceId", response.traceId()));

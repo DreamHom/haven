@@ -82,7 +82,7 @@ class DreamAiTurnStreamControllerTest {
                 List.of(),
                 TurnMeta.empty());
         DreamAiRunTurnResponse body = new DreamAiRunTurnResponse(9L, "trace-sse-1", turn, List.of());
-        when(dreamAiChatService.runTurn(eq(44L), any())).thenReturn(body);
+        when(dreamAiChatService.runTurn(eq((Long) 44L), any())).thenReturn(body);
 
         MvcResult started = mockMvc.perform(post("/api/dream-ai/turns/stream")
                         .with(asPrincipal(44L, Role.APPLICANT))
@@ -111,7 +111,7 @@ class DreamAiTurnStreamControllerTest {
 
     @Test
     void stream_moderation_emitsProblemEventWith422InBody() throws Exception {
-        when(dreamAiChatService.runTurn(eq(2L), any()))
+        when(dreamAiChatService.runTurn(eq((Long) 2L), any()))
                 .thenThrow(new DreamAiModerationBlockedException("blocked for test"));
 
         MvcResult started = mockMvc.perform(post("/api/dream-ai/turns/stream")
@@ -141,7 +141,7 @@ class DreamAiTurnStreamControllerTest {
                 List.of(TurnBlock.listings(List.of(1L, 2L))),
                 new TurnMeta(null, null, true, "stub", "t2", null, null, null));
         DreamAiRunTurnResponse body = new DreamAiRunTurnResponse(3L, "t2", turn, List.of(1L, 2L));
-        when(dreamAiChatService.runTurn(eq(1L), any())).thenReturn(body);
+        when(dreamAiChatService.runTurn(eq((Long) 1L), any())).thenReturn(body);
 
         MvcResult started = mockMvc.perform(post("/api/dream-ai/turns/stream")
                         .with(asPrincipal(1L, Role.OWNER))

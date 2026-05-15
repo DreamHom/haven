@@ -114,6 +114,10 @@ haven:
     private-key: ${HAVEN_JWT_PRIVATE_KEY}
     public-key: ${HAVEN_JWT_PUBLIC_KEY}
     expiration-ms: 3600000
+    # Refresh token TTL — long-lived credential the client trades at /auth/refresh
+    # for a new access JWT. Default 30 days (30 * 24 * 60 * 60 * 1000). Override
+    # via HAVEN_JWT_REFRESH_EXPIRATION_MS for tighter session policy.
+    refresh-expiration-ms: ${HAVEN_JWT_REFRESH_EXPIRATION_MS:2592000000}
     issuer: dreamhomes-haven
     audience: dreamhomes
   errors:

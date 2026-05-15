@@ -1,0 +1,30 @@
+meta {
+  name: 06 Login Chika
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{host}}/api/auth/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "chika.okoro@demo.dreamhomes.local",
+    "password": "{{password}}"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.role: eq AGENT
+}
+
+script:post-response {
+  if (res.status === 200 && res.body && res.body.token) {
+    bru.setVar("chika_token", res.body.token);
+    bru.setVar("chika_id", res.body.userId);
+  }
+}

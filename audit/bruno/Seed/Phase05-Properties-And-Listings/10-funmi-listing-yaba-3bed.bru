@@ -1,0 +1,40 @@
+meta {
+  name: 10 Funmi — Listing Yaba 3-bed (RENT, ₦1.8M/yr)
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{host}}/api/listings
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{funmi_token}}
+}
+
+body:json {
+  {
+    "propertyId": {{prop_funmi_yaba_3bed}},
+    "listingType": "RENT",
+    "askingPrice": 1800000,
+    "currency": "NGN",
+    "cautionFee": 360000,
+    "title": "3-bed walk-up, two minutes to UNILAG",
+    "headline": "3-bed walk-up, two minutes to UNILAG",
+    "description": "Second-floor flat with cross-ventilation, fitted wardrobes, bath + shower in main. Long-term tenants preferred.",
+    "priceNegotiable": true,
+    "petsAllowed": "NO_PETS"
+  }
+}
+
+assert {
+  res.status: eq 201
+}
+
+script:post-response {
+  if (res.status === 201 && res.body && res.body.id) {
+    bru.setVar("list_funmi_yaba_3bed", res.body.id);
+  }
+}

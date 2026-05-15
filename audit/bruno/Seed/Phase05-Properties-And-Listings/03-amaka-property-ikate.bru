@@ -1,0 +1,39 @@
+meta {
+  name: 03 Amaka — Property Ikate (2-bed apartment)
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{host}}/api/properties
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{amaka_token}}
+}
+
+body:json {
+  {
+    "type": "APARTMENT",
+    "address": "7 Sapphire Crescent, Ikate Elegushi, Lekki, Lagos",
+    "bedrooms": 2,
+    "bathrooms": 2,
+    "sizeSqm": 95,
+    "description": "Renovated 2-bed with new wiring + tiling. Quiet street off the Lekki-Epe expressway.",
+    "latitude": 6.44820,
+    "longitude": 3.46530
+  }
+}
+
+assert {
+  res.status: eq 201
+  res.body.id: isDefined
+}
+
+script:post-response {
+  if (res.status === 201 && res.body && res.body.id) {
+    bru.setVar("prop_amaka_ikate", res.body.id);
+  }
+}

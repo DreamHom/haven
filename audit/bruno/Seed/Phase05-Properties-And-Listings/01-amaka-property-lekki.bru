@@ -1,0 +1,39 @@
+meta {
+  name: 01 Amaka — Property Lekki Phase 1 (3-bed apartment)
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{host}}/api/properties
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{amaka_token}}
+}
+
+body:json {
+  {
+    "type": "APARTMENT",
+    "address": "12B Admiralty Way, Lekki Phase 1, Lagos",
+    "bedrooms": 3,
+    "bathrooms": 2,
+    "sizeSqm": 145,
+    "description": "Top-floor 3-bed with sea-view balcony, en-suite master, fitted kitchen. Borehole + 24/7 power.",
+    "latitude": 6.45410,
+    "longitude": 3.47470
+  }
+}
+
+assert {
+  res.status: eq 201
+  res.body.id: isDefined
+}
+
+script:post-response {
+  if (res.status === 201 && res.body && res.body.id) {
+    bru.setVar("prop_amaka_lekki", res.body.id);
+  }
+}

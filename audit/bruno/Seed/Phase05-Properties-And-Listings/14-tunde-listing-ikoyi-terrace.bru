@@ -1,0 +1,39 @@
+meta {
+  name: 14 Tunde — Listing Ikoyi terrace (SALE, ₦320M)
+  type: http
+  seq: 14
+}
+
+post {
+  url: {{host}}/api/listings
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{tunde_token}}
+}
+
+body:json {
+  {
+    "propertyId": {{prop_tunde_ikoyi_terrace}},
+    "listingType": "SALE",
+    "askingPrice": 320000000,
+    "currency": "NGN",
+    "agencyFee": 16000000,
+    "title": "Terraced 4-bed with private gated parking, Old Ikoyi",
+    "headline": "Terraced 4-bed with private gated parking",
+    "description": "End-of-terrace unit with two-car covered parking, recently re-roofed. Three reception rooms, en-suite master with walk-in closet.",
+    "priceNegotiable": true
+  }
+}
+
+assert {
+  res.status: eq 201
+}
+
+script:post-response {
+  if (res.status === 201 && res.body && res.body.id) {
+    bru.setVar("list_tunde_ikoyi_terrace", res.body.id);
+  }
+}

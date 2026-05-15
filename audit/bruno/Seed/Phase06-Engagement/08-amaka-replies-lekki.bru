@@ -1,0 +1,25 @@
+meta {
+  name: 08 Amaka replies on her own Lekki listing
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{host}}/api/listings/{{list_amaka_lekki}}/comments
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{amaka_token}}
+}
+
+body:json {
+  {
+    "body": "Hi Temi — service charge is separate (₦250k/yr). Light + fibre internet included in rent. One covered parking bay per unit."
+  }
+}
+
+assert {
+  res.status: eq 201
+}

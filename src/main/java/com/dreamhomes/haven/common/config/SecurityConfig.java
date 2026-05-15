@@ -106,6 +106,13 @@ public class SecurityConfig {
                                 "/v3/api-docs", "/v3/api-docs/**",
                                 "/swagger-ui.html", "/swagger-ui/**",
                                 "/scalar.html").permitAll()
+                        // Favicon family — browsers and Railway's edge probe these without a
+                        // token, and a 401 here turns into noisy 502/401 cycles on every page
+                        // load (Vista deployment surfaced this in production). Bytes served
+                        // from `src/main/resources/static/`, sourced from vista's app icon.
+                        .requestMatchers(org.springframework.http.HttpMethod.GET,
+                                "/favicon.ico", "/favicon.png", "/apple-touch-icon.png",
+                                "/apple-touch-icon-precomposed.png").permitAll()
                         // Public read endpoints — both GET and HEAD (HEAD probes for cache-friendliness
                         // shouldn't require auth where GET doesn't; B-4 from persona audit).
                         .requestMatchers(org.springframework.http.HttpMethod.GET,
@@ -126,6 +133,12 @@ public class SecurityConfig {
                                 "/api/users/*/profile",
                                 "/api/users/*/reviews",
                                 "/api/agents").permitAll()
+                        // Dream AI search-by-prompt is public (consistent with /api/listings being
+                        // public). Vista's /dream-ai page calls these SSR-side without a JWT.
+                        // /api/dream-ai/chats* (history) stays auth-gated — that's per-user data.
+                        .requestMatchers(org.springframework.http.HttpMethod.POST,
+                                "/api/dream-ai/suggestions",
+                                "/api/dream-ai/turns/stream").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(e -> e.authenticationEntryPoint(problemEntryPoint))
                 .httpBasic(AbstractHttpConfigurer::disable)

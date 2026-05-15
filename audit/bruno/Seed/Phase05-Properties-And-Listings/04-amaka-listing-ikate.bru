@@ -1,0 +1,42 @@
+meta {
+  name: 04 Amaka — Listing Ikate (RENT, ₦2.2M/yr)
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{host}}/api/listings
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{amaka_token}}
+}
+
+body:json {
+  {
+    "propertyId": {{prop_amaka_ikate}},
+    "listingType": "RENT",
+    "askingPrice": 2200000,
+    "currency": "NGN",
+    "cautionFee": 500000,
+    "serviceCharge": 180000,
+    "title": "Renovated 2-bed off the Lekki-Epe expressway",
+    "headline": "Renovated 2-bed off Lekki-Epe expressway",
+    "description": "Quiet street, two-minute walk to Sandfill bus stop. New wiring, fresh tiling. Cats welcome with deposit.",
+    "priceNegotiable": true,
+    "petsAllowed": "CATS_OK"
+  }
+}
+
+assert {
+  res.status: eq 201
+  res.body.id: isDefined
+}
+
+script:post-response {
+  if (res.status === 201 && res.body && res.body.id) {
+    bru.setVar("list_amaka_ikate", res.body.id);
+  }
+}

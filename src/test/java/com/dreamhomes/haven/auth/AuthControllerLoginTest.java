@@ -59,11 +59,15 @@ class AuthControllerLoginTest {
     @MockBean
     com.dreamhomes.haven.auth.cookie.JwtCookieService jwtCookieService;
 
+    @MockBean
+    com.dreamhomes.haven.auth.refresh.RefreshTokenService refreshTokenService;
+
     @Test
     void successfulLoginReturns200WithTokenInBody() throws Exception {
-        when(authService.login(any())).thenReturn(new com.dreamhomes.haven.auth.dto.LoginResult(
+        when(authService.login(any(), any(), any())).thenReturn(new com.dreamhomes.haven.auth.dto.LoginResult(
                 "jwt-token-value", 7L,
-                com.dreamhomes.haven.user.model.Role.OWNER, "Ada Lovelace", 3600L));
+                com.dreamhomes.haven.user.model.Role.OWNER, "Ada Lovelace", 3600L,
+                "refresh-token-value", 2_592_000L));
 
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -84,7 +88,7 @@ class AuthControllerLoginTest {
 
     @Test
     void invalidCredentialsExceptionMapsTo401() throws Exception {
-        when(authService.login(any())).thenThrow(new InvalidCredentialsException());
+        when(authService.login(any(), any(), any())).thenThrow(new InvalidCredentialsException());
 
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)

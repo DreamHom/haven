@@ -66,13 +66,19 @@ public class DreamAiController {
             @ApiResponse(responseCode = "429", ref = "#/components/responses/DreamAiRateLimited"),
             @ApiResponse(responseCode = "502", description = "Anthropic error or unreadable model output.")
     })
-    @SecurityRequirement(name = "bearerAuth")
+    /**
+     * Open access — Vista's public /dream-ai page makes this call SSR-side without
+     * a JWT, same as it does for {@code /api/listings}. Logged-in callers get chat
+     * persistence + idempotent replay; anonymous callers get a one-shot turn with
+     * a null {@code chatId} on the response (no history persisted).
+     */
     @PostMapping("/suggestions")
-    @PreAuthorize("hasAnyRole('OWNER', 'AGENT', 'APPLICANT', 'ADMIN')")
+    @PreAuthorize("permitAll()")
     public DreamAiRunTurnResponse suggestions(
             @AuthenticationPrincipal JwtPrincipal principal,
             @Valid @RequestBody DreamAiRunTurnRequest request) {
-        return dreamAiChatService.runTurn(principal.userId(), request);
+        Long userId = principal == null ? null : principal.userId();
+        return dreamAiChatService.runTurn(userId, request);
     }
 
     @Operation(summary = "List my Dream AI chats", description = "Threads you own, most recently updated first.")

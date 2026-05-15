@@ -1,0 +1,71 @@
+meta {
+  name: DreamHomes Haven — production seed
+  type: collection
+}
+
+docs {
+  # Production seed collection
+
+  Curated, Lagos-themed data for a fresh DreamHomes Haven deployment so the
+  public browse + agent directory + listing detail pages light up with
+  realistic data. Run **once** against a fresh DB.
+
+  ## Phases (run in order — each phase depends on the previous)
+
+  1. **Phase01-Register-Owners** — 4 OWNER accounts (Amaka, Biodun, Funmi, Tunde).
+  2. **Phase02-Register-Agents** — 2 AGENT accounts with licence numbers.
+  3. **Phase03-Register-Applicants** — 4 APPLICANT accounts.
+  4. **Phase04-Login-And-Capture** — log every seed user in, capture token + userId
+     into env vars (`<name>_token`, `<name>_id`).
+  5. **Phase05-Properties-And-Listings** — 8 properties + 8 listings (mix of
+     RENT and SALE, real Lagos addresses).
+  6. **Phase06-Engagement** — a handful of saves + comments so the UI
+     surfaces have something to render.
+
+  ## Credentials
+
+  Every seed account uses the same password:  **`Demo2026!`**
+
+  Login as any of:
+    - amaka.okafor@demo.dreamhomes.local        (OWNER, Lekki landlord)
+    - biodun.adekunle@demo.dreamhomes.local     (OWNER, developer)
+    - funmi.adebayo@demo.dreamhomes.local       (OWNER, Yaba landlord)
+    - tunde.olumide@demo.dreamhomes.local       (OWNER, Ikoyi landlord)
+    - emeka.eze@demo.dreamhomes.local           (AGENT, license LIC-EM-1029)
+    - chika.okoro@demo.dreamhomes.local         (AGENT, license LIC-CK-2014)
+    - temi.balogun@demo.dreamhomes.local        (APPLICANT)
+    - ngozi.eze@demo.dreamhomes.local           (APPLICANT)
+    - adaeze.nwosu@demo.dreamhomes.local        (APPLICANT)
+    - babatunde.dada@demo.dreamhomes.local      (APPLICANT)
+
+  ## How to run
+
+  GUI:
+    1. File → Open Collection → pick `audit/bruno/Seed`
+    2. Pick environment from the top-right dropdown:
+         - `Local` for `http://localhost:8080`
+         - `Prod`  for `https://haven.dreamhomes.today`
+    3. Right-click `Phase01-Register-Owners` → Run Folder. Then Phase02, etc.
+    4. If a single request fails, click it → "Send" to retry just that one.
+
+  CLI (headless run, fail fast on assertion failures):
+    cd audit/bruno
+    bru run Seed/Phase01-Register-Owners --env Local
+    bru run Seed/Phase02-Register-Agents --env Local
+    ... etc
+
+  ## "No repeats" — what's idempotent and what isn't
+
+  - **Register** is idempotent (returns 202 whether the email is new or
+    already taken — that's the anti-enumeration contract). Re-running won't
+    create duplicate users.
+  - **Login + capture** is always safe to re-run.
+  - **Property + listing creates** are NOT idempotent — re-running will
+    create duplicate rows owned by the same user. Only run Phase05 once
+    per fresh DB.
+  - **Engagement** (saves) — saves are idempotent (composite PK).
+    Comments are not — re-running will add duplicates.
+
+  Treat phases 5 + 6 as "fire once". If you need to re-run, wipe the demo
+  data first (or redeploy on Railway-without-volume, which wipes the DB).
+}

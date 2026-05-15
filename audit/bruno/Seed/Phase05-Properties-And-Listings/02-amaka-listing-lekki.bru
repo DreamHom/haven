@@ -1,0 +1,43 @@
+meta {
+  name: 02 Amaka — Listing Lekki Phase 1 (RENT, ₦3.5M/yr)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{host}}/api/listings
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{amaka_token}}
+}
+
+body:json {
+  {
+    "propertyId": {{prop_amaka_lekki}},
+    "listingType": "RENT",
+    "askingPrice": 3500000,
+    "currency": "NGN",
+    "cautionFee": 700000,
+    "serviceCharge": 250000,
+    "title": "3-bed apartment with sea-view balcony, Lekki Phase 1",
+    "headline": "Sea-view 3-bed, ready to move in",
+    "description": "Top-floor 3-bedroom apartment off Admiralty Way. En-suite master, fitted kitchen, dedicated parking, 24/7 power, borehole water. Walking distance to the Oniru beach + Coliseum mall.",
+    "priceNegotiable": true,
+    "petsAllowed": "NO_PETS",
+    "utilitiesNote": "Light + fibre internet included; tenant covers DStv."
+  }
+}
+
+assert {
+  res.status: eq 201
+  res.body.id: isDefined
+}
+
+script:post-response {
+  if (res.status === 201 && res.body && res.body.id) {
+    bru.setVar("list_amaka_lekki", res.body.id);
+  }
+}

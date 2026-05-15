@@ -1,0 +1,38 @@
+meta {
+  name: 07 Biodun — Property Ikeja GRA (4-bed semi)
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{host}}/api/properties
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{biodun_token}}
+}
+
+body:json {
+  {
+    "type": "HOUSE",
+    "address": "21 Adeniyi Jones Avenue, Ikeja GRA, Lagos",
+    "bedrooms": 4,
+    "bathrooms": 3,
+    "sizeSqm": 280,
+    "description": "Semi-detached 4-bed in a gated cluster. Walking distance to Ikeja City Mall and the airport link.",
+    "latitude": 6.58060,
+    "longitude": 3.35030
+  }
+}
+
+assert {
+  res.status: eq 201
+}
+
+script:post-response {
+  if (res.status === 201 && res.body && res.body.id) {
+    bru.setVar("prop_biodun_ikeja", res.body.id);
+  }
+}

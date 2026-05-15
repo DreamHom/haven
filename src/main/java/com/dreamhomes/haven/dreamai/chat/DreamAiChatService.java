@@ -47,17 +47,34 @@ public class DreamAiChatService {
     private final ListingService listingService;
     private final ObjectMapper objectMapper;
 
+    /**
+     * One-shot Dream AI turn. {@code userId} is nullable — when null the call is
+     * anonymous (Vista's public /dream-ai page hitting us SSR-side without a JWT):
+     * the response is computed normally but the chat + message rows are NOT
+     * persisted, idempotent replay is skipped, and the returned {@code chatId}
+     * is null. Logged-in callers get the full persistence path.
+     */
     @Transactional
-    public DreamAiRunTurnResponse runTurn(long userId, DreamAiRunTurnRequest request) {
+    public DreamAiRunTurnResponse runTurn(Long userId, DreamAiRunTurnRequest request) {
         String traceId = UUID.randomUUID().toString();
         MDC.put("traceId", traceId);
-        MDC.put("dreamAiUserId", String.valueOf(userId));
+        MDC.put("dreamAiUserId", userId == null ? "anonymous" : String.valueOf(userId));
         try {
             String effective = resolveEffectivePrompt(request);
             if (effective.isBlank()) {
                 throw new DreamAiBadPromptException();
             }
             dreamAiModerationService.assertAllowed(effective);
+
+            // Anonymous fast path: no DB writes, no replay lookup. Just orchestrate
+            // and return. Anonymous callers can't reference an existing chatId
+            // either — silently treat that as a fresh one-shot.
+            if (userId == null) {
+                AssistantTurnV1 anonymousTurn = dreamAiTurnOrchestrator.buildTurn(effective, traceId);
+                anonymousTurn = stampTraceOnTurn(anonymousTurn, traceId);
+                log.info("Dream AI turn (anonymous) kind={}", anonymousTurn.kind());
+                return toRunResponse(null, traceId, anonymousTurn);
+            }
 
             Optional<DreamAiRunTurnResponse> replay =
                     tryReplayIdempotent(userId, request.chatId(), request.clientMessageId());

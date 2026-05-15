@@ -1,0 +1,30 @@
+meta {
+  name: 05 Login Emeka
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{host}}/api/auth/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "emeka.eze@demo.dreamhomes.local",
+    "password": "{{password}}"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.role: eq AGENT
+}
+
+script:post-response {
+  if (res.status === 200 && res.body && res.body.token) {
+    bru.setVar("emeka_token", res.body.token);
+    bru.setVar("emeka_id", res.body.userId);
+  }
+}

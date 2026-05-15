@@ -1,0 +1,19 @@
+meta {
+  name: 05 Adaeze saves Amaka's Ikate 2-bed
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{host}}/api/listings/{{list_amaka_ikate}}/save
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adaeze_token}}
+}
+
+assert {
+  res.status: in [200, 201]
+}

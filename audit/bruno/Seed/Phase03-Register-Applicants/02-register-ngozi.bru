@@ -1,0 +1,31 @@
+meta {
+  name: 02 Register Ngozi (APPLICANT)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{host}}/api/auth/register
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "ngozi.eze@demo.dreamhomes.local",
+    "password": "{{password}}",
+    "fullName": "Ngozi Eze",
+    "displayName": "Ngozi",
+    "phone": "+2348033000002",
+    "role": "APPLICANT"
+  }
+}
+
+assert {
+  res.status: eq 202
+}
+
+docs {
+  Skeptical buyer — burned by previous deals, scrutinises trust signals.
+  Looking at Ikoyi sales.
+}

@@ -52,7 +52,9 @@ class AuthServiceRegisterTest {
 
     @BeforeEach
     void setUp() {
-        authService = new AuthService(userCredentialsService, passwordEncoder, jwtService, notificationApi, org.mockito.Mockito.mock(com.dreamhomes.haven.auth.blocklist.JwtBlocklistRepository.class));
+        authService = new AuthService(userCredentialsService, passwordEncoder, jwtService, notificationApi,
+                org.mockito.Mockito.mock(com.dreamhomes.haven.auth.blocklist.JwtBlocklistRepository.class),
+                org.mockito.Mockito.mock(com.dreamhomes.haven.auth.refresh.RefreshTokenService.class));
     }
 
     @Test

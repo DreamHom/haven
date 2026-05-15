@@ -1,0 +1,31 @@
+meta {
+  name: 02 Register Chika (AGENT)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{host}}/api/auth/register
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "chika.okoro@demo.dreamhomes.local",
+    "password": "{{password}}",
+    "fullName": "Chika Okoro",
+    "displayName": "Chika",
+    "phone": "+2348032000002",
+    "role": "AGENT",
+    "licenseNumber": "LIC-CK-2014"
+  }
+}
+
+assert {
+  res.status: eq 202
+}
+
+docs {
+  Ikoyi + Victoria Island agent. Luxury sales + serviced apartments.
+}

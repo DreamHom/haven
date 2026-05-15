@@ -1,0 +1,30 @@
+meta {
+  name: 04 Register Tunde (OWNER)
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{host}}/api/auth/register
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "tunde.olumide@demo.dreamhomes.local",
+    "password": "{{password}}",
+    "fullName": "Tunde Olumide",
+    "displayName": "Tunde",
+    "phone": "+2348031000004",
+    "role": "OWNER"
+  }
+}
+
+assert {
+  res.status: eq 202
+}
+
+docs {
+  Ikoyi family-home owner — terraced 4-bed (sale) + serviced 2-bed (rent).
+}

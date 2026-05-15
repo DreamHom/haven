@@ -69,7 +69,7 @@ class DreamAiControllerTest {
                 null,
                 List.of(TurnBlock.listings(List.of(10L))),
                 new TurnMeta(null, null, false, "anthropic", "trace-json", null, null, null));
-        when(dreamAiChatService.runTurn(eq(7L), any()))
+        when(dreamAiChatService.runTurn(eq((Long) 7L), any()))
                 .thenReturn(new DreamAiRunTurnResponse(100L, "trace-json", turn, List.of(10L)));
 
         mockMvc.perform(post("/api/dream-ai/suggestions")
@@ -86,7 +86,7 @@ class DreamAiControllerTest {
     @Test
     void suggestions_acceptsUserChoiceInsteadOfPrompt() throws Exception {
         AssistantTurnV1 turn = new AssistantTurnV1(DreamAiTurnKind.clarify, "Pick one", List.of(), TurnMeta.empty());
-        when(dreamAiChatService.runTurn(eq(8L), any()))
+        when(dreamAiChatService.runTurn(eq((Long) 8L), any()))
                 .thenReturn(new DreamAiRunTurnResponse(101L, "t", turn, List.of()));
 
         mockMvc.perform(post("/api/dream-ai/suggestions")

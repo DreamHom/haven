@@ -1,0 +1,30 @@
+meta {
+  name: 01 Register Temi (APPLICANT)
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{host}}/api/auth/register
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "temi.balogun@demo.dreamhomes.local",
+    "password": "{{password}}",
+    "fullName": "Temi Balogun",
+    "displayName": "Temi",
+    "phone": "+2348033000001",
+    "role": "APPLICANT"
+  }
+}
+
+assert {
+  res.status: eq 202
+}
+
+docs {
+  First-time renter — early-career professional looking in Lekki.
+}

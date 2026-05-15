@@ -1,0 +1,12 @@
+meta {
+  name: Phase04-Login-And-Capture
+  seq: 4
+}
+
+docs {
+  Log every seed user in. Each request captures into the collection vars:
+    - <name>_token  — JWT for downstream Authorization headers
+    - <name>_id     — user id for cross-references (notifications, etc.)
+
+  Always safe to re-run.
+}

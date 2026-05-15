@@ -1,0 +1,19 @@
+meta {
+  name: 02 Temi saves Funmi's Yaba 3-bed
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{host}}/api/listings/{{list_funmi_yaba_3bed}}/save
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{temi_token}}
+}
+
+assert {
+  res.status: in [200, 201]
+}

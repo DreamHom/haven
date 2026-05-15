@@ -1,0 +1,30 @@
+meta {
+  name: 03 Login Funmi
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{host}}/api/auth/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "funmi.adebayo@demo.dreamhomes.local",
+    "password": "{{password}}"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.role: eq OWNER
+}
+
+script:post-response {
+  if (res.status === 200 && res.body && res.body.token) {
+    bru.setVar("funmi_token", res.body.token);
+    bru.setVar("funmi_id", res.body.userId);
+  }
+}

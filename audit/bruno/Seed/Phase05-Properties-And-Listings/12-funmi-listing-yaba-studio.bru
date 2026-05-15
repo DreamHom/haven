@@ -1,0 +1,40 @@
+meta {
+  name: 12 Funmi — Listing Yaba studio (RENT, ₦950k/yr)
+  type: http
+  seq: 12
+}
+
+post {
+  url: {{host}}/api/listings
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{funmi_token}}
+}
+
+body:json {
+  {
+    "propertyId": {{prop_funmi_yaba_studio}},
+    "listingType": "RENT",
+    "askingPrice": 950000,
+    "currency": "NGN",
+    "cautionFee": 200000,
+    "title": "Self-con studio for postgrad students",
+    "headline": "Self-con studio for postgrad students",
+    "description": "Single-room self-contained with kitchenette, security door, smart prepaid meter. Six-minute walk to UNILAG postgrad school.",
+    "priceNegotiable": false,
+    "petsAllowed": "NO_PETS"
+  }
+}
+
+assert {
+  res.status: eq 201
+}
+
+script:post-response {
+  if (res.status === 201 && res.body && res.body.id) {
+    bru.setVar("list_funmi_yaba_studio", res.body.id);
+  }
+}

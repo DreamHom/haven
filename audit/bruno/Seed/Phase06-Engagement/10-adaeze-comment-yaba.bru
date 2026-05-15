@@ -1,0 +1,25 @@
+meta {
+  name: 10 Adaeze asks about parking on Funmi's Yaba 3-bed
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{host}}/api/listings/{{list_funmi_yaba_3bed}}/comments
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adaeze_token}}
+}
+
+body:json {
+  {
+    "body": "Hi Funmi — is there parking available for one car? And is the building on a 24/7 power line?"
+  }
+}
+
+assert {
+  res.status: eq 201
+}
