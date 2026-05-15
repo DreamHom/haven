@@ -28,4 +28,13 @@ public interface DreamAiChatMessageRepository extends JpaRepository<DreamAiChatM
     @Query("select m from DreamAiChatMessage m join fetch m.chat c where c.userId = :uid and m.clientMessageId = :cid order by m.createdAt desc")
     List<DreamAiChatMessage> findUserMessagesForUserAndClient(
             @Param("uid") Long userId, @Param("cid") String clientMessageId, Pageable pageable);
+
+    /**
+     * Most recent message of a given role on a chat. Backs the conversation-aware compare
+     * path — the orchestrator needs the prior assistant turn's listing ids and the user
+     * prompt that produced them when responding to a "which is best?" follow-up.
+     */
+    @Query("select m from DreamAiChatMessage m where m.chat.id = :cid and m.role = :role order by m.createdAt desc")
+    List<DreamAiChatMessage> findLatestByChatAndRole(
+            @Param("cid") Long chatId, @Param("role") DreamAiChatMessageRole role, Pageable pageable);
 }

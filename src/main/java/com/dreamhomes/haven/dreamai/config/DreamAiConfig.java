@@ -1,5 +1,6 @@
 package com.dreamhomes.haven.dreamai.config;
 
+import com.dreamhomes.haven.dreamai.client.AnthropicListingCompareClient;
 import com.dreamhomes.haven.dreamai.client.AnthropicListingSearchClient;
 import com.dreamhomes.haven.listing.embedding.ListingEmbeddingProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -24,15 +25,32 @@ public class DreamAiConfig {
     AnthropicListingSearchClient anthropicListingSearchClient(
             DreamAiAnthropicProperties properties,
             ObjectMapper objectMapper) {
+        return new AnthropicListingSearchClient(
+                buildAnthropicRestClient(properties), properties, objectMapper);
+    }
+
+    /**
+     * Sister bean to {@link AnthropicListingSearchClient} — reuses the same Anthropic
+     * baseUrl + auth headers + timeouts via {@link #buildAnthropicRestClient(DreamAiAnthropicProperties)}.
+     * Backs {@link com.dreamhomes.haven.dreamai.DreamAiService#compareListings(String, java.util.List)}.
+     */
+    @Bean
+    AnthropicListingCompareClient anthropicListingCompareClient(
+            DreamAiAnthropicProperties properties,
+            ObjectMapper objectMapper) {
+        return new AnthropicListingCompareClient(
+                buildAnthropicRestClient(properties), properties, objectMapper);
+    }
+
+    private static RestClient buildAnthropicRestClient(DreamAiAnthropicProperties properties) {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(Duration.ofMillis(properties.getConnectTimeoutMs()));
         factory.setReadTimeout(Duration.ofMillis(properties.getReadTimeoutMs()));
-        RestClient restClient = RestClient.builder()
+        return RestClient.builder()
                 .baseUrl(properties.getBaseUrl())
                 .requestFactory(factory)
                 .defaultHeader("anthropic-version", "2023-06-01")
                 .defaultHeader("Content-Type", "application/json")
                 .build();
-        return new AnthropicListingSearchClient(restClient, properties, objectMapper);
     }
 }

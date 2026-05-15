@@ -1,10 +1,12 @@
 package com.dreamhomes.haven.dreamai;
 
+import com.dreamhomes.haven.dreamai.client.AnthropicListingCompareClient;
 import com.dreamhomes.haven.dreamai.client.AnthropicListingSearchClient;
 import com.dreamhomes.haven.dreamai.config.DreamAiAnthropicProperties;
 import com.dreamhomes.haven.dreamai.dto.DreamAiSuggestOutcome;
 import com.dreamhomes.haven.dreamai.dto.DreamAiSuggestionRequest;
 import com.dreamhomes.haven.dreamai.dto.DreamAiSuggestionResponse;
+import com.dreamhomes.haven.dreamai.turn.CompareReasoning;
 import com.dreamhomes.haven.listing.ListingService;
 import com.dreamhomes.haven.listing.embedding.ListingSearchEmbeddingService;
 import com.dreamhomes.haven.listing.dto.ListingWithProperty;
@@ -40,6 +42,7 @@ public class DreamAiService {
     private final ListingService listingService;
     private final DreamAiAnthropicProperties anthropicProperties;
     private final AnthropicListingSearchClient anthropicListingSearchClient;
+    private final AnthropicListingCompareClient anthropicListingCompareClient;
     private final ListingSearchEmbeddingService listingSearchEmbeddingService;
     private final ObjectMapper objectMapper;
 
@@ -85,6 +88,45 @@ public class DreamAiService {
                 .map(lwp -> lwp.listing().getId())
                 .toList();
         return new DreamAiSuggestOutcome(ids, false, false);
+    }
+
+    /**
+     * AI-backed compare across 2–5 LIVE listings. Resolves the ids to full listing+property
+     * rows (filtering closed/taken-down out at the data layer), serialises them with the
+     * same compact catalogue shape used by the rank flow, and asks Claude for structured
+     * pros/cons + a recommendation.
+     *
+     * @param userIntent natural-language prompt — usually the user's prior search query
+     *                   plus their comparison question (orchestrator builds this from chat history)
+     * @param listingIds ids to compare; expected size 2–5 (caller responsible for the bound)
+     * @return reasoning with {@code recommendedListingId} + per-listing notes; never null.
+     *         Returns an empty {@link CompareReasoning#perListing()} when fewer than 2 of the
+     *         requested ids are still LIVE, OR when the Anthropic key is not configured
+     *         (the orchestrator falls back to the legacy stub markdown in that case).
+     */
+    @Transactional(readOnly = true)
+    public CompareReasoning compareListings(String userIntent, List<Long> listingIds) {
+        if (!anthropicProperties.hasApiKey()) {
+            return new CompareReasoning(null, null, List.of());
+        }
+        String intent = userIntent == null ? "" : userIntent.trim();
+        if (intent.length() > MAX_PROMPT_CHARS) {
+            intent = intent.substring(0, MAX_PROMPT_CHARS);
+        }
+        List<ListingWithProperty> rows = listingService.findLiveWithSummariesInOrder(listingIds);
+        if (rows.size() < 2) {
+            return new CompareReasoning(null, null, List.of());
+        }
+        Set<Long> validIds = new LinkedHashSet<>();
+        for (ListingWithProperty lwp : rows) {
+            validIds.add(lwp.listing().getId());
+        }
+        String catalogJson = buildListingsArrayJson(rows);
+        CompareReasoning reasoning =
+                anthropicListingCompareClient.compareListings(intent, catalogJson, validIds);
+        log.debug("Dream AI compare: {} listings, recommendedId={}, perListing={} entries",
+                rows.size(), reasoning.recommendedListingId(), reasoning.perListing().size());
+        return reasoning;
     }
 
     private DreamAiSuggestOutcome suggestWithAnthropicOutcome(String prompt) {

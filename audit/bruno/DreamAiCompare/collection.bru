@@ -1,0 +1,33 @@
+meta {
+  name: DreamHomes Haven — Dream AI compare smoke
+  type: collection
+}
+
+docs {
+  # Smoke pass for the AI-backed Dream AI compare endpoint
+
+  Validates the Phase-2 compare path:
+  - URL-trigger: prompt with two `/listings/N` paths returns
+    `kind: compare` with `compareReasoning.recommendedListingId` +
+    `perListing[]` notes (pros / cons / bestFor) when
+    `HAVEN_ANTHROPIC_API_KEY` is set.
+  - Conversation trigger: a follow-up like "which is best for me?" on a
+    chat that just returned listings routes through compare too.
+  - Stub fallback: same prompts return `kind: compare` with the legacy
+    markdown when the key is unset (no LLM call).
+
+  ## How to run
+
+  Public — no login required. Compare endpoint is part of the public
+  Dream AI surface (per the SecurityConfig override added when Vista's
+  SSR backend started calling `/api/dream-ai/suggestions`).
+
+  GUI:  open the collection, pick env Prod, run the folder
+  CLI:  cd audit/bruno/DreamAiCompare  &&  bru run . -r --env Prod
+
+  ## Pre-reqs on prod
+
+  Listings #1 (Lekki) and #4 (Ikeja) must be LIVE — they are after a
+  fresh Seed run. The script uses these specific ids so the request is
+  reproducible across reseeds.
+}

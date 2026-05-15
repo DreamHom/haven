@@ -54,6 +54,7 @@ class DreamAiServiceTest {
     void setUp() {
         anthropicProperties.setApiKey("");
         service = new DreamAiService(listingService, anthropicProperties, anthropicListingSearchClient,
+                org.mockito.Mockito.mock(com.dreamhomes.haven.dreamai.client.AnthropicListingCompareClient.class),
                 listingSearchEmbeddingService, objectMapper);
     }
 

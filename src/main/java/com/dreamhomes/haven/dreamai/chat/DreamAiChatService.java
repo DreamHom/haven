@@ -85,6 +85,12 @@ public class DreamAiChatService {
 
             DreamAiChat chat = resolveOrCreateChat(userId, request.chatId(), effective);
 
+            // Conversation context for the orchestrator. When the prior assistant turn
+            // surfaced listings AND this prompt looks like a comparison question, the
+            // orchestrator routes through the AI-backed compare path instead of running
+            // a fresh search.
+            PriorTurnContext prior = readPriorTurnContext(chat);
+
             DreamAiMessageDocumentV1 userDoc = DreamAiMessageDocumentV1.user(effective, blankToNull(request.clientMessageId()));
             dreamAiChatMessageRepository.save(DreamAiChatMessage.builder()
                     .chat(chat)
@@ -93,7 +99,8 @@ public class DreamAiChatService {
                     .content(toJsonNode(userDoc))
                     .build());
 
-            AssistantTurnV1 turn = dreamAiTurnOrchestrator.buildTurn(effective, traceId);
+            AssistantTurnV1 turn = dreamAiTurnOrchestrator.buildTurn(
+                    effective, traceId, prior.listingIds(), prior.userPrompt());
             turn = stampTraceOnTurn(turn, traceId);
 
             DreamAiMessageDocumentV1 assistantDoc = DreamAiMessageDocumentV1.assistant(turn);
@@ -275,6 +282,66 @@ public class DreamAiChatService {
             return req.userChoice().sendText().trim();
         }
         return req.prompt() == null ? "" : req.prompt().trim();
+    }
+
+    /**
+     * Pulls "what was the last assistant turn about?" + "what user prompt produced it?" from
+     * persistence so the orchestrator can route comparison-style follow-ups
+     * ("which is best?", "compare these for a single mum") through the AI compare path
+     * with the prior listing ids and the original constraint context.
+     *
+     * <p>Empty record when this is the first turn on the chat — the orchestrator falls
+     * back to the URL-trigger / clarify / rank paths in that case.</p>
+     */
+    private PriorTurnContext readPriorTurnContext(DreamAiChat chat) {
+        if (chat == null || chat.getId() == null) {
+            return PriorTurnContext.empty();
+        }
+        var assistantPage = dreamAiChatMessageRepository.findLatestByChatAndRole(
+                chat.getId(), DreamAiChatMessageRole.ASSISTANT,
+                org.springframework.data.domain.PageRequest.of(0, 1));
+        if (assistantPage.isEmpty()) {
+            return PriorTurnContext.empty();
+        }
+        DreamAiChatMessage assistantRow = assistantPage.get(0);
+        List<Long> ids;
+        try {
+            DreamAiMessageDocumentV1 doc = objectMapper.treeToValue(
+                    assistantRow.getContent(), DreamAiMessageDocumentV1.class);
+            ids = listingIdsFromTurn(doc.turn());
+        } catch (com.fasterxml.jackson.core.JsonProcessingException ex) {
+            log.debug("Could not decode prior assistant message {} for compare context", assistantRow.getId());
+            ids = List.of();
+        }
+        if (ids.isEmpty()) {
+            return PriorTurnContext.empty();
+        }
+        // Pair with the most recent USER prompt (the one that produced this assistant turn,
+        // or the freshest user prompt if ordering is ambiguous).
+        var userPage = dreamAiChatMessageRepository.findLatestByChatAndRole(
+                chat.getId(), DreamAiChatMessageRole.USER,
+                org.springframework.data.domain.PageRequest.of(0, 1));
+        String priorPrompt = null;
+        if (!userPage.isEmpty()) {
+            try {
+                DreamAiMessageDocumentV1 userDoc = objectMapper.treeToValue(
+                        userPage.get(0).getContent(), DreamAiMessageDocumentV1.class);
+                priorPrompt = userDoc.userText();
+            } catch (com.fasterxml.jackson.core.JsonProcessingException ex) {
+                log.debug("Could not decode prior user message {} for compare context", userPage.get(0).getId());
+            }
+        }
+        return new PriorTurnContext(ids, priorPrompt);
+    }
+
+    /**
+     * Snapshot of the prior assistant turn's listing ids + the user prompt that produced
+     * them, used by the orchestrator's conversation-aware compare path.
+     */
+    private record PriorTurnContext(List<Long> listingIds, String userPrompt) {
+        static PriorTurnContext empty() {
+            return new PriorTurnContext(List.of(), null);
+        }
     }
 
     private DreamAiChat resolveOrCreateChat(long userId, Long existingChatId, String promptTrimmed) {
