@@ -1,0 +1,26 @@
+meta {
+  name: 03 Amaka closes the Ikate listing (status=CLOSED)
+  type: http
+  seq: 3
+}
+
+patch {
+  url: {{host}}/api/listings/{{list_amaka_ikate}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{amaka_token}}
+}
+
+body:json {
+  {
+    "status": "CLOSED"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq CLOSED
+}

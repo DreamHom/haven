@@ -1,0 +1,25 @@
+meta {
+  name: 02 Admin re-approves the canary listing (audit log diversity)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{host}}/api/admin/listings/{{list_canary}}/approve
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{admin_token}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  Optional — re-approves the canary so it's not visibly missing from
+  /api/listings during the demo. Comment this request out if you'd rather
+  leave the canary listing taken down.
+}

@@ -1,0 +1,30 @@
+meta {
+  name: 04 Login Tunde (OWNER)
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{host}}/api/auth/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "tunde.olumide@demo.dreamhomes.local",
+    "password": "{{password}}"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.role: eq OWNER
+}
+
+script:post-response {
+  if (res.status === 200 && res.body && res.body.token) {
+    bru.setVar("tunde_token", res.body.token);
+    bru.setVar("tunde_id", res.body.userId);
+  }
+}

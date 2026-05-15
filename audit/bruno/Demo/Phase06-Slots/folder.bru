@@ -1,0 +1,13 @@
+meta {
+  name: Phase06-Slots
+  seq: 6
+}
+
+docs {
+  Inspection slots — past dates, so the inspections that follow look like
+  genuine history (not "scheduled for next week").
+
+  Slot service only validates `endsAt > startsAt`; past dates are allowed.
+
+  ⚠️ NOT idempotent — same time-window on same listing = 409 (GiST EXCLUDE).
+}

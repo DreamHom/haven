@@ -1,0 +1,24 @@
+meta {
+  name: 08 Tunde uploads photo for Awolowo serviced
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{host}}/api/listings/{{list_tunde_awolowo}}/photos
+  body: multipartForm
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{tunde_token}}
+}
+
+body:multipart-form {
+  file: @file(photos/awolowo-serviced.jpg)
+  caption: Master bedroom suite
+}
+
+assert {
+  res.status: eq 201
+}

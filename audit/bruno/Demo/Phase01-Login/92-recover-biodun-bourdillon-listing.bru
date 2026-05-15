@@ -1,0 +1,41 @@
+meta {
+  name: 92 Recover Biodun's Bourdillon listing if missing
+  type: http
+  seq: 92
+}
+
+post {
+  url: {{host}}/api/listings
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{biodun_token}}
+}
+
+body:json {
+  {
+    "propertyId": 3,
+    "listingType": "SALE",
+    "askingPrice": 450000000,
+    "currency": "NGN",
+    "agencyFee": 22500000,
+    "title": "5-bed duplex on 1,200sqm corner plot, Old Ikoyi",
+    "headline": "5-bed Old Ikoyi duplex with pool",
+    "description": "Detached 5-bed duplex with swimming pool, BQ, gardener's shed. Original owner; full title docs available. Suitable for a family or a serviced-residence conversion.",
+    "priceNegotiable": true
+  }
+}
+
+script:post-response {
+  if (res.status === 201 && res.body && res.body.id) {
+    bru.setVar("list_biodun_bourdillon", res.body.id);
+    console.log("Recovered Bourdillon listing as id=" + res.body.id);
+  }
+}
+
+docs {
+  Same pattern as Ikate recovery — re-creates Bourdillon's LIVE listing on
+  the existing property #3 if a prior partial Demo run closed it.
+}

@@ -1,0 +1,27 @@
+meta {
+  name: 05 Biodun accepts Babatunde's offer
+  type: http
+  seq: 5
+}
+
+patch {
+  url: {{host}}/api/offers/{{offer_bourdillon_id}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{biodun_token}}
+}
+
+body:json {
+  {
+    "status": "ACCEPTED",
+    "reason": "BQ remediation will be done before handover as agreed. Solicitor will reach out next week."
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq ACCEPTED
+}

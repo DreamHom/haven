@@ -1,0 +1,16 @@
+meta {
+  name: Phase11-Admin-Moderation
+  seq: 11
+}
+
+docs {
+  Admin moderates the leftover Kafka-canary listing — first takedown (with
+  reason), then re-approve. Adds 2 distinct action types to the audit log
+  alongside the verification approves/rejects from Phase04.
+
+  Net audit-log diversity after Demo runs:
+    - VERIFICATION_APPROVED (×2)
+    - VERIFICATION_REJECTED (×1)
+    - LISTING_TAKEDOWN
+    - LISTING_APPROVED  (re-approval is also captured)
+}

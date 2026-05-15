@@ -1,0 +1,24 @@
+meta {
+  name: 04 Biodun uploads photo for Ikeja semi
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{host}}/api/listings/{{list_biodun_ikeja}}/photos
+  body: multipartForm
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{biodun_token}}
+}
+
+body:multipart-form {
+  file: @file(photos/ikeja-semi.jpg)
+  caption: Side elevation
+}
+
+assert {
+  res.status: eq 201
+}

@@ -1,0 +1,24 @@
+meta {
+  name: 06 Funmi uploads photo for Yaba studio
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{host}}/api/listings/{{list_funmi_yaba_studio}}/photos
+  body: multipartForm
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{funmi_token}}
+}
+
+body:multipart-form {
+  file: @file(photos/yaba-studio.jpg)
+  caption: Studio interior
+}
+
+assert {
+  res.status: eq 201
+}

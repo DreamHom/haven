@@ -1,0 +1,25 @@
+meta {
+  name: 07 Emeka adds notes (agentExtras) on Bourdillon inspection
+  type: http
+  seq: 7
+}
+
+patch {
+  url: {{host}}/api/inspections/{{inspection_bourdillon_id}}/agent/extras
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{emeka_token}}
+}
+
+body:json {
+  {
+    "extras": "Walked Babatunde + his structural engineer through the duplex. Engineer flagged minor cracks in the BQ wall — Biodun has agreed to repair before handover. Pool pump is ~3 years old; documented service history shared. Babatunde indicated he is preparing a formal offer."
+  }
+}
+
+assert {
+  res.status: eq 200
+}

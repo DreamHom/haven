@@ -1,0 +1,26 @@
+meta {
+  name: 06 Biodun closes the Bourdillon listing (status=CLOSED)
+  type: http
+  seq: 6
+}
+
+patch {
+  url: {{host}}/api/listings/{{list_biodun_bourdillon}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{biodun_token}}
+}
+
+body:json {
+  {
+    "status": "CLOSED"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq CLOSED
+}

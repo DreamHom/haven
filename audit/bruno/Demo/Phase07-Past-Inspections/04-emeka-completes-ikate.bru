@@ -1,0 +1,20 @@
+meta {
+  name: 04 Emeka marks Ikate inspection COMPLETED
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{host}}/api/inspections/{{inspection_ikate_id}}/agent/complete
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{emeka_token}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq COMPLETED
+}

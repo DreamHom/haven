@@ -1,0 +1,13 @@
+meta {
+  name: Phase02-Photos
+  seq: 2
+}
+
+docs {
+  One unique high-quality real-estate photo per seeded listing (8 multipart
+  uploads → R2). Run `photos/download-photos.sh` first to populate the
+  local image files.
+
+  ⚠️ NOT idempotent — each run uploads a fresh photo and appends a new row
+  to `listing_photos`. Re-running produces duplicates per listing.
+}

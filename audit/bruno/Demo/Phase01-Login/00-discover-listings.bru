@@ -1,0 +1,39 @@
+meta {
+  name: 01 Discover seeded listings (anonymous)
+  type: http
+  seq: 0
+}
+
+get {
+  url: {{host}}/api/listings?size=20
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.content: isDefined
+}
+
+script:post-response {
+  // Capture each LIVE listing's id by matching the address. Owner-side demos
+  // (assignments, slots, offers) downstream just reference the captured var
+  // by name. We DON'T fail the run if some are missing — Phase01b (recovery)
+  // re-creates Ikate + Bourdillon if prior runs closed them.
+  const content = (res.body && res.body.content) || [];
+  let captured = [];
+  for (const l of content) {
+    const addr = (l.property && l.property.address) || "";
+    const id = l.id;
+    if (addr.includes("Admiralty Way"))                 { bru.setVar("list_amaka_lekki", id);        captured.push("amaka_lekki=" + id); }
+    else if (addr.includes("Sapphire Crescent"))        { bru.setVar("list_amaka_ikate", id);        captured.push("amaka_ikate=" + id); }
+    else if (addr.includes("Bourdillon"))                { bru.setVar("list_biodun_bourdillon", id);  captured.push("biodun_bourdillon=" + id); }
+    else if (addr.includes("Adeniyi Jones"))             { bru.setVar("list_biodun_ikeja", id);       captured.push("biodun_ikeja=" + id); }
+    else if (addr.includes("Hughes Avenue"))             { bru.setVar("list_funmi_yaba_3bed", id);    captured.push("funmi_yaba_3bed=" + id); }
+    else if (addr.includes("Herbert Macaulay"))          { bru.setVar("list_funmi_yaba_studio", id);  captured.push("funmi_yaba_studio=" + id); }
+    else if (addr.includes("Macpherson"))                { bru.setVar("list_tunde_ikoyi_terrace", id); captured.push("tunde_ikoyi_terrace=" + id); }
+    else if (addr.includes("Awolowo Road"))              { bru.setVar("list_tunde_awolowo", id);      captured.push("tunde_awolowo=" + id); }
+    else if (addr.includes("Kafka Canary"))              { bru.setVar("list_canary", id);             captured.push("canary=" + id); }
+  }
+  console.log("Discovered listings: " + captured.join(", "));
+}

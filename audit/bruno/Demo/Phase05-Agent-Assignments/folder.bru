@@ -1,0 +1,14 @@
+meta {
+  name: Phase05-Agent-Assignments
+  seq: 5
+}
+
+docs {
+  Owners assign Emeka to 4 listings; Emeka accepts each. After this, Emeka's
+  "active listings I'm managing" surface shows 4 entries. Two of these (Ikate
+  + Bourdillon) will then close via Phase07/08.
+
+  Each pair (assign + accept) captures the assignment id between them.
+
+  ⚠️ NOT idempotent — duplicate assignment of same agent to same listing = 409.
+}
