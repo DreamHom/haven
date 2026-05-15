@@ -1,49 +1,66 @@
-# Multi-stage build for Spring Boot 3.3 / Java 21.
+# All-in-one Dockerfile — Railway / single-service deploys.
 #
-# Stage 1 (build): Maven + JDK 21 image. POM copied + deps resolved as a
-# separate layer from source — code-only changes skip the dep download because
-# the Docker layer cache for the dep-resolution step still hits.
+# Bundles Postgres 16 (with pgvector for Flyway V38) + the Spring Boot app
+# into one image so a platform that runs ONE container per service (Railway,
+# Heroku, Fly with single-process apps) can host the whole thing.
 #
-# Stage 2 (runtime): JRE-only base image — smaller surface, no Maven, no JDK.
-# Runs as a non-root user. Honors `PORT` env var (Railway injects it) and falls
-# back to 8080 for local docker-compose use.
+# Trade-offs vs. running Postgres as a separate Railway service:
+#   - Container restart = data loss UNLESS you mount a volume at /var/lib/postgresql/data.
+#   - No managed backups, no failover, no separate scaling.
+#   - Image is larger (~700 MB) and needs more RAM (~700 MB-1 GB) at runtime.
 #
-# NOTE: deliberately not using BuildKit `--mount=type=cache` — Railway's builder
-# doesn't accept it. Layer caching alone is enough.
+# This is fine for a demo / submission deploy. For a real production rollout,
+# split Postgres back out into its own service and use this repo's
+# Dockerfile.app instead (slim app-only image, used by docker-compose.yml).
 
+# ─── Stage 1: build ──────────────────────────────────────────────────────────
 FROM maven:3.9.9-eclipse-temurin-21 AS build
 WORKDIR /workspace
 
-# 1. Copy only the POM first and resolve deps. This layer is cached across
-#    code-only rebuilds — only invalidated when pom.xml itself changes.
+# Cached dep-resolution layer — only invalidated when pom.xml changes.
 COPY pom.xml .
 RUN mvn -B -q dependency:go-offline
 
-# 2. Copy sources and build. Tests are skipped because they require a running
-#    Postgres + embedded Kafka — CI runs them separately, the image only needs
-#    the packaged jar.
 COPY src src
 RUN mvn -B -q -DskipTests package
 
-# ---
+# ─── Stage 2: runtime — pgvector Postgres + JRE 21 + app jar ────────────────
+FROM pgvector/pgvector:pg16
 
-FROM eclipse-temurin:21-jre
-WORKDIR /app
+# Install Eclipse Temurin JRE 21 from the Adoptium apt repo.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+      wget gnupg apt-transport-https ca-certificates \
+ && wget -qO- https://packages.adoptium.net/artifactory/api/gpg/key/public \
+      | gpg --dearmor > /usr/share/keyrings/adoptium.gpg \
+ && echo "deb [signed-by=/usr/share/keyrings/adoptium.gpg] \
+      https://packages.adoptium.net/artifactory/deb bookworm main" \
+      > /etc/apt/sources.list.d/adoptium.list \
+ && apt-get update \
+ && apt-get install -y --no-install-recommends temurin-21-jre \
+ && apt-get purge -y --auto-remove wget gnupg apt-transport-https \
+ && apt-get clean \
+ && rm -rf /var/lib/apt/lists/*
 
-# Non-root runtime user.
-RUN groupadd --system --gid 1001 haven \
- && useradd  --system --uid 1001 --gid haven --shell /usr/sbin/nologin haven
+COPY --from=build /workspace/target/haven-0.0.1-SNAPSHOT.jar /app/app.jar
+COPY docker/start-allinone.sh /usr/local/bin/start-allinone.sh
+RUN chmod +x /usr/local/bin/start-allinone.sh
 
-COPY --from=build --chown=haven:haven /workspace/target/haven-0.0.1-SNAPSHOT.jar app.jar
-
-USER haven
-
-# Railway injects PORT at runtime; local docker-compose falls back to 8080.
-# JVM flag set: respect container memory limits, prefer the G1 collector,
-# log to stdout for the platform's log collector.
-ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=75.0 -XX:+UseG1GC -Djava.security.egd=file:/dev/./urandom"
+# Defaults — these match the in-container Postgres so the app finds it at
+# localhost:5432 with no extra config. Override at deploy time if needed.
+# Kafka is dummied out — the outbox relay will retry-and-fail silently and
+# the app still serves HTTP. Replace with a real broker URL when you add one.
+ENV POSTGRES_DB=dreamhomes_haven \
+    POSTGRES_USER=postgres \
+    POSTGRES_PASSWORD=postgres \
+    DB_HOST=localhost \
+    DB_PORT=5432 \
+    DB_NAME=dreamhomes_haven \
+    DB_USERNAME=postgres \
+    DB_PASSWORD=postgres \
+    KAFKA_BOOTSTRAP_SERVERS=localhost:9092 \
+    JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=50.0 -XX:+UseG1GC -Djava.security.egd=file:/dev/./urandom"
 
 EXPOSE 8080
 
-# `sh -c` so ${PORT:-8080} is expanded by the shell at container start.
-ENTRYPOINT ["sh", "-c", "exec java $JAVA_TOOL_OPTIONS -jar /app/app.jar --server.port=${PORT:-8080}"]
+ENTRYPOINT ["/usr/local/bin/start-allinone.sh"]

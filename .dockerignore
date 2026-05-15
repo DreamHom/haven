@@ -1,5 +1,5 @@
-# Keep the build context lean — anything not needed by `mvn package` should be
-# excluded so Docker doesn't ship megabytes of irrelevant bytes to the daemon.
+# Keep the build context lean — anything not needed by `mvn package` (or the
+# all-in-one runtime image) should be excluded.
 .git
 .github
 .idea
@@ -11,7 +11,8 @@ audit
 .env
 .env.example
 docker-compose*.yml
-Dockerfile
+# Note: keep `docker/` and `Dockerfile*` IN the context — the all-in-one
+# Dockerfile copies docker/start-allinone.sh into the runtime image.
 .dockerignore
 *.pem
 *.log

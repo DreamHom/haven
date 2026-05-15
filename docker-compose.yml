@@ -61,7 +61,9 @@ services:
     # `mvn spring-boot:run` for hot reload.
     build:
       context: .
-      dockerfile: Dockerfile
+      # Slim app-only image. The repo's top-level Dockerfile is the all-in-one
+      # bundle (app + Postgres) used by Railway / single-service deploys.
+      dockerfile: Dockerfile.app
     container_name: haven-app
     depends_on:
       postgres:
