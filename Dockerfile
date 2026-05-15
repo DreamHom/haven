@@ -48,8 +48,10 @@ RUN chmod +x /usr/local/bin/start-allinone.sh
 
 # Defaults — these match the in-container Postgres so the app finds it at
 # localhost:5432 with no extra config. Override at deploy time if needed.
-# Kafka is dummied out — the outbox relay will retry-and-fail silently and
-# the app still serves HTTP. Replace with a real broker URL when you add one.
+# Kafka is NOT defaulted here — set KAFKA_BOOTSTRAP_SERVERS (and the SASL_SSL
+# vars for Confluent Cloud) in your Railway service Variables. Without them,
+# the app falls back to localhost:9092 (PLAINTEXT) and the outbox relay
+# retries-and-fails silently while the app still serves HTTP.
 ENV POSTGRES_DB=dreamhomes_haven \
     POSTGRES_USER=postgres \
     POSTGRES_PASSWORD=postgres \
@@ -58,7 +60,6 @@ ENV POSTGRES_DB=dreamhomes_haven \
     DB_NAME=dreamhomes_haven \
     DB_USERNAME=postgres \
     DB_PASSWORD=postgres \
-    KAFKA_BOOTSTRAP_SERVERS=localhost:9092 \
     JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=50.0 -XX:+UseG1GC -Djava.security.egd=file:/dev/./urandom"
 
 EXPOSE 8080
