@@ -38,6 +38,7 @@ public class NotificationService implements NotificationApi {
 
     private final NotificationRepository notificationRepository;
     private final ObjectMapper objectMapper;
+    private final NotificationSseEmitters sseEmitters;
 
     @Override
     @Transactional
@@ -47,10 +48,10 @@ public class NotificationService implements NotificationApi {
                 .kind(kind)
                 .source(NotificationSource.SYNC)
                 .payload(serialize(payload))
-                .createdAt(Instant.now())
                 .build());
         log.info("Recorded sync notificationId={} kind={} recipientId={}",
                 saved.getId(), kind, recipientUserId);
+        sseEmitters.push(recipientUserId, saved.getId(), kind, payload);
     }
 
     @Override
@@ -66,10 +67,18 @@ public class NotificationService implements NotificationApi {
                 .kind(kind)
                 .source(NotificationSource.ASYNC_KAFKA)
                 .payload(serialize(payload))
-                .createdAt(Instant.now())
                 .build());
         log.info("Recorded async notificationId={} eventId={} kind={} recipientId={}",
                 saved.getId(), eventId, kind, recipientUserId);
+        // Push the async-sourced row to any subscribed SSE clients too — the recipient
+        // doesn't care whether the trigger was an in-process call or a Kafka consumer.
+        sseEmitters.push(recipientUserId, saved.getId(), kind,
+                payload instanceof Map<?, ?> m ? toStringKeyed(m) : Map.of("payload", payload));
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> toStringKeyed(Map<?, ?> raw) {
+        return (Map<String, Object>) raw;
     }
 
     /**
@@ -78,11 +87,43 @@ public class NotificationService implements NotificationApi {
      */
     @Transactional(readOnly = true)
     public Page<Notification> listMine(Long callerId, boolean unreadOnly, Pageable pageable) {
+        return listMine(callerId, unreadOnly, null, pageable);
+    }
+
+    /**
+     * Type-filtered + unread-filter overload. Persona audit (Biodun) flagged that the
+     * inbox was unfilterable; at developer scale (12 listings, many event kinds) the
+     * inbox becomes a firehose without {@code ?kind=}.
+     */
+    @Transactional(readOnly = true)
+    public Page<Notification> listMine(Long callerId, boolean unreadOnly,
+                                       com.dreamhomes.haven.notification.model.NotificationKind kind,
+                                       Pageable pageable) {
+        if (kind != null && unreadOnly) {
+            return notificationRepository
+                    .findByRecipientIdAndKindAndReadAtIsNullOrderByCreatedAtDesc(callerId, kind, pageable);
+        }
+        if (kind != null) {
+            return notificationRepository
+                    .findByRecipientIdAndKindOrderByCreatedAtDesc(callerId, kind, pageable);
+        }
         if (unreadOnly) {
             return notificationRepository
                     .findByRecipientIdAndReadAtIsNullOrderByCreatedAtDesc(callerId, pageable);
         }
         return notificationRepository.findByRecipientIdOrderByCreatedAtDesc(callerId, pageable);
+    }
+
+    /**
+     * Bulk mark-all-read for the caller's inbox. Persona audit (Biodun, Temi) flagged
+     * the missing batch action — at scale, tapping one-at-a-time is unusable.
+     * Returns the number of notifications actually flipped (already-read are skipped).
+     */
+    @Transactional
+    public int markAllRead(Long callerId) {
+        int marked = notificationRepository.markAllReadFor(callerId, Instant.now());
+        log.info("Marked {} notifications as read for userId={}", marked, callerId);
+        return marked;
     }
 
     @Transactional(readOnly = true)

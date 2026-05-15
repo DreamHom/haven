@@ -63,21 +63,6 @@ class AgentListingFlowEndToEndIT extends AbstractPostgresIT {
     @Autowired VerificationRepository verificationRepository;
     @Autowired AdminAuditLogRepository auditLogRepository;
 
-    @BeforeEach
-    @AfterEach
-    void clean() {
-        // FK order matters across siblings: clear agent_listings + admin_audit_log +
-        // comments + verifications + notifications BEFORE listings/properties/users.
-        agentListingRepository.deleteAll();
-        auditLogRepository.deleteAll();
-        commentRepository.deleteAll();
-        verificationRepository.deleteAll();
-        notificationRepository.deleteAll();
-        listingRepository.deleteAll();
-        propertyRepository.deleteAll();
-        agentProfileRepository.deleteAll();
-        userRepository.deleteAll();
-    }
 
     @Test
     void ownerInvitesAgentAcceptsSecondInviteBlockedAgentResignsThenNewInviteSucceeds() throws Exception {

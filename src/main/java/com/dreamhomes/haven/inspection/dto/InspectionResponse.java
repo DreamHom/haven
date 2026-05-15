@@ -9,6 +9,7 @@ public record InspectionResponse(
         Long applicantId,
         InspectionRequestStatus status,
         String notes,
+        String agentExtras,
         Instant createdAt,
         Instant updatedAt
 ) {

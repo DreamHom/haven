@@ -26,7 +26,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
@@ -35,7 +35,7 @@ import java.time.Instant;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -58,45 +58,28 @@ class ListingPhotoIT extends AbstractPostgresIT {
     @Autowired ListingReviewRepository reviewRepository;
     @Autowired OfferRepository offerRepository;
 
-    @BeforeEach
-    @AfterEach
-    void clean() {
-        photoRepository.deleteAll();
-        reviewRepository.deleteAll();
-        listingSaveRepository.deleteAll();
-        agentListingRepository.deleteAll();
-        auditLogRepository.deleteAll();
-        commentRepository.deleteAll();
-        verificationRepository.deleteAll();
-        notificationRepository.deleteAll();
-        offerRepository.deleteAll();
-        listingRepository.deleteAll();
-        propertyRepository.deleteAll();
-        agentProfileRepository.deleteAll();
-        userRepository.deleteAll();
-    }
 
     @Test
-    void ownerAddsThreePhotosTheyAppearInDisplayOrderPubliclyThenOwnerDeletesOne() throws Exception {
+    void ownerUploadsThreePhotosTheyAppearInDisplayOrderPubliclyThenOwnerDeletesOne() throws Exception {
         User owner = jwtTestSupport.persistUser(Role.OWNER);
         Long listingId = persistLiveListingFor(owner.getId());
         String bearer = jwtTestSupport.bearerFor(owner);
 
-        for (String url : new String[]{"https://cdn/a.jpg", "https://cdn/b.jpg", "https://cdn/c.jpg"}) {
-            mockMvc.perform(post("/api/listings/" + listingId + "/photos")
-                            .header("Authorization", bearer)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"url\":\"" + url + "\"}"))
+        for (String name : new String[]{"a.jpg", "b.jpg", "c.jpg"}) {
+            mockMvc.perform(multipart("/api/listings/" + listingId + "/photos")
+                            .file(jpegPart(name))
+                            .header("Authorization", bearer))
                     .andExpect(status().isCreated());
         }
 
         // Public read returns 3 photos in insertion order (1, 2, 3 displayOrder).
+        // The synthesised URL is opaque (uuid), so we assert on shape, not the literal URL.
         mockMvc.perform(get("/api/listings/" + listingId + "/photos"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(3))
-                .andExpect(jsonPath("$[0].url").value("https://cdn/a.jpg"))
+                .andExpect(jsonPath("$[0].url").value(org.hamcrest.Matchers.startsWith("https://media.dreamhomes.com/listings/" + listingId + "/")))
+                .andExpect(jsonPath("$[0].url").value(org.hamcrest.Matchers.endsWith(".jpg")))
                 .andExpect(jsonPath("$[0].displayOrder").value(1))
-                .andExpect(jsonPath("$[2].url").value("https://cdn/c.jpg"))
                 .andExpect(jsonPath("$[2].displayOrder").value(3));
 
         // Owner deletes the middle one.
@@ -109,27 +92,33 @@ class ListingPhotoIT extends AbstractPostgresIT {
     }
 
     @Test
-    void nonOwnerCannotAddOrDeletePhotos() throws Exception {
+    void nonOwnerCannotUploadOrDeletePhotos() throws Exception {
         User ownerA = jwtTestSupport.persistUser(Role.OWNER);
         User ownerB = jwtTestSupport.persistUser(Role.OWNER);
         Long listingId = persistLiveListingFor(ownerA.getId());
 
-        mockMvc.perform(post("/api/listings/" + listingId + "/photos")
-                        .header("Authorization", jwtTestSupport.bearerFor(ownerB))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"url\":\"https://cdn/x.jpg\"}"))
+        mockMvc.perform(multipart("/api/listings/" + listingId + "/photos")
+                        .file(jpegPart("x.jpg"))
+                        .header("Authorization", jwtTestSupport.bearerFor(ownerB)))
                 .andExpect(status().isForbidden());
     }
 
     @Test
-    void anonymousCannotAddPhotos() throws Exception {
+    void anonymousCannotUploadPhotos() throws Exception {
         User owner = jwtTestSupport.persistUser(Role.OWNER);
         Long listingId = persistLiveListingFor(owner.getId());
 
-        mockMvc.perform(post("/api/listings/" + listingId + "/photos")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"url\":\"https://cdn/x.jpg\"}"))
+        mockMvc.perform(multipart("/api/listings/" + listingId + "/photos")
+                        .file(jpegPart("x.jpg")))
                 .andExpect(status().isUnauthorized());
+    }
+
+    private static MockMultipartFile jpegPart(String filename) {
+        // 4 bytes is enough for the multipart-non-empty check; we don't actually
+        // upload to anywhere real (LocalPhotoStorage is the test-time PhotoStorage,
+        // synthesises a URL without persisting bytes).
+        return new MockMultipartFile("file", filename, "image/jpeg",
+                new byte[]{(byte) 0xFF, (byte) 0xD8, (byte) 0xFF, (byte) 0xE0});
     }
 
     private Long persistLiveListingFor(Long ownerId) {

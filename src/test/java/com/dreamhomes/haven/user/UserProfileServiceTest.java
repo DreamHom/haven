@@ -31,12 +31,19 @@ class UserProfileServiceTest {
     @Mock UserRepository userRepository;
     @Mock AgentProfileRepository agentProfileRepository;
     @Mock ReviewService reviewService;
+    @Mock com.dreamhomes.haven.listing.ListingRepository listingRepository;
+    @Mock com.dreamhomes.haven.offer.OfferRepository offerRepository;
+    @Mock com.dreamhomes.haven.agentmarketing.AgentMarketingMediaRepository agentMarketingMediaRepository;
 
     UserProfileService service;
 
     @BeforeEach
     void setUp() {
-        service = new UserProfileService(userRepository, agentProfileRepository, reviewService);
+        service = new UserProfileService(userRepository, agentProfileRepository, reviewService,
+                listingRepository, offerRepository, agentMarketingMediaRepository);
+        org.mockito.Mockito.lenient().when(agentMarketingMediaRepository
+                .findByUserIdOrderByDisplayOrderAscIdAsc(org.mockito.ArgumentMatchers.anyLong()))
+                .thenReturn(java.util.Collections.emptyList());
         // Default: no reviews. Individual tests override when they need real numbers.
         org.mockito.Mockito.lenient().when(reviewService.aggregateForUser(org.mockito.ArgumentMatchers.anyLong()))
                 .thenReturn(ReviewAggregate.empty());
@@ -57,10 +64,12 @@ class UserProfileServiceTest {
 
         assertThat(profile.id()).isEqualTo(50L);
         assertThat(profile.fullName()).isEqualTo("Ada Owner");
+        assertThat(profile.agentMarketingGallery()).isEmpty();
         assertThat(profile.role()).isEqualTo(Role.OWNER);
         assertThat(profile.identityVerifiedAt()).isEqualTo(Instant.parse("2026-04-01T10:00:00Z"));
         assertThat(profile.joinedAt()).isEqualTo(Instant.parse("2026-01-01T00:00:00Z"));
         assertThat(profile.agentCredentialVerifiedAt()).isNull();
+        assertThat(profile.publicBio()).isNull();
         // Agent profile is only loaded when role = AGENT — saves a roundtrip on every public hit.
         verify(agentProfileRepository, never()).findById(50L);
     }
@@ -102,6 +111,22 @@ class UserProfileServiceTest {
         assertThat(result.toString())
                 .doesNotContain("private@example.com")
                 .doesNotContain("0801-secret");
+    }
+
+    @Test
+    void publicProfileIncludesPublicBioWhenPresent() {
+        User owner = User.builder()
+                .id(50L).email("o@x").passwordHash("x").fullName("Bio Owner")
+                .displayName("Bio Owner")
+                .publicBio("Trusted landlord since 2010.")
+                .role(Role.OWNER).tokenVersion(1)
+                .createdAt(Instant.now())
+                .build();
+        when(userRepository.findById(50L)).thenReturn(Optional.of(owner));
+
+        PublicUserProfile profile = service.findPublicProfile(50L);
+
+        assertThat(profile.publicBio()).isEqualTo("Trusted landlord since 2010.");
     }
 
     @Test

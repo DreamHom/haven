@@ -17,6 +17,7 @@ import java.time.Instant;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -43,16 +44,6 @@ class PublicUserProfileIT extends AbstractPostgresIT {
     @Autowired NotificationRepository notificationRepository;
     @Autowired AdminAuditLogRepository auditLogRepository;
 
-    @BeforeEach
-    @AfterEach
-    void clean() {
-        // FK order matters: admin_audit_log and notifications reference users; wipe them first.
-        auditLogRepository.deleteAll();
-        notificationRepository.deleteAll();
-        verificationRepository.deleteAll();
-        agentProfileRepository.deleteAll();
-        userRepository.deleteAll();
-    }
 
     @Test
     void anonymousVisitorCanReadOwnerProfileAndNeverSeesPrivateContactDetails() throws Exception {
@@ -68,7 +59,28 @@ class PublicUserProfileIT extends AbstractPostgresIT {
                 .andExpect(jsonPath("$.phone").doesNotExist())
                 .andExpect(jsonPath("$.passwordHash").doesNotExist())
                 .andExpect(jsonPath("$.tokenVersion").doesNotExist())
+                .andExpect(jsonPath("$.agentMarketingGallery").isArray())
+                .andExpect(jsonPath("$.agentMarketingGallery.length()").value(0))
                 .andExpect(header().string("Cache-Control", containsString("public")));
+    }
+
+    @Test
+    void ownerCanSetPublicBioViaPatchMeAndVisitorsSeeItOnPublicProfile() throws Exception {
+        User owner = jwtTestSupport.persistUser(Role.OWNER);
+        String bearer = jwtTestSupport.bearerFor(owner);
+
+        mockMvc.perform(patch("/api/me")
+                        .header("Authorization", bearer)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                { "publicBio": "Family-run lettings in VI and Lekki." }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.publicBio").value("Family-run lettings in VI and Lekki."));
+
+        mockMvc.perform(get("/api/users/" + owner.getId() + "/profile"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.publicBio").value("Family-run lettings in VI and Lekki."));
     }
 
     @Test
@@ -115,5 +127,69 @@ class PublicUserProfileIT extends AbstractPostgresIT {
     void unknownUserIdReturns404() throws Exception {
         mockMvc.perform(get("/api/users/999999/profile"))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void agentProfileSurfacesServiceAreasLanguagesSpecializationsAndFeeSchedule() throws Exception {
+        // Public discovery fields per PRD §4.2 ("Agent profiles are fully transparent — fees,
+        // ratings, deals closed, specializations, locations covered"). The frontend's agent-
+        // profile page needs these visible without a second authenticated call.
+        User agent = jwtTestSupport.persistUser(Role.AGENT);
+        agentProfileRepository.save(AgentProfile.builder()
+                .userId(agent.getId())
+                .licenseNumber("LIC-" + agent.getId())
+                .serviceAreas(java.util.List.of("Lekki", "Yaba", "Victoria Island"))
+                .languages(java.util.List.of("English", "Yoruba"))
+                .specializationTags(java.util.List.of("luxury", "rentals"))
+                .feeSchedule("5% on sale, 1 month rent commission")
+                .createdAt(Instant.now())
+                .build());
+
+        mockMvc.perform(get("/api/users/" + agent.getId() + "/profile"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.serviceAreas").isArray())
+                .andExpect(jsonPath("$.serviceAreas[0]").value("Lekki"))
+                .andExpect(jsonPath("$.serviceAreas.length()").value(3))
+                .andExpect(jsonPath("$.languages[1]").value("Yoruba"))
+                .andExpect(jsonPath("$.specializationTags[0]").value("luxury"))
+                .andExpect(jsonPath("$.feeSchedule")
+                        .value("5% on sale, 1 month rent commission"));
+    }
+
+    @Test
+    void agentProfileWithoutDiscoveryFieldsReturnsEmptyArraysAndNullFeeSchedule() throws Exception {
+        // An agent who registered before setting the discovery fields (or just left them empty)
+        // should still produce a valid response shape — empty arrays, not null, so the FE
+        // doesn't have to null-check every field before mapping.
+        User agent = jwtTestSupport.persistUser(Role.AGENT);
+        agentProfileRepository.save(AgentProfile.builder()
+                .userId(agent.getId())
+                .licenseNumber("LIC-" + agent.getId())
+                .createdAt(Instant.now())
+                .build());
+
+        mockMvc.perform(get("/api/users/" + agent.getId() + "/profile"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.serviceAreas").isArray())
+                .andExpect(jsonPath("$.serviceAreas.length()").value(0))
+                .andExpect(jsonPath("$.languages.length()").value(0))
+                .andExpect(jsonPath("$.specializationTags.length()").value(0))
+                .andExpect(jsonPath("$.feeSchedule")
+                        .value(org.hamcrest.Matchers.nullValue()));
+    }
+
+    @Test
+    void ownerProfileOmitsAgentDiscoveryFieldsViaEmptyArrays() throws Exception {
+        // Discovery fields are agent-specific; an owner profile carries the same JSON keys
+        // for shape stability but they read as empty / null. Keeps the FE renderer uniform.
+        User owner = jwtTestSupport.persistUser(Role.OWNER);
+
+        mockMvc.perform(get("/api/users/" + owner.getId() + "/profile"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.serviceAreas.length()").value(0))
+                .andExpect(jsonPath("$.languages.length()").value(0))
+                .andExpect(jsonPath("$.specializationTags.length()").value(0))
+                .andExpect(jsonPath("$.feeSchedule")
+                        .value(org.hamcrest.Matchers.nullValue()));
     }
 }

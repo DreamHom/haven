@@ -1,0 +1,25 @@
+meta {
+  name: 13-Poll inbox again — has the admin moved on my verification
+  type: http
+  seq: 13
+}
+
+get {
+  url: {{host}}/api/notifications/mine?unreadOnly=true&page=0&size=20
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{emeka_jwt}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  This is what my Day 3 looks like — refreshing the inbox like a
+  mobile bank app. If the admin approved me I'll see a
+  VERIFICATION_APPROVED notification. If not, still nothing.
+}

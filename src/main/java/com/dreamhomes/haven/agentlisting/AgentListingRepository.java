@@ -1,5 +1,6 @@
 package com.dreamhomes.haven.agentlisting;
 
+import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -20,4 +21,20 @@ public interface AgentListingRepository extends JpaRepository<AgentListing, Long
 
     /** Backs {@code GET /api/agent-listings/mine} for an authenticated owner. */
     Page<AgentListing> findByRequestedByOwnerIdOrderByRequestedAtDesc(Long ownerId, Pageable pageable);
+
+    /** Status-filtered variants for {@code ?status=} on the agent + owner /mine views. */
+    Page<AgentListing> findByAgentUserIdAndStatusOrderByRequestedAtDesc(
+            Long agentUserId, AgentListingStatus status, Pageable pageable);
+
+    Page<AgentListing> findByRequestedByOwnerIdAndStatusOrderByRequestedAtDesc(
+            Long ownerId, AgentListingStatus status, Pageable pageable);
+
+    /**
+     * The single ACCEPTED row for a listing, if any. Backs the {@code assignedAgentId}
+     * trust-signal field on {@code GET /api/listings/{id}}. The unique partial index
+     * from V13 guarantees at most one ACCEPTED per listing.
+     */
+    Optional<AgentListing> findFirstByListingIdAndStatus(Long listingId, AgentListingStatus status);
+
+    boolean existsByListingIdAndAgentUserIdAndStatus(Long listingId, Long agentUserId, AgentListingStatus status);
 }

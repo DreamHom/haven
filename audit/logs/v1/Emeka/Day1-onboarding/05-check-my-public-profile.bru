@@ -1,0 +1,32 @@
+meta {
+  name: 05-Look at my own public profile (the way an owner would see me)
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{host}}/api/users/{{emeka_user_id}}/profile
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{emeka_jwt}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.role: eq AGENT
+}
+
+docs {
+  Critical for me — this is what owners see when deciding to hire me.
+  I want to see: verified badge? rating? closed-deal count? response
+  rate? Per the schema, I get name, role, identityVerifiedAt,
+  agentCredentialVerifiedAt, suspended, averageRating, reviewCount,
+  joinedAt.
+
+  No closedDealCount. No responseRate. No "active listings" count. No
+  bio. No photo. No service area (Port Harcourt). For an agent who
+  lives or dies by signals, this is a thin profile.
+}

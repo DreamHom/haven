@@ -35,20 +35,20 @@ import com.dreamhomes.haven.agentlisting.model.AgentListing;
 import com.dreamhomes.haven.agentlisting.model.AgentListingStatus;
 
 @WebMvcTest(AgentListingController.class)
-@Import(SecurityConfig.class)
+@Import({SecurityConfig.class, com.dreamhomes.haven.support.JwtCookieTestStubConfiguration.class, com.dreamhomes.haven.agentlisting.AgentListingMapperImpl.class})
 @TestPropertySource(properties = {
         "haven.rate-limit.enabled=false",
         "cors.allowed-origins=http://localhost:3000",
-        "jwt.secret=test-secret-not-a-placeholder-and-32-bytes-or-more",
-        "jwt.expiration-ms=3600000",
-        "jwt.issuer=test-issuer",
-        "jwt.audience=test-audience"
+        "haven.jwt.expiration-ms=3600000",
+        "haven.jwt.issuer=test-issuer",
+        "haven.jwt.audience=test-audience"
 })
 class AgentListingControllerTest {
 
     @Autowired MockMvc mockMvc;
     @MockBean AgentListingService agentListingService;
     @MockBean JwtService jwtService;
+    @MockBean com.dreamhomes.haven.auth.blocklist.JwtBlocklistRepository jwtBlocklistRepository;
     @MockBean UserCredentialsService userCredentialsService;
 
     @Test

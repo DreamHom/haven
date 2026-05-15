@@ -1,0 +1,37 @@
+meta {
+  name: 28-Counter the owner's counter
+  type: http
+  seq: 28
+}
+
+post {
+  url: {{host}}/api/offers/1/counter
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{temi_token}}
+}
+
+body:json {
+  {
+    "amount": 800000,
+    "message": "Splitting the difference. ₦800k is my final — I can transfer tomorrow morning if you accept."
+  }
+}
+
+assert {
+  res.status: in [200, 400, 401, 403, 404, 409]
+}
+
+docs {
+  Owner countered at ₦830k. I'm meeting them at ₦800k. The
+  parent-offer-id linking is server-side (I just hit /counter on
+  the offer id they sent me) — I don't have to thread that myself,
+  which is nice.
+
+  Hardcoded offer id 1 because in this canned run there's nothing
+  to link to. In real life I'd take the id from the OFFER_COUNTERED
+  notification payload.
+}

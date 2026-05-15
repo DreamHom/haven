@@ -49,7 +49,7 @@ class VerificationAdminServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new VerificationAdminService(verificationRepository, userAdminService, propertyService);
+        service = new VerificationAdminService(verificationRepository, userAdminService, propertyService, new com.dreamhomes.haven.verification.mapping.VerificationAdminMapperImpl());
     }
 
     @Test

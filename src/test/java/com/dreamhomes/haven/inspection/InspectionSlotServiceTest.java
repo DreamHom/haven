@@ -1,8 +1,11 @@
 package com.dreamhomes.haven.inspection;
 
+import com.dreamhomes.haven.agentlisting.AgentListingRepository;
+import com.dreamhomes.haven.agentlisting.model.AgentListingStatus;
 import com.dreamhomes.haven.listing.ListingService;
 import com.dreamhomes.haven.listing.exception.ListingNotFoundException;
 import com.dreamhomes.haven.listing.exception.NotPropertyOwnerException;
+import com.dreamhomes.haven.user.model.Role;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -31,12 +34,13 @@ class InspectionSlotServiceTest {
 
     @Mock ListingService listingService;
     @Mock InspectionSlotRepository slotRepository;
+    @Mock AgentListingRepository agentListingRepository;
 
     InspectionSlotService service;
 
     @BeforeEach
     void setUp() {
-        service = new InspectionSlotService(slotRepository, listingService);
+        service = new InspectionSlotService(slotRepository, listingService, agentListingRepository);
     }
 
     @Test
@@ -48,14 +52,15 @@ class InspectionSlotServiceTest {
             return s;
         });
 
-        InspectionSlot result = service.create(99L, 7L, new CreateSlotCommand(
+        InspectionSlot result = service.create(99L, Role.OWNER, 7L, new CreateSlotCommand(
                 Instant.parse("2026-06-01T10:00:00Z"),
                 Instant.parse("2026-06-01T11:00:00Z")));
 
         ArgumentCaptor<InspectionSlot> captor = ArgumentCaptor.forClass(InspectionSlot.class);
         verify(slotRepository).saveAndFlush(captor.capture());
         assertThat(captor.getValue().getListingId()).isEqualTo(7L);
-        assertThat(captor.getValue().getCreatedAt()).isNotNull();
+        // createdAt is populated by JPA auditing on persist (InspectionSlot has @CreatedDate);
+        // exercised end-to-end in InspectionSlotRepositoryIT.
         assertThat(result.getId()).isEqualTo(123L);
     }
 
@@ -63,7 +68,7 @@ class InspectionSlotServiceTest {
     void rejectsWhenCallerDoesNotOwnTheListing() {
         when(listingService.ownerOf(7L)).thenReturn(Optional.of(200L));
 
-        assertThatThrownBy(() -> service.create(99L, 7L, new CreateSlotCommand(
+        assertThatThrownBy(() -> service.create(99L, Role.OWNER, 7L, new CreateSlotCommand(
                 Instant.parse("2026-06-01T10:00:00Z"),
                 Instant.parse("2026-06-01T11:00:00Z"))))
                 .isInstanceOf(NotPropertyOwnerException.class);
@@ -75,7 +80,7 @@ class InspectionSlotServiceTest {
     void rejectsWhenListingNotFound() {
         when(listingService.ownerOf(404L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.create(99L, 404L, new CreateSlotCommand(
+        assertThatThrownBy(() -> service.create(99L, Role.OWNER, 404L, new CreateSlotCommand(
                 Instant.parse("2026-06-01T10:00:00Z"),
                 Instant.parse("2026-06-01T11:00:00Z"))))
                 .isInstanceOf(ListingNotFoundException.class);
@@ -84,7 +89,7 @@ class InspectionSlotServiceTest {
     @Test
     void rejectsSlotWhereEndIsNotAfterStart() {
         // Window check fires before any API lookup — fail fast on garbage input.
-        assertThatThrownBy(() -> service.create(99L, 7L, new CreateSlotCommand(
+        assertThatThrownBy(() -> service.create(99L, Role.OWNER, 7L, new CreateSlotCommand(
                 Instant.parse("2026-06-01T11:00:00Z"),
                 Instant.parse("2026-06-01T10:00:00Z"))))
                 .isInstanceOf(InvalidSlotWindowException.class);
@@ -99,7 +104,7 @@ class InspectionSlotServiceTest {
         when(slotRepository.saveAndFlush(any(InspectionSlot.class)))
                 .thenThrow(new org.springframework.dao.DataIntegrityViolationException("overlap"));
 
-        assertThatThrownBy(() -> service.create(99L, 7L, new CreateSlotCommand(
+        assertThatThrownBy(() -> service.create(99L, Role.OWNER, 7L, new CreateSlotCommand(
                 Instant.parse("2026-06-01T10:00:00Z"),
                 Instant.parse("2026-06-01T11:00:00Z"))))
                 .isInstanceOf(SlotOverlapException.class);
@@ -107,6 +112,7 @@ class InspectionSlotServiceTest {
 
     @Test
     void listAvailableDelegatesToRepository() {
+        when(listingService.exists(7L)).thenReturn(true);
         when(slotRepository.findAvailableForListing(7L))
                 .thenReturn(java.util.List.of(InspectionSlot.builder().id(1L).build()));
 
@@ -114,5 +120,13 @@ class InspectionSlotServiceTest {
 
         assertThat(result).hasSize(1);
         verify(slotRepository).findAvailableForListing(7L);
+    }
+
+    @Test
+    void listAvailableReturns404WhenListingMissing() {
+        when(listingService.exists(404L)).thenReturn(false);
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.listAvailableForListing(404L))
+                .isInstanceOf(com.dreamhomes.haven.listing.exception.ListingNotFoundException.class);
     }
 }

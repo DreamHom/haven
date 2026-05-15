@@ -1,0 +1,38 @@
+meta {
+  name: 06 Poll for assignment invites
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{host}}/api/agent-listings/mine?page=0&size=20
+  auth: bearer
+}
+
+params:query {
+  page: 0
+  size: 20
+}
+
+auth:bearer {
+  token: {{jwt}}
+}
+
+assert {
+  res.status: eq 200
+  res.body: isDefined
+}
+
+docs {
+  Tuesday morning — I always check the platform first thing with my coffee to
+  see if any owner has pinged me overnight.
+
+  Persona doc references `GET /agent-assignments/mine` but the live spec only
+  exposes `/agent-listings/mine`. Two different names for the same idea in
+  the same product is going to confuse owners and agents both. (FINDING:
+  naming inconsistency between `/listings/{id}/agent-assignment` POST and
+  the agent-side `/agent-listings/mine` GET.)
+
+  Expected: 200 with an empty page (no owner has invited me yet in this
+  isolated run — that's a cross-persona dependency, not a bug).
+}

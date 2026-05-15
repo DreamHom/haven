@@ -1,0 +1,27 @@
+meta {
+  name: 33-Log out
+  type: http
+  seq: 33
+}
+
+post {
+  url: {{host}}/api/auth/logout
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{temi_token}}
+}
+
+assert {
+  res.status: in [204, 401]
+}
+
+docs {
+  Logging out from my office laptop. Spec says this bumps
+  tokenVersion so ALL my other sessions (phone, etc.) also get
+  kicked. That's nuclear — most apps log out only the current
+  device. As a user I'd expect a "log out everywhere" vs "log out
+  this device" toggle, not log-out-everywhere by default.
+}

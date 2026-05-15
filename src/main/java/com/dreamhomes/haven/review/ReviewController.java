@@ -38,6 +38,7 @@ public class ReviewController {
     private static final int MAX_PAGE_SIZE = 100;
 
     private final ReviewService reviewService;
+    private final ReviewMapper reviewMapper;
 
     @Operation(
             summary = "Post a review on the user the deal closed with",
@@ -83,15 +84,9 @@ public class ReviewController {
             @Parameter(description = "Listing the deal closed on.", example = "17")
             @PathVariable Long listingId,
             @Valid @RequestBody PostReviewRequest request) {
-        return toResponse(reviewService.post(
+        return reviewMapper.toResponse(reviewService.post(
                 principal.userId(), listingId, request.revieweeUserId(),
                 request.rating(), request.body()));
-    }
-
-    static ReviewResponse toResponse(ListingReview r) {
-        return new ReviewResponse(r.getId(), r.getListingId(),
-                r.getReviewerUserId(), r.getRevieweeUserId(),
-                r.getRating(), r.getBody(), r.getCreatedAt());
     }
 
     @Operation(
@@ -125,7 +120,7 @@ public class ReviewController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         Pageable pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), MAX_PAGE_SIZE));
-        return reviewService.listForListing(listingId, pageable).map(ReviewController::toResponse);
+        return reviewService.listForListing(listingId, pageable).map(reviewMapper::toResponse);
     }
 
     @Operation(
@@ -165,7 +160,7 @@ public class ReviewController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         Pageable pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), MAX_PAGE_SIZE));
-        return reviewService.listForReviewee(userId, pageable).map(ReviewController::toResponse);
+        return reviewService.listForReviewee(userId, pageable).map(reviewMapper::toResponse);
     }
 
     @Operation(

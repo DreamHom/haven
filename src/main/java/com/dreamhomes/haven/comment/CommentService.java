@@ -47,12 +47,10 @@ public class CommentService {
         // Throws ListingNotFoundException if missing.
         ListingResponse listing = listingService.findById(listingId);
 
-        Instant now = Instant.now();
         Comment saved = commentRepository.save(Comment.builder()
                 .listingId(listing.id())
                 .authorUserId(authorId)
                 .body(body.trim())
-                .createdAt(now)
                 .build());
 
         // Self-comments don't notify — owners aren't surprised by their own posts.
@@ -66,6 +64,10 @@ public class CommentService {
 
     @Transactional(readOnly = true)
     public Page<Comment> list(Long listingId, Pageable pageable) {
+        // 404 if the listing is missing — see B-2 in the persona audit.
+        if (!listingService.exists(listingId)) {
+            throw new com.dreamhomes.haven.listing.exception.ListingNotFoundException(listingId);
+        }
         return commentRepository.findByListingIdAndDeletedAtIsNullOrderByCreatedAtAsc(listingId, pageable);
     }
 

@@ -1,0 +1,23 @@
+meta {
+  name: 27 Final check — my properties portfolio
+  type: http
+  seq: 27
+}
+
+get {
+  url: {{host}}/properties/mine
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{jwt}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  Last thing before I close my laptop — see both flats in my portfolio view.
+}

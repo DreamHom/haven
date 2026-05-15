@@ -1,0 +1,28 @@
+meta {
+  name: 16-day5-check-notifications
+  type: http
+  seq: 16
+}
+
+get {
+  url: {{host}}/api/notifications/mine?page=0&size=20
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{ngozi_token}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.content: isDefined
+}
+
+docs {
+  # Did anything come back to ME from the platform? An applicant who
+  # books an inspection on a real property should at minimum get a
+  # confirmation notification: "your inspection request was received,
+  # the agent has been notified." If my inbox is empty, I have no
+  # idea whether anyone heard me.
+}

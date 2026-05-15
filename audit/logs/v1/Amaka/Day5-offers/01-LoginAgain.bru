@@ -1,0 +1,31 @@
+meta {
+  name: 01-LoginAgain
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{host}}/api/auth/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "{{amakaEmail}}",
+    "password": "{{amakaPassword}}"
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+script:post-response {
+  bru.setVar("amakaJwt", res.body.token);
+}
+
+docs {
+  # Day 5 — Wednesday, lunch break at the office. Hoping for a
+  # notification.
+}

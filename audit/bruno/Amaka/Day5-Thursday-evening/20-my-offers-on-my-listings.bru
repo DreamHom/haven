@@ -1,0 +1,26 @@
+meta {
+  name: 20 Check offers — anybody offering on my flat?
+  type: http
+  seq: 20
+}
+
+get {
+  url: {{host}}/offers/mine
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{jwt}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  The spec only mentions /offers/mine — I'm guessing as the owner this gives
+  me the offers people are making on MY listings (rather than offers I
+  myself proposed). I'm not 100% sure this is the case — the description
+  doesn't differentiate by side. Finding.
+}

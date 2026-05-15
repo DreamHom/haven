@@ -1,0 +1,22 @@
+meta {
+  name: 06-VerifyTakedownInvisibleToPublic
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{host}}/api/listings/{{targetListingId}}
+  auth: none
+}
+
+docs {
+  # Sanity-check the takedown actually hid the listing from the public.
+  # Persona doc says the public GET should return 404 / 410 (TBC).
+  # Either is acceptable. 200 with the listing still visible would be
+  # a CRITICAL bug and I'd page someone immediately.
+  #
+  # Not asserting a specific code because the spec itself says
+  # "404 / 410 (confirm)" — i.e. the team itself doesn't know which.
+  # That's a finding: the contract for what a deleted listing looks like
+  # to the public is undecided.
+}

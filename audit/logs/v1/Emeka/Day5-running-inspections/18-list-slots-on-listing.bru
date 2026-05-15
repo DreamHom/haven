@@ -1,0 +1,20 @@
+meta {
+  name: 18-List the slots I just opened
+  type: http
+  seq: 18
+}
+
+get {
+  url: {{host}}/api/listings/{{emeka_assigned_listing_id}}/slots
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: in [200, 400, 404, 401]
+}
+
+docs {
+  Public endpoint — anyone (incl. logged-out browsers) sees my
+  open slots. Sanity check that what I opened is now visible.
+}

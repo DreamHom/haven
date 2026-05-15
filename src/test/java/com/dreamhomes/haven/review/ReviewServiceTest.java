@@ -272,11 +272,27 @@ class ReviewServiceTest {
     }
 
     @Test
-    void deleteRejectsMissingReason() {
-        assertThatThrownBy(() -> service.delete(50L, Role.OWNER, 123L, "  "))
-                .isInstanceOf(IllegalArgumentException.class);
+    void adminDeleteRejectsMissingReason() {
+        // After the persona-audit cleanup: only ADMIN deletes still require a reason.
+        // Author self-delete may omit it. The role check happens before the reason
+        // check, so we set up the author/admin path explicitly.
+        ListingReview review = activeReview(123L, /*reviewerId=*/50L, /*revieweeId=*/100L);
+        when(reviewRepository.findById(123L)).thenReturn(Optional.of(review));
 
-        verify(reviewRepository, never()).findById(any());
+        // Admin (not the author) must supply a reason — empty is rejected.
+        assertThatThrownBy(() -> service.delete(/*adminId=*/999L, Role.ADMIN, 123L, "  "))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void selfDeleteAllowsMissingReason() {
+        ListingReview review = activeReview(123L, /*reviewerId=*/50L, /*revieweeId=*/100L);
+        when(reviewRepository.findById(123L)).thenReturn(Optional.of(review));
+        when(reviewRepository.save(any(ListingReview.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        // Author deleting their own review — null reason is fine.
+        service.delete(50L, Role.OWNER, 123L, null);
+        verify(reviewRepository).save(any(ListingReview.class));
     }
 
     @Test
@@ -307,6 +323,8 @@ class ReviewServiceTest {
         Instant now = Instant.now();
         return new ListingResponse(id, 1L, ownerId, ListingType.SALE,
                 new BigDecimal("80000000.00"), "NGN", null, null, null,
-                status, null, 0L, now, now, null);
+                null, null, null, null,
+                null, false,
+                status, null, 0L, now, now, null, null, null, null, null, null, null);
     }
 }

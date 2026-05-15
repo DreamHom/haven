@@ -1,6 +1,8 @@
 package com.dreamhomes.haven.admin.controller;
 
 import com.dreamhomes.haven.admin.dto.AdminListingResponse;
+import com.dreamhomes.haven.admin.dto.AdminListingLeadResponse;
+import com.dreamhomes.haven.admin.dto.ListingModerationSnapshotResponse;
 import com.dreamhomes.haven.admin.dto.TakedownListingRequest;
 import com.dreamhomes.haven.admin.service.AdminListingService;
 import com.dreamhomes.haven.auth.JwtPrincipal;
@@ -18,6 +20,11 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -32,6 +39,71 @@ import org.springframework.web.bind.annotation.RestController;
 public class AdminListingController {
 
     private final AdminListingService adminListingService;
+
+    @Operation(
+            summary = "Admin listing catalogue",
+            description = """
+                    Paginated view of listings across the platform for moderation dashboards. \
+                    Optional `status` filter (e.g. `TAKEN_DOWN`, `LIVE`). Newest first.
+                    """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Paginated listings."),
+            @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthenticated"),
+            @ApiResponse(responseCode = "403", ref = "#/components/responses/Forbidden")
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @GetMapping
+    public Page<ListingResponse> catalog(
+            @Parameter(description = "Optional listing status filter.")
+            @RequestParam(required = false) com.dreamhomes.haven.listing.model.ListingStatus status,
+            @PageableDefault(size = 20) Pageable pageable) {
+        return adminListingService.catalog(status, pageable);
+    }
+
+    @Operation(
+            summary = "Moderation snapshot for a listing",
+            description = """
+                    Returns the full listing + property payload even when the listing is \
+                    `TAKEN_DOWN` and therefore invisible on public `GET /api/listings/{id}`. \
+                    Includes gallery photo count and the latest takedown audit snippet when present.
+                    """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Snapshot assembled."),
+            @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthenticated"),
+            @ApiResponse(responseCode = "403", ref = "#/components/responses/Forbidden"),
+            @ApiResponse(responseCode = "404", ref = "#/components/responses/NotFound")
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @GetMapping("/{id}/moderation-snapshot")
+    public ListingModerationSnapshotResponse moderationSnapshot(
+            @Parameter(description = "Listing ID.", example = "17")
+            @PathVariable Long id) {
+        return adminListingService.moderationSnapshot(id);
+    }
+
+    @Operation(
+            summary = "List leads for a listing (moderation)",
+            description = """
+                    Paginated applicant interest rows for a listing. Contact fields are always \
+                    included for admin review (unlike the owner endpoint before reveal).
+                    """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Paginated leads."),
+            @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthenticated"),
+            @ApiResponse(responseCode = "403", ref = "#/components/responses/Forbidden"),
+            @ApiResponse(responseCode = "404", ref = "#/components/responses/NotFound")
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @GetMapping("/{id}/leads")
+    public Page<AdminListingLeadResponse> listingLeads(
+            @Parameter(description = "Listing ID.", example = "17")
+            @PathVariable Long id,
+            @PageableDefault(size = 20) Pageable pageable) {
+        return adminListingService.listingLeads(id, pageable);
+    }
 
     @Operation(
             summary = "Re-publish a previously taken-down listing",
@@ -56,8 +128,11 @@ public class AdminListingController {
     public AdminListingResponse approve(
             @AuthenticationPrincipal JwtPrincipal principal,
             @Parameter(description = "Listing ID.", example = "17")
-            @PathVariable Long id) {
-        return toAdminResponse(adminListingService.approve(principal.userId(), id));
+            @PathVariable Long id,
+            @Valid @RequestBody(required = false)
+            com.dreamhomes.haven.admin.dto.RepublishListingRequest request) {
+        String reason = request == null ? null : request.reason();
+        return toAdminResponse(adminListingService.approve(principal.userId(), id, reason));
     }
 
     @Operation(

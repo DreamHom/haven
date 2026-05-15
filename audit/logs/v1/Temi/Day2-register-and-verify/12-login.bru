@@ -1,0 +1,35 @@
+meta {
+  name: 12-Log in to actually get a JWT
+  type: http
+  seq: 12
+}
+
+post {
+  url: {{host}}/api/auth/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "temi.adebayo.yaba+{{run_tag}}@gmail.com",
+    "password": "Yaba-First-Move-2026!"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.token: isDefined
+}
+
+script:post-response {
+  if (res.body && res.body.token) {
+    bru.setVar("temi_token", res.body.token);
+  }
+}
+
+docs {
+  Logging in to capture the JWT. The register endpoint returns 202
+  with empty body — no token — so I have to log in as a separate
+  step. I'd never expect that on a consumer app.
+}

@@ -1,0 +1,34 @@
+meta {
+  name: 05-ChangePriceAndResume
+  type: http
+  seq: 5
+}
+
+patch {
+  url: {{host}}/api/listings/{{amakaListingId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{amakaJwt}}
+}
+
+body:json {
+  {
+    "askingPrice": 4200000,
+    "status": "LIVE"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq LIVE
+  res.body.askingPrice: eq 4200000
+}
+
+docs {
+  # OK after thinking I dropped the price by ₦300k and put it back live.
+
+  ✅ Worked.
+}

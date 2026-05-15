@@ -1,0 +1,42 @@
+meta {
+  name: 02-PublishListing-A2
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{host}}/api/listings
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{biodunJwt}}
+}
+
+body:json {
+  {
+    "propertyId": {{propertyA2}},
+    "listingType": "SALE",
+    "askingPrice": 32000000,
+    "currency": "NGN",
+    "agencyFee": 1600000
+  }
+}
+
+assert {
+  res.status: eq 201
+}
+
+script:post-response {
+  if (res.body && res.body.id) {
+    bru.setVar("listingA2", res.body.id);
+  }
+}
+
+docs {
+  # Identical price to A1. Most of my 1-beds will sell at the same price.
+  # If I had a "duplicate listing for property X" I would not need this
+  # request at all. Or at minimum a "create listing × N from this
+  # template" call.
+}

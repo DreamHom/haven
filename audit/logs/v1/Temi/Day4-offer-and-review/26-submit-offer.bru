@@ -1,0 +1,46 @@
+meta {
+  name: 26-Submit my first offer
+  type: http
+  seq: 26
+}
+
+post {
+  url: {{host}}/api/offers
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{temi_token}}
+}
+
+body:json {
+  {
+    "listingId": 1,
+    "amount": 780000,
+    "currency": "NGN",
+    "message": "Hi! I came for the inspection on Saturday and I love the place. ₦780,000 is what I can do for the year — I have 1 year up front ready to transfer. Please let me know."
+  }
+}
+
+assert {
+  res.status: in [201, 400, 401, 403, 404, 409]
+}
+
+docs {
+  After the inspection IRL on Saturday I'm offering ₦780,000 — a
+  bit below the asking ₦850k because that's still on the high end
+  for a self-con in Yaba (₦700k–₦900k is the market band per my
+  research).
+
+  No fields for "move-in date", "lease length", or "any conditions
+  (landlord must repaint)". Just amount + free-text message. So
+  every meaningful term has to live in `message` — and the owner
+  has to manually parse it. As a real renter I'd expect structured
+  fields for at least move-in date and lease length.
+
+  Also: the spec says I can only have one PENDING offer per
+  listing — so if I get the amount wrong here I have to wait for
+  the owner to decline or I have to counter myself. There's no
+  edit / withdraw on `/offers/{id}`.
+}

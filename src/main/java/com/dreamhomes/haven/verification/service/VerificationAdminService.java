@@ -13,6 +13,7 @@ import java.time.Instant;
 import com.dreamhomes.haven.verification.dto.VerificationAdminView;
 import com.dreamhomes.haven.verification.exception.VerificationAlreadyDecidedException;
 import com.dreamhomes.haven.verification.exception.VerificationNotFoundException;
+import com.dreamhomes.haven.verification.mapping.VerificationAdminMapper;
 import com.dreamhomes.haven.verification.model.Verification;
 import com.dreamhomes.haven.verification.model.VerificationStatus;
 import com.dreamhomes.haven.verification.model.VerificationType;
@@ -42,12 +43,38 @@ public class VerificationAdminService {
     private final VerificationRepository verificationRepository;
     private final UserAdminService userAdminService;
     private final PropertyService propertyService;
+    private final VerificationAdminMapper verificationAdminMapper;
 
     @Transactional(readOnly = true)
     public Page<VerificationAdminView> listPending(VerificationType type, Pageable pageable) {
+        return list(type, VerificationStatus.PENDING, pageable);
+    }
+
+    /**
+     * Unified admin queue read: both {@code type} and {@code status} are optional.
+     * Persona audit (Dayo) flagged that requiring {@code ?type=...} forced a
+     * four-call fan-out to assemble the morning queue.
+     */
+    @Transactional(readOnly = true)
+    public Page<VerificationAdminView> list(VerificationType type, VerificationStatus status, Pageable pageable) {
+        if (type != null && status != null) {
+            return verificationRepository
+                    .findByTypeAndStatusOrderBySubmittedAtAsc(type, status, pageable)
+                    .map(verificationAdminMapper::toView);
+        }
+        if (type != null) {
+            return verificationRepository
+                    .findByTypeOrderBySubmittedAtAsc(type, pageable)
+                    .map(verificationAdminMapper::toView);
+        }
+        if (status != null) {
+            return verificationRepository
+                    .findByStatusOrderBySubmittedAtAsc(status, pageable)
+                    .map(verificationAdminMapper::toView);
+        }
         return verificationRepository
-                .findByTypeAndStatusOrderBySubmittedAtAsc(type, VerificationStatus.PENDING, pageable)
-                .map(VerificationAdminService::toView);
+                .findAllByOrderBySubmittedAtAsc(pageable)
+                .map(verificationAdminMapper::toView);
     }
 
     @Transactional
@@ -64,7 +91,7 @@ public class VerificationAdminService {
 
         log.info("Admin {} approved verificationId={} type={}",
                 adminId, verification.getId(), verification.getType());
-        return toView(verification);
+        return verificationAdminMapper.toView(verification);
     }
 
     @Transactional
@@ -82,7 +109,7 @@ public class VerificationAdminService {
 
         log.info("Admin {} rejected verificationId={} type={} reason='{}'",
                 adminId, verification.getId(), verification.getType(), reason);
-        return toView(verification);
+        return verificationAdminMapper.toView(verification);
     }
 
     private Verification loadPending(Long id) {
@@ -110,11 +137,4 @@ public class VerificationAdminService {
         }
     }
 
-    static VerificationAdminView toView(Verification v) {
-        return new VerificationAdminView(
-                v.getId(), v.getType(), v.getStatus(),
-                v.getSubmitterUserId(), v.getTargetUserId(), v.getTargetPropertyId(),
-                v.getDocumentRefs(), v.getSubmittedAt(),
-                v.getDecidedAt(), v.getDecidedByAdminId(), v.getDecisionReason());
-    }
 }

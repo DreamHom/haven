@@ -1,0 +1,25 @@
+meta {
+  name: 06-ApproveNonExistentShould404
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{host}}/api/admin/verifications/9999999/approve
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{jwt}}
+}
+
+assert {
+  res.status: eq 404
+}
+
+docs {
+  # Approving a verification ID that does not exist must 404 cleanly,
+  # not 500. If it 500s the admin endpoints are leaking framework errors
+  # which is a small but real information-disclosure problem.
+}

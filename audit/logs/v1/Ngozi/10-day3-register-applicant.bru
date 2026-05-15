@@ -1,0 +1,38 @@
+meta {
+  name: 10-day3-register-applicant
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{host}}/api/auth/register
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "ngozi.eze.lagos+{{run_tag}}@gmail.com",
+    "password": "Surulere2-bedr00m!",
+    "fullName": "Ngozi Eze",
+    "displayName": "Ngozi E.",
+    "phone": "+2348061234567",
+    "role": "APPLICANT",
+    "publicRole": false
+  }
+}
+
+assert {
+  res.status: in [200, 201, 202]
+}
+
+docs {
+  # Day 3, Saturday morning — I gave in. I'm registering. I'm using a
+  # plus-tag on my Gmail so I can throw this account away later if
+  # they start spamming me. APPLICANT — I have no intention of
+  # listing anything; I just want to bid on a flat in Surulere.
+  #
+  # I expect to get either a confirmation email or a JWT back. If they
+  # send me a verification email, that's reassuring. If they just say
+  # "registered, log in" — fine.
+}

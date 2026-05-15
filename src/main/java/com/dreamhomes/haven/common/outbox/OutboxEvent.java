@@ -1,21 +1,24 @@
 package com.dreamhomes.haven.common.outbox;
 
+
+import com.dreamhomes.haven.inspection.model.InspectionRequest;
+import com.dreamhomes.haven.offer.model.Offer;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.time.Instant;
+import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
-import java.time.Instant;
-import java.util.UUID;
-import com.dreamhomes.haven.inspection.model.InspectionRequest;
-import com.dreamhomes.haven.offer.model.Offer;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 /**
  * One row per cross-service event. Written in the same transaction as the domain row
  * that produced it; a scheduled {@link OutboxRelay} ships it to Kafka later and marks
@@ -23,6 +26,7 @@ import com.dreamhomes.haven.offer.model.Offer;
  * re-publishes on its next tick (at-least-once); consumers dedup by {@code eventId}.
  */
 @Entity
+@EntityListeners(AuditingEntityListener.class)
 @Table(name = "outbox")
 @Getter
 @Setter
@@ -59,6 +63,8 @@ public class OutboxEvent {
 
     @Column(nullable = false, columnDefinition = "TEXT")
     private String payload;
+
+    @CreatedDate
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

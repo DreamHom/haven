@@ -1,22 +1,26 @@
 package com.dreamhomes.haven.user.model;
 
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.time.Instant;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
-import java.time.Instant;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 @Entity
+@EntityListeners(AuditingEntityListener.class)
 @Table(name = "users")
 @Getter
 @Setter
@@ -53,6 +57,31 @@ public class User {
 
     @Column(length = 32)
     private String phone;
+
+    /**
+     * Optional narrative for public profile pages (owners, agents, applicants). Never
+     * contains email or phone — those stay on private surfaces only.
+     */
+    @Column(name = "public_bio", columnDefinition = "TEXT")
+    private String publicBio;
+
+    /** Public avatar / headshot URL (all roles). Optional. */
+    @Column(name = "profile_image_url", length = 2048)
+    private String profileImageUrl;
+
+    /**
+     * Opaque JSON preferences for email/push/in-app toggles. Stored as TEXT until a
+     * structured schema stabilises across clients.
+     */
+    @Column(name = "notification_preferences", nullable = false, columnDefinition = "TEXT")
+    @Builder.Default
+    private String notificationPreferences = "{}";
+
+    /** When set, the account is closed — login and JWT loads fail as if the user vanished. */
+    @Column(name = "account_deleted_at")
+    private Instant accountDeletedAt;
+
+    @CreatedDate
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

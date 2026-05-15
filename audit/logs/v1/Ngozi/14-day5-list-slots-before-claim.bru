@@ -1,0 +1,21 @@
+meta {
+  name: 14-day5-list-slots-before-claim
+  type: http
+  seq: 14
+}
+
+get {
+  url: {{host}}/api/listings/17/slots
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: lte 404
+}
+
+docs {
+  # Day 5 — Tuesday afternoon. Re-checking what slots are still open
+  # before I claim one. I want a slot at 11am Saturday so my husband
+  # can drive me there.
+}

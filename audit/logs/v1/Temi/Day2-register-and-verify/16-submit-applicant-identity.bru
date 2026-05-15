@@ -1,0 +1,50 @@
+meta {
+  name: 16-Submit APPLICANT_IDENTITY verification
+  type: http
+  seq: 16
+}
+
+post {
+  url: {{host}}/api/verifications
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{temi_token}}
+}
+
+body:json {
+  {
+    "type": "APPLICANT_IDENTITY",
+    "documentRefs": {
+      "nin": {
+        "url": "https://res.cloudinary.com/dreamhomes-mock/image/upload/v1/temi-nin-front.jpg",
+        "label": "NIN slip front"
+      }
+    }
+  }
+}
+
+assert {
+  res.status: in [201, 400, 403, 409]
+}
+
+docs {
+  My persona doc says I should submit a NIN to get the verified-
+  applicant badge so owners take my offers seriously. But there is
+  NO file-upload endpoint for `/verifications` in the spec — only
+  `documentRefs` which is a free-form `Map<String, Object>`. I
+  literally have no idea what shape it expects.
+
+  - Should the keys be specific enum values like `nin`, `passport`?
+  - Should the value be a string URL or an object with a URL?
+  - Where am I supposed to host the image — am I expected to
+    upload to my own Cloudinary first? Where's the platform's file-
+    upload?
+
+  I'm guessing at a `{nin: {url, label}}` shape because that is the
+  most "obviously correct" thing a developer would write. A real
+  Lagos user filling a verification form would never figure this
+  out. Major UX gap.
+}

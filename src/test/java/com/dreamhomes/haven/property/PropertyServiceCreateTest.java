@@ -30,7 +30,9 @@ class PropertyServiceCreateTest {
 
     @BeforeEach
     void setUp() {
-        propertyService = new PropertyService(propertyRepository);
+        propertyService = new PropertyService(propertyRepository, new com.dreamhomes.haven.property.PropertyMapperImpl(),
+                org.mockito.Mockito.mock(com.dreamhomes.haven.listing.ListingRepository.class),
+                org.mockito.Mockito.mock(com.dreamhomes.haven.listing.embedding.ListingSearchEmbeddingService.class));
     }
 
     @Test
@@ -43,7 +45,7 @@ class PropertyServiceCreateTest {
 
         Property result = propertyService.create(99L, new CreatePropertyCommand(
                 PropertyType.APARTMENT, "12 Lekki Phase 1, Lagos",
-                3, 2, new BigDecimal("128.50"), "Top floor, ocean view"));
+                3, 2, new BigDecimal("128.50"), "Top floor, ocean view", null, null));
 
         ArgumentCaptor<Property> captor = ArgumentCaptor.forClass(Property.class);
         verify(propertyRepository).save(captor.capture());
@@ -53,14 +55,15 @@ class PropertyServiceCreateTest {
         assertThat(persisted.getAddress()).isEqualTo("12 Lekki Phase 1, Lagos");
         assertThat(persisted.getBedrooms()).isEqualTo(3);
         assertThat(persisted.getBathrooms()).isEqualTo(2);
-        assertThat(persisted.getCreatedAt()).isNotNull();
+        // createdAt is populated by JPA auditing on persist (Property has @CreatedDate);
+        // not the service's responsibility. PropertyRepositoryIT verifies the persist path.
         assertThat(result.getId()).isEqualTo(7L);
     }
 
     @Test
     void rejectsApartmentMissingBedroomsBeforeCallingSave() {
         assertThatThrownBy(() -> propertyService.create(1L, new CreatePropertyCommand(
-                PropertyType.APARTMENT, "Address", null, 2, null, null)))
+                PropertyType.APARTMENT, "Address", null, 2, null, null, null, null)))
                 .isInstanceOf(InvalidPropertyForTypeException.class);
 
         verify(propertyRepository, never()).save(any());
@@ -69,7 +72,7 @@ class PropertyServiceCreateTest {
     @Test
     void rejectsHouseMissingBathroomsBeforeCallingSave() {
         assertThatThrownBy(() -> propertyService.create(1L, new CreatePropertyCommand(
-                PropertyType.HOUSE, "Address", 4, null, null, null)))
+                PropertyType.HOUSE, "Address", 4, null, null, null, null, null)))
                 .isInstanceOf(InvalidPropertyForTypeException.class);
 
         verify(propertyRepository, never()).save(any());
@@ -81,7 +84,7 @@ class PropertyServiceCreateTest {
 
         Property result = propertyService.create(1L, new CreatePropertyCommand(
                 PropertyType.LAND, "5 acres along Lekki-Epe expressway",
-                null, null, new BigDecimal("20235.00"), null));
+                null, null, new BigDecimal("20235.00"), null, null, null));
 
         assertThat(result.getType()).isEqualTo(PropertyType.LAND);
         assertThat(result.getBedrooms()).isNull();
@@ -94,7 +97,7 @@ class PropertyServiceCreateTest {
 
         Property result = propertyService.create(1L, new CreatePropertyCommand(
                 PropertyType.COMMERCIAL, "Office tower, Victoria Island",
-                null, null, new BigDecimal("500.00"), null));
+                null, null, new BigDecimal("500.00"), null, null, null));
 
         assertThat(result.getType()).isEqualTo(PropertyType.COMMERCIAL);
     }

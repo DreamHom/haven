@@ -37,25 +37,25 @@ import com.dreamhomes.haven.inspection.controller.InspectionSlotController;
 import com.dreamhomes.haven.inspection.service.InspectionSlotService;
 
 @WebMvcTest(InspectionSlotController.class)
-@Import(SecurityConfig.class)
+@Import({SecurityConfig.class, com.dreamhomes.haven.support.JwtCookieTestStubConfiguration.class, com.dreamhomes.haven.inspection.mapping.InspectionSlotMapperImpl.class})
 @TestPropertySource(properties = {
         "haven.rate-limit.enabled=false",
         "cors.allowed-origins=http://localhost:3000",
-        "jwt.secret=test-secret-not-a-placeholder-and-32-bytes-or-more",
-        "jwt.expiration-ms=3600000",
-        "jwt.issuer=test-issuer",
-        "jwt.audience=test-audience"
+        "haven.jwt.expiration-ms=3600000",
+        "haven.jwt.issuer=test-issuer",
+        "haven.jwt.audience=test-audience"
 })
 class InspectionSlotControllerTest {
 
     @Autowired MockMvc mockMvc;
     @MockBean InspectionSlotService slotService;
     @MockBean JwtService jwtService;
+    @MockBean com.dreamhomes.haven.auth.blocklist.JwtBlocklistRepository jwtBlocklistRepository;
     @MockBean UserCredentialsService userCredentialsService;
 
     @Test
     void ownerCreatesSlotReturns201WithSlotSummary() throws Exception {
-        when(slotService.create(eq(99L), eq(7L), any(CreateSlotCommand.class)))
+        when(slotService.create(eq(99L), eq(Role.OWNER), eq(7L), any(CreateSlotCommand.class)))
                 .thenAnswer(inv -> InspectionSlot.builder()
                         .id(123L).listingId(7L)
                         .startsAt(Instant.parse("2026-06-01T10:00:00Z"))
@@ -89,7 +89,7 @@ class InspectionSlotControllerTest {
                                 """))
                 .andExpect(status().isForbidden());
 
-        verify(slotService, never()).create(any(), any(), any());
+        verify(slotService, never()).create(any(), any(), any(), any());
     }
 
     @Test

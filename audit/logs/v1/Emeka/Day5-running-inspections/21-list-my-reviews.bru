@@ -1,0 +1,29 @@
+meta {
+  name: 21-List the reviews I've received
+  type: http
+  seq: 21
+}
+
+get {
+  url: {{host}}/api/users/{{emeka_user_id}}/reviews?page=0&size=20
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{emeka_jwt}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  My reviews — the ones owners and applicants will scroll. Solo run
+  this is empty (no closed deals yet) but the endpoint exists and
+  paginates, which is the right shape.
+
+  GAP: no way for me to RESPOND to a review (e.g., "thanks Temi —
+  it was a pleasure"). Every other agent platform supports that.
+  Right now my reputation is one-way.
+}

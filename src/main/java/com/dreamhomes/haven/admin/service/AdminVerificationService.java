@@ -51,6 +51,18 @@ public class AdminVerificationService {
         return verificationAdminService.listPending(type, pageable);
     }
 
+    /**
+     * Unified read — both {@code type} and {@code status} are optional. Persona audit
+     * (Dayo) flagged that requiring {@code ?type=} forced a four-call fan-out to
+     * assemble the morning queue.
+     */
+    @Transactional(readOnly = true)
+    public Page<VerificationAdminView> list(VerificationType type,
+                                            com.dreamhomes.haven.verification.model.VerificationStatus status,
+                                            Pageable pageable) {
+        return verificationAdminService.list(type, status, pageable);
+    }
+
     @Transactional
     public VerificationAdminView approve(Long adminId, Long verificationId, String reason) {
         VerificationAdminView decided = verificationAdminService.approve(adminId, verificationId, reason);
@@ -92,7 +104,6 @@ public class AdminVerificationService {
                 .targetType(AuditTargetType.VERIFICATION)
                 .targetId(v.id())
                 .metadata(serialize(metadata))
-                .createdAt(Instant.now())
                 .build());
     }
 

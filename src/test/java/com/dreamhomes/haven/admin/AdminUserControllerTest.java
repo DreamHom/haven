@@ -37,20 +37,20 @@ import com.dreamhomes.haven.admin.controller.AdminUserController;
 import com.dreamhomes.haven.admin.service.AdminUserService;
 
 @WebMvcTest(AdminUserController.class)
-@Import(SecurityConfig.class)
+@Import({SecurityConfig.class, com.dreamhomes.haven.support.JwtCookieTestStubConfiguration.class})
 @TestPropertySource(properties = {
         "haven.rate-limit.enabled=false",
         "cors.allowed-origins=http://localhost:3000",
-        "jwt.secret=test-secret-not-a-placeholder-and-32-bytes-or-more",
-        "jwt.expiration-ms=3600000",
-        "jwt.issuer=test-issuer",
-        "jwt.audience=test-audience"
+        "haven.jwt.expiration-ms=3600000",
+        "haven.jwt.issuer=test-issuer",
+        "haven.jwt.audience=test-audience"
 })
 class AdminUserControllerTest {
 
     @Autowired MockMvc mockMvc;
     @MockBean AdminUserService adminUserService;
     @MockBean JwtService jwtService;
+    @MockBean com.dreamhomes.haven.auth.blocklist.JwtBlocklistRepository jwtBlocklistRepository;
     @MockBean UserCredentialsService userCredentialsService;
 
     @Test
@@ -96,7 +96,7 @@ class AdminUserControllerTest {
     @Test
     void adminReactivatesUserReturns200WithSuspendedAtCleared() throws Exception {
         UserAdminView reactivated = view(50L, Role.OWNER, null);
-        when(adminUserService.reactivate(eq(7L), eq(50L))).thenReturn(reactivated);
+        when(adminUserService.reactivate(eq(7L), eq(50L), org.mockito.ArgumentMatchers.isNull())).thenReturn(reactivated);
 
         mockMvc.perform(post("/api/admin/users/50/reactivate")
                         .with(asPrincipal(7L, Role.ADMIN)))

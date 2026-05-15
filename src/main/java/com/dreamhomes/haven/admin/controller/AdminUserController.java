@@ -1,9 +1,11 @@
 package com.dreamhomes.haven.admin.controller;
 
+import com.dreamhomes.haven.admin.dto.ReactivateUserRequest;
 import com.dreamhomes.haven.admin.dto.SuspendUserRequest;
 import com.dreamhomes.haven.admin.service.AdminUserService;
 import com.dreamhomes.haven.auth.JwtPrincipal;
 import com.dreamhomes.haven.user.dto.UserAdminView;
+import com.dreamhomes.haven.user.model.Role;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -15,12 +17,17 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -107,7 +114,41 @@ public class AdminUserController {
     public UserAdminView reactivate(
             @AuthenticationPrincipal JwtPrincipal principal,
             @Parameter(description = "User ID to reactivate.", example = "23")
-            @PathVariable Long id) {
-        return adminUserService.reactivate(principal.userId(), id);
+            @PathVariable Long id,
+            @Valid @RequestBody(required = false) ReactivateUserRequest request) {
+        String reason = request == null ? null : request.reason();
+        return adminUserService.reactivate(principal.userId(), id, reason);
+    }
+
+    @Operation(
+            summary = "Search users (admin)",
+            description = """
+                    Paginated admin search. Filters are optional and combine with AND:
+                    - `email` — case-insensitive substring (tickets arrive with emails)
+                    - `suspended` — tri-state (omit = all, true = only suspended, false = only active)
+                    - `role` — restrict to a specific role
+
+                    Persona audit (Dayo): "probing /users/2/profile, /users/3/profile to find a
+                    target is not a workflow." This endpoint replaces that workaround.
+
+                    **Role gate**: `ADMIN`.
+                    """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Paginated admin view of matching users."),
+            @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthenticated"),
+            @ApiResponse(responseCode = "403", ref = "#/components/responses/Forbidden")
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @GetMapping
+    public Page<UserAdminView> search(
+            @Parameter(description = "Case-insensitive substring of the user's email.")
+            @RequestParam(required = false) String email,
+            @Parameter(description = "Only suspended (true) or only active (false). Omit for both.")
+            @RequestParam(required = false) Boolean suspended,
+            @Parameter(description = "Filter to a single role.")
+            @RequestParam(required = false) Role role,
+            @PageableDefault(size = 20) Pageable pageable) {
+        return adminUserService.adminSearch(email, suspended, role, pageable);
     }
 }

@@ -159,15 +159,17 @@ found on a wall.
 **So that** I can physically inspect the property.
 
 **Acceptance criteria**
-- [x] `POST /listings/{id}/inspection-requests` referencing a slot ID.
-- [x] Slot becomes unavailable to others (state machine + DB constraint).
-- [x] Owner + assigned agent get a notification.
+- [x] `POST /api/inspections` with `{ "slotId": <slotId> }` in the body.
+- [x] Slot becomes unavailable to other applicants (partial UQ on `inspection_requests(slot_id) WHERE status IN (PENDING, APPROVED)`).
+- [x] Owner + assigned agent get a Kafka-backed `INSPECTION_REQUESTED` notification.
 - [x] I get a notification confirming.
-- [x] I can cancel before the slot time? *(confirm — may not be in current scope)*
+- [x] I can cancel my own PENDING request via `DELETE /api/inspections/{id}`. Owner approval of the request is **not yet** a backend feature (see Amaka Story 9) — the request stays PENDING until the slot time arrives or I cancel.
 
 **Endpoints involved**
-- `GET /listings/{id}/slots` (find an open slot)
-- `POST /listings/{id}/inspection-requests`
+- `GET /api/listings/{id}/slots` (find an open slot — public, no auth).
+- `POST /api/inspections` (claim the slot).
+- `GET /api/inspections/mine` (my requests).
+- `DELETE /api/inspections/{id}` (cancel mine).
 
 ---
 
@@ -185,9 +187,9 @@ found on a wall.
 - [x] I can ACCEPT, DECLINE, or COUNTER the counter.
 
 **Endpoints involved**
-- `POST /listings/{id}/offers`
-- `POST /offers/{id}/respond`
-- `POST /offers/{id}/counter`
+- `POST /api/listings/{id}/offers`
+- `PATCH /api/offers/{id}` (body: `{ "status": "ACCEPTED" | "DECLINED", "reason": "..." }` — same endpoint owner uses; service rejects "responding to your own proposal" with 403)
+- `POST /api/offers/{id}/counter`
 
 ---
 
@@ -245,7 +247,7 @@ Temi's chronological flow:
 3. **Save a couple to come back to** → register first → `POST /auth/register`, then `POST /listings/{id}/save` × 3.
 4. **Submit applicant identity verification** → `POST /verifications`.
 5. **Wait for Dayo's approval.**
-6. **Pick a slot for the weekend** → `POST /listings/{id}/inspection-requests`.
+6. **Pick a slot for the weekend** → `POST /api/inspections`.
 7. **Inspection happens IRL.**
 8. **Submit an offer at her budget** → `POST /listings/{id}/offers`.
 9. **Get an OFFER_COUNTER notification — owner countered higher.**

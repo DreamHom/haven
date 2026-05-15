@@ -1,0 +1,41 @@
+meta {
+  name: 07-Try to submit again (the duplicate-pending guard)
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{host}}/api/verifications
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{emeka_jwt}}
+}
+
+body:json {
+  {
+    "type": "AGENT_CREDENTIALS",
+    "documentRefs": {
+      "kind": "NIPRA_LICENSE",
+      "ref": "https://files.dreamhomes.example/agents/emeka-okorie-nipra-license-v2.pdf",
+      "note": "I refreshed the scan, hoping this overwrites the first one"
+    }
+  }
+}
+
+assert {
+  res.status: eq 409
+}
+
+docs {
+  I'm anxious — did my first submission go through? Let me try again.
+  Per spec this should 409 because there's already a PENDING entry.
+
+  Real-user concern: I'm not trying to duplicate, I just want to
+  REPLACE my submission with a clearer scan. The fact that my only
+  recourse is "wait for the admin to reject, then resubmit" is a
+  miserable loop. There should be a PATCH /verifications/{id} or
+  DELETE /verifications/{id} for an unfinished submission.
+}

@@ -4,6 +4,7 @@ import com.dreamhomes.haven.auth.JwtPrincipal;
 import com.dreamhomes.haven.inspection.dto.CreateSlotCommand;
 import com.dreamhomes.haven.inspection.dto.CreateSlotRequest;
 import com.dreamhomes.haven.inspection.dto.SlotResponse;
+import com.dreamhomes.haven.inspection.mapping.InspectionSlotMapper;
 import com.dreamhomes.haven.inspection.model.InspectionSlot;
 import com.dreamhomes.haven.inspection.service.InspectionSlotService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -38,6 +39,7 @@ import java.util.List;
 public class InspectionSlotController {
 
     private final InspectionSlotService slotService;
+    private final InspectionSlotMapper inspectionSlotMapper;
 
     @Operation(
             summary = "Open an inspection slot on a listing",
@@ -45,9 +47,8 @@ public class InspectionSlotController {
                     Records an `InspectionSlot` window during which applicants can claim an \
                     inspection. Slots are publicly visible to anyone browsing the listing.
 
-                    **Authorisation**: the listing's owner (today). Assigned-agent slot \
-                    creation is wired in the service layer for when the AgentListing flow \
-                    grants the agent permission.
+                    **Authorisation**: the listing's **owner** or an **assigned agent** in \
+                    `ACCEPTED` status on the listing may open slots. Other callers receive 403.
 
                     **Overlap constraint**: enforced by a Postgres `EXCLUDE USING GIST` \
                     constraint on `(listing_id, time_range)`. Trying to open a slot that \
@@ -73,14 +74,14 @@ public class InspectionSlotController {
     @SecurityRequirement(name = "bearerAuth")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasRole('OWNER')")
+    @PreAuthorize("hasAnyRole('OWNER', 'AGENT')")
     public SlotResponse create(@AuthenticationPrincipal JwtPrincipal principal,
                                @Parameter(description = "Listing ID.", example = "17")
                                @PathVariable Long listingId,
                                @Valid @RequestBody CreateSlotRequest request) {
-        InspectionSlot saved = slotService.create(principal.userId(), listingId,
+        InspectionSlot saved = slotService.create(principal.userId(), principal.role(), listingId,
                 new CreateSlotCommand(request.startsAt(), request.endsAt()));
-        return toResponse(saved);
+        return inspectionSlotMapper.toResponse(saved);
     }
 
     @Operation(
@@ -115,11 +116,8 @@ public class InspectionSlotController {
             @Parameter(description = "Listing ID.", example = "17")
             @PathVariable Long listingId) {
         return slotService.listAvailableForListing(listingId).stream()
-                .map(InspectionSlotController::toResponse)
+                .map(inspectionSlotMapper::toResponse)
                 .toList();
     }
 
-    private static SlotResponse toResponse(InspectionSlot s) {
-        return new SlotResponse(s.getId(), s.getListingId(), s.getStartsAt(), s.getEndsAt());
-    }
 }

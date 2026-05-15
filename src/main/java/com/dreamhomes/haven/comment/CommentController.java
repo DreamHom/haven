@@ -1,8 +1,10 @@
 package com.dreamhomes.haven.comment;
 
 import com.dreamhomes.haven.auth.JwtPrincipal;
+import com.dreamhomes.haven.comment.dto.CommentFlagResponse;
 import com.dreamhomes.haven.comment.dto.CommentResponse;
 import com.dreamhomes.haven.comment.dto.DeleteCommentRequest;
+import com.dreamhomes.haven.comment.dto.FlagCommentRequest;
 import com.dreamhomes.haven.comment.dto.PostCommentRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -19,7 +21,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -29,6 +31,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -43,6 +46,8 @@ public class CommentController {
     private static final int MAX_PAGE_SIZE = 100;
 
     private final CommentService commentService;
+    private final CommentMapper commentMapper;
+    private final CommentFlagService commentFlagService;
 
     @Operation(
             summary = "List comments on a listing",
@@ -76,7 +81,7 @@ public class CommentController {
             @Parameter(description = "Page size, capped at 100.", example = "20")
             @RequestParam(defaultValue = "20") int size) {
         Pageable pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), MAX_PAGE_SIZE));
-        return commentService.list(listingId, pageable).map(CommentController::toResponse);
+        return commentService.list(listingId, pageable).map(commentMapper::toResponse);
     }
 
     @Operation(
@@ -112,12 +117,42 @@ public class CommentController {
             @Parameter(description = "Listing ID.", example = "17")
             @PathVariable Long listingId,
             @Valid @RequestBody PostCommentRequest request) {
-        return toResponse(commentService.post(principal.userId(), listingId, request.body()));
+        return commentMapper.toResponse(commentService.post(principal.userId(), listingId, request.body()));
     }
 
-    static CommentResponse toResponse(Comment c) {
-        return new CommentResponse(c.getId(), c.getListingId(), c.getAuthorUserId(),
-                c.getBody(), c.getCreatedAt());
+    @Operation(
+            summary = "Flag a comment for moderation",
+            description = """
+                    Opens a moderation row for the comment. Authenticated users only; \
+                    duplicate open flags from the same reporter return 409 (partial unique index \
+                    in Postgres).
+
+                    The path listing id must match the comment's listing — otherwise 404.
+                    """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "201",
+                    description = "Flag recorded.",
+                    content = @Content(schema = @Schema(implementation = CommentFlagResponse.class))),
+            @ApiResponse(responseCode = "400", ref = "#/components/responses/ValidationFailed"),
+            @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthenticated"),
+            @ApiResponse(responseCode = "404", ref = "#/components/responses/NotFound"),
+            @ApiResponse(responseCode = "409", ref = "#/components/responses/Conflict")
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @PostMapping(value = "/api/listings/{listingId}/comments/{commentId}/flag",
+            consumes = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasAnyRole('OWNER', 'AGENT', 'APPLICANT', 'ADMIN')")
+    public CommentFlagResponse flag(
+            @AuthenticationPrincipal JwtPrincipal principal,
+            @Parameter(description = "Listing ID.", example = "17")
+            @PathVariable Long listingId,
+            @Parameter(description = "Comment ID.", example = "5")
+            @PathVariable Long commentId,
+            @Valid @RequestBody(required = false) FlagCommentRequest request) {
+        String reason = request == null ? null : request.reason();
+        return commentFlagService.flag(principal.userId(), listingId, commentId, reason);
     }
 
     @Operation(

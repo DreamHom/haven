@@ -1,0 +1,27 @@
+meta {
+  name: 02-Page 2 of listings
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/api/listings?page=1&size=10
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  Scrolling. There's no "load more" mental model for me as a user —
+  I expect infinite scroll on a property app — but the API is
+  page/size, which is fine for a backend. I'm just paging through.
+
+  No filters in the URL because the spec only documents `pageable`
+  with no `location`, `priceMin`, `priceMax`, or `bedrooms` query
+  params. That's surprising. I expected to be able to filter by
+  Yaba / VI and by ₦600k–₦1.2M because that's all I can afford.
+  Going to have to scroll through everything.
+}

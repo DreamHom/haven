@@ -1,10 +1,12 @@
 package com.dreamhomes.haven.common.config;
 
 import com.dreamhomes.haven.auth.JwtAuthenticationFilter;
+import com.dreamhomes.haven.dreamai.config.DreamAiRateLimitProperties;
+import com.dreamhomes.haven.common.web.ProblemDetailAuthenticationEntryPoint;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpStatus;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -13,7 +15,6 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -33,15 +34,23 @@ import java.util.List;
  */
 @Configuration
 @EnableMethodSecurity
+@EnableConfigurationProperties(DreamAiRateLimitProperties.class)
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final com.dreamhomes.haven.dreamai.ratelimit.DreamAiRateLimitFilter dreamAiRateLimitFilter;
     private final List<String> allowedOrigins;
+    private final String errorTypeBase;
 
     public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
-                          @Value("${cors.allowed-origins}") List<String> allowedOrigins) {
+                          com.dreamhomes.haven.dreamai.ratelimit.DreamAiRateLimitFilter dreamAiRateLimitFilter,
+                          @Value("${cors.allowed-origins}") List<String> allowedOrigins,
+                          @Value("${haven.errors.type-base:https://github.com/DreamHom/haven/blob/main/docs/errors/}")
+                          String errorTypeBase) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.dreamAiRateLimitFilter = dreamAiRateLimitFilter;
         this.allowedOrigins = allowedOrigins;
+        this.errorTypeBase = errorTypeBase;
     }
 
     @Bean
@@ -50,12 +59,18 @@ public class SecurityConfig {
     }
 
     @Bean
+    ProblemDetailAuthenticationEntryPoint problemDetailAuthenticationEntryPoint(
+            com.fasterxml.jackson.databind.ObjectMapper objectMapper) {
+        return new ProblemDetailAuthenticationEntryPoint(objectMapper, errorTypeBase);
+    }
+
+    @Bean
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration cfg = new CorsConfiguration();
-        cfg.setAllowedOrigins(allowedOrigins);
+        cfg.setAllowedOriginPatterns(allowedOrigins);
         cfg.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        cfg.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept"));
-        cfg.setExposedHeaders(List.of("Location"));
+        cfg.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "Cookie"));
+        cfg.setExposedHeaders(List.of("Location", "Retry-After"));
         cfg.setAllowCredentials(true);
         cfg.setMaxAge(3600L);
         UrlBasedCorsConfigurationSource src = new UrlBasedCorsConfigurationSource();
@@ -64,13 +79,22 @@ public class SecurityConfig {
     }
 
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    SecurityFilterChain securityFilterChain(HttpSecurity http,
+                                            ProblemDetailAuthenticationEntryPoint problemEntryPoint) throws Exception {
         return http
                 .cors(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/register", "/api/auth/login").permitAll()
+                        // Spring Boot's `/error` dispatcher renders the body for any servlet
+                        // forward (validation 400s, type-mismatch 400s, 404s on unmapped paths).
+                        // It MUST be permitAll, otherwise the auth filter rewrites every error
+                        // response to 401 — turning a "reason field empty" 400 into a misleading
+                        // "unauthenticated" 401. Persona audit (Dayo) caught this on the
+                        // RejectWithEmptyReason flow.
+                        .requestMatchers("/error").permitAll()
+                        .requestMatchers("/api/auth/register", "/api/auth/login",
+                                "/api/auth/forgot-password", "/api/auth/reset-password").permitAll()
                         // Liveness/readiness probes for load balancers + k8s. /actuator/prometheus
                         // is deliberately NOT in this list — scraping stays auth-gated.
                         .requestMatchers(org.springframework.http.HttpMethod.GET,
@@ -82,18 +106,32 @@ public class SecurityConfig {
                                 "/v3/api-docs", "/v3/api-docs/**",
                                 "/swagger-ui.html", "/swagger-ui/**",
                                 "/scalar.html").permitAll()
+                        // Public read endpoints — both GET and HEAD (HEAD probes for cache-friendliness
+                        // shouldn't require auth where GET doesn't; B-4 from persona audit).
                         .requestMatchers(org.springframework.http.HttpMethod.GET,
                                 "/api/listings", "/api/listings/*", "/api/listings/*/slots",
                                 "/api/listings/*/comments",
                                 "/api/listings/*/reviews",
                                 "/api/listings/*/photos",
+                                "/api/listings/*/videos",
                                 "/api/users/*/profile",
-                                "/api/users/*/reviews").permitAll()
+                                "/api/users/*/reviews",
+                                "/api/agents").permitAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.HEAD,
+                                "/api/listings", "/api/listings/*", "/api/listings/*/slots",
+                                "/api/listings/*/comments",
+                                "/api/listings/*/reviews",
+                                "/api/listings/*/photos",
+                                "/api/listings/*/videos",
+                                "/api/users/*/profile",
+                                "/api/users/*/reviews",
+                                "/api/agents").permitAll()
                         .anyRequest().authenticated())
-                .exceptionHandling(e -> e.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
+                .exceptionHandling(e -> e.authenticationEntryPoint(problemEntryPoint))
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(dreamAiRateLimitFilter, JwtAuthenticationFilter.class)
                 .build();
     }
 }

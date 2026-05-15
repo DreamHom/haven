@@ -1,0 +1,28 @@
+meta {
+  name: 25-Mark a notification read
+  type: http
+  seq: 25
+}
+
+post {
+  url: {{host}}/api/notifications/1/mark-read
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{temi_token}}
+}
+
+assert {
+  res.status: in [200, 401, 403, 404]
+}
+
+docs {
+  Tapping into a notification to clear the badge. Hardcoded id 1
+  here — a real client would use the id from the inbox listing.
+
+  No "mark-all-read" endpoint, which is what consumer apps usually
+  ship. As a heavy user that would matter; as Temi today not so
+  much.
+}

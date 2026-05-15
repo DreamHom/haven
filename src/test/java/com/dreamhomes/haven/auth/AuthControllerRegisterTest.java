@@ -1,7 +1,9 @@
 package com.dreamhomes.haven.auth;
 
+import com.dreamhomes.haven.auth.controller.AuthController;
+import com.dreamhomes.haven.auth.service.AuthService;
+import com.dreamhomes.haven.auth.service.JwtService;
 import com.dreamhomes.haven.common.config.SecurityConfig;
-import com.dreamhomes.haven.user.model.Role;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -11,44 +13,31 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.time.Instant;
-
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import com.dreamhomes.haven.auth.dto.RegisterRequest;
-import com.dreamhomes.haven.auth.dto.UserResponse;
-import com.dreamhomes.haven.user.model.User;
-import com.dreamhomes.haven.user.service.UserCredentialsService;
-import com.dreamhomes.haven.auth.controller.AuthController;
-import com.dreamhomes.haven.auth.exception.EmailAlreadyRegisteredException;
-import com.dreamhomes.haven.auth.service.AuthService;
-import com.dreamhomes.haven.auth.service.JwtService;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
 
 /**
- * Tests cover what the controller layer owns: response shape on success, exception
- * mapping on failure, the cross-field validation rules WE wrote on RegisterRequest
- * (admin self-registration block, agent licence requirement), and one smoke test that
- * @Valid is wired so future endpoints can rely on it. Single-field validators
- * (@StrictEmail, @NotCommonPassword, @Size) are tested in their own unit tests.
+ * Tests cover what the controller layer owns: response shape (always 202 + empty body for
+ * the anti-enumeration contract), the cross-field validation rules WE wrote on
+ * RegisterRequest (admin self-registration block, agent licence requirement), and one
+ * smoke test that @Valid is wired so future endpoints can rely on it. Single-field
+ * validators (@StrictEmail, @NotCommonPassword, @Size) are tested in their own unit tests.
  */
 @WebMvcTest(AuthController.class)
-@Import(SecurityConfig.class)
+@Import({SecurityConfig.class, com.dreamhomes.haven.support.JwtCookieTestStubConfiguration.class})
 @TestPropertySource(properties = {
         "haven.rate-limit.enabled=false",
         "cors.allowed-origins=http://localhost:3000",
-        "jwt.secret=test-secret-not-a-placeholder-and-32-bytes-or-more",
-        "jwt.expiration-ms=3600000",
-        "jwt.issuer=test-issuer",
-        "jwt.audience=test-audience"
+        "haven.jwt.expiration-ms=3600000",
+        "haven.jwt.issuer=test-issuer",
+        "haven.jwt.audience=test-audience"
 })
 class AuthControllerRegisterTest {
 
@@ -59,16 +48,22 @@ class AuthControllerRegisterTest {
     AuthService authService;
 
     @MockBean
+    com.dreamhomes.haven.auth.passwordreset.PasswordResetService passwordResetService;
+
+    @MockBean
     JwtService jwtService;
+
+    @MockBean
+    com.dreamhomes.haven.auth.blocklist.JwtBlocklistRepository jwtBlocklistRepository;
 
     @MockBean
     com.dreamhomes.haven.user.service.UserCredentialsService userCredentialsService;
 
-    @Test
-    void successfulRegistrationReturns201WithUserSummary() throws Exception {
-        when(authService.register(any())).thenReturn(new UserResponse(
-                42L, "ada@example.com", "Ada Lovelace", "Display Name", Role.APPLICANT, Instant.now()));
+    @MockBean
+    com.dreamhomes.haven.auth.cookie.JwtCookieService jwtCookieService;
 
+    @Test
+    void successfulRegistrationReturns202WithEmptyBody() throws Exception {
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -80,16 +75,15 @@ class AuthControllerRegisterTest {
                                   "role": "APPLICANT"
                                 }
                                 """))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id", is(42)))
-                .andExpect(jsonPath("$.email", is("ada@example.com")))
-                .andExpect(jsonPath("$.role", is("APPLICANT")));
+                .andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.status", is("ACCEPTED")))
+                .andExpect(jsonPath("$.nextStep", containsString("login")));
     }
 
     @Test
-    void duplicateEmailReturns409WithoutEchoingTheEmail() throws Exception {
-        when(authService.register(any())).thenThrow(new EmailAlreadyRegisteredException());
-
+    void duplicateEmailAlsoReturns202SoCallerCannotDistinguish() throws Exception {
+        // Service swallows the duplicate; controller surfaces the same 202 + empty body
+        // as a fresh registration. That equivalence IS the test — anti-enumeration.
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -100,8 +94,9 @@ class AuthControllerRegisterTest {
                                   "role": "OWNER"
                                 }
                                 """))
-                .andExpect(status().isConflict())
-                .andExpect(content().string(not(containsString("dup@example.com"))));
+                .andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.status", is("ACCEPTED")))
+                .andExpect(jsonPath("$.nextStep", containsString("login")));
     }
 
     @Test
@@ -143,9 +138,6 @@ class AuthControllerRegisterTest {
 
     @Test
     void agentRoleWithLicenceNumberIsAccepted() throws Exception {
-        when(authService.register(any())).thenReturn(new UserResponse(
-                99L, "agent@example.com", "An Agent", "Display Name", Role.AGENT, Instant.now()));
-
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -157,8 +149,9 @@ class AuthControllerRegisterTest {
                                   "licenseNumber": "LIC-12345"
                                 }
                                 """))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.role", is("AGENT")));
+                .andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.status", is("ACCEPTED")))
+                .andExpect(jsonPath("$.nextStep", containsString("login")));
     }
 
     @Test

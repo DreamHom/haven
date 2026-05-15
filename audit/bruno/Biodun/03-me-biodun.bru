@@ -1,0 +1,25 @@
+meta {
+  name: 03 Whoami (capture Biodun userId)
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{host}}/api/me
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{biodun_jwt}}
+}
+
+script:post-response {
+  if (res.body && res.body.id) {
+    bru.setVar("biodun_user_id", String(res.body.id));
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.role: eq OWNER
+}

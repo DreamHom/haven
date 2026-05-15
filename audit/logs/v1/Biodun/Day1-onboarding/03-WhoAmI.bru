@@ -1,0 +1,32 @@
+meta {
+  name: 03-WhoAmI
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{host}}/api/me
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{biodunJwt}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.role: eq OWNER
+}
+
+script:post-response {
+  if (res.body && res.body.userId) {
+    bru.setVar("biodunUserId", res.body.userId);
+  }
+}
+
+docs {
+  # Stashing my user ID. I'll need it later when I publish my own profile
+  # link to friends ("look up my profile, ID = X") because there is no
+  # search-by-name yet.
+}

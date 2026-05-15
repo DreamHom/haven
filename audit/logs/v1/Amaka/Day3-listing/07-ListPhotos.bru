@@ -1,0 +1,22 @@
+meta {
+  name: 07-ListPhotos
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{host}}/api/listings/{{amakaListingId}}/photos
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body[0].id: isDefined
+}
+
+docs {
+  # Let me make sure the photo is publicly visible.
+
+  ✅ Public list works, photo is there.
+}

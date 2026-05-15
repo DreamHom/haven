@@ -1,0 +1,29 @@
+meta {
+  name: 04-VerifyListingPublic
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{host}}/api/listings/{{amakaListingId}}
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.id: eq {{amakaListingId}}
+  res.body.property.address: contains Admiralty
+}
+
+docs {
+  # Let me check it's actually visible without me being logged in — open
+  # an incognito window in my head.
+
+  ✅ It's there, anonymous discovery works. Property snapshot is embedded.
+
+  ⚠️ My name isn't on the response. As an applicant viewing this, I can't
+  tell who's renting it out. I'd have to make a SECOND call to
+  `/users/{ownerId}/profile` to see who I'm dealing with — which means the
+  trust badge isn't immediately visible on the listing card.
+}

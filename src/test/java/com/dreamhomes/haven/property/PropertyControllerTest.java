@@ -22,15 +22,20 @@ import java.util.List;
 
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import com.dreamhomes.haven.property.dto.CreatePropertyCommand;
+import com.dreamhomes.haven.property.dto.PropertyResponse;
+import com.dreamhomes.haven.property.dto.UpdatePropertyCommand;
 import com.dreamhomes.haven.property.exception.InvalidPropertyForTypeException;
 import com.dreamhomes.haven.property.model.Property;
 import com.dreamhomes.haven.property.model.PropertyType;
@@ -45,14 +50,13 @@ import com.dreamhomes.haven.property.model.PropertyType;
  * </ul>
  */
 @WebMvcTest(PropertyController.class)
-@Import(SecurityConfig.class)
+@Import({SecurityConfig.class, com.dreamhomes.haven.support.JwtCookieTestStubConfiguration.class})
 @TestPropertySource(properties = {
         "haven.rate-limit.enabled=false",
         "cors.allowed-origins=http://localhost:3000",
-        "jwt.secret=test-secret-not-a-placeholder-and-32-bytes-or-more",
-        "jwt.expiration-ms=3600000",
-        "jwt.issuer=test-issuer",
-        "jwt.audience=test-audience"
+        "haven.jwt.expiration-ms=3600000",
+        "haven.jwt.issuer=test-issuer",
+        "haven.jwt.audience=test-audience"
 })
 class PropertyControllerTest {
 
@@ -64,6 +68,9 @@ class PropertyControllerTest {
 
     @MockBean
     JwtService jwtService;
+
+    @MockBean
+    com.dreamhomes.haven.auth.blocklist.JwtBlocklistRepository jwtBlocklistRepository;
 
     @MockBean
     UserCredentialsService userCredentialsService;
@@ -121,6 +128,58 @@ class PropertyControllerTest {
     }
 
     @Test
+    void ownerListMineReturnsTheirProperties() throws Exception {
+        when(propertyService.listMine(eq(99L), any())).thenReturn(
+                new org.springframework.data.domain.PageImpl<>(List.of(
+                        new com.dreamhomes.haven.property.dto.PropertyResponse(
+                                7L, 99L, PropertyType.APARTMENT,
+                                "12 Lekki Phase 1, Lagos", 3, 2, new BigDecimal("128.50"),
+                                "Top floor", null, null, Instant.now()))));
+
+        mockMvc.perform(get("/api/properties/mine")
+                        .with(asPrincipal(99L, Role.OWNER)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].id", is(7)))
+                .andExpect(jsonPath("$.content[0].ownerId", is(99)));
+    }
+
+    @Test
+    void getByIdReturnsPropertyWhenCallerOwnsIt() throws Exception {
+        when(propertyService.ownerOf(7L))
+                .thenReturn(java.util.Optional.of(99L));
+        when(propertyService.findById(7L)).thenReturn(
+                new com.dreamhomes.haven.property.dto.PropertyResponse(
+                        7L, 99L, PropertyType.APARTMENT,
+                        "12 Lekki Phase 1, Lagos", 3, 2, new BigDecimal("128.50"),
+                        "Top floor", null, null, Instant.now()));
+
+        mockMvc.perform(get("/api/properties/7")
+                        .with(asPrincipal(99L, Role.OWNER)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id", is(7)));
+    }
+
+    @Test
+    void getByIdReturns404WhenCallerIsNotOwner() throws Exception {
+        when(propertyService.ownerOf(7L))
+                .thenReturn(java.util.Optional.of(99L));
+
+        mockMvc.perform(get("/api/properties/7")
+                        .with(asPrincipal(50L, Role.OWNER)))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void getByIdReturns404WhenPropertyMissing() throws Exception {
+        when(propertyService.ownerOf(404L))
+                .thenReturn(java.util.Optional.empty());
+
+        mockMvc.perform(get("/api/properties/404")
+                        .with(asPrincipal(99L, Role.OWNER)))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
     void applicantRoleIsRejectedWith403ProvingPreAuthorizeIsWired() throws Exception {
         mockMvc.perform(post("/api/properties")
                         .with(asPrincipal(50L, Role.APPLICANT))
@@ -136,6 +195,37 @@ class PropertyControllerTest {
                 .andExpect(status().isForbidden());
 
         verify(propertyService, never()).create(any(), any());
+    }
+
+    @Test
+    void ownerPatchPropertyReturns200() throws Exception {
+        when(propertyService.update(eq(99L), eq(Role.OWNER), eq(7L), any(UpdatePropertyCommand.class)))
+                .thenReturn(new PropertyResponse(
+                        7L, 99L, PropertyType.APARTMENT,
+                        "Patched address", 3, 2, new BigDecimal("128.50"),
+                        "Top floor", null, null, Instant.now()));
+
+        mockMvc.perform(patch("/api/properties/7")
+                        .with(asPrincipal(99L, Role.OWNER))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                { "address": "Patched address" }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.address", is("Patched address")));
+    }
+
+    @Test
+    void applicantCannotPatchProperty() throws Exception {
+        mockMvc.perform(patch("/api/properties/7")
+                        .with(asPrincipal(50L, Role.APPLICANT))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                { "address": "X" }
+                                """))
+                .andExpect(status().isForbidden());
+
+        verify(propertyService, never()).update(anyLong(), any(), anyLong(), any());
     }
 
     private static org.springframework.test.web.servlet.request.RequestPostProcessor asPrincipal(Long userId, Role role) {

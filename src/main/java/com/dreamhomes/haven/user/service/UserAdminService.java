@@ -6,10 +6,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.Locale;
 import com.dreamhomes.haven.user.dto.UserAdminView;
 import com.dreamhomes.haven.user.exception.UserAlreadySuspendedException;
 import com.dreamhomes.haven.user.exception.UserNotFoundException;
 import com.dreamhomes.haven.user.exception.UserNotSuspendedException;
+import com.dreamhomes.haven.user.mapping.UserAdminMapper;
 import com.dreamhomes.haven.user.model.AgentProfile;
 import com.dreamhomes.haven.user.model.User;
 import com.dreamhomes.haven.user.repository.AgentProfileRepository;
@@ -31,6 +33,7 @@ public class UserAdminService {
 
     private final UserRepository userRepository;
     private final AgentProfileRepository agentProfileRepository;
+    private final UserAdminMapper userAdminMapper;
 
     @Transactional
     public UserAdminView suspend(Long userId) {
@@ -45,7 +48,7 @@ public class UserAdminService {
         user.setTokenVersion(user.getTokenVersion() + 1);
         userRepository.save(user);
         log.info("Suspended userId={} (tokenVersion bumped to {})", userId, user.getTokenVersion());
-        return toView(user);
+        return userAdminMapper.toView(user);
     }
 
     @Transactional
@@ -60,7 +63,7 @@ public class UserAdminService {
         // outstanding JWTs, and the user has to log in fresh anyway.
         userRepository.save(user);
         log.info("Reactivated userId={}", userId);
-        return toView(user);
+        return userAdminMapper.toView(user);
     }
 
     @Transactional
@@ -83,13 +86,32 @@ public class UserAdminService {
     @Transactional(readOnly = true)
     public UserAdminView findForAdmin(Long userId) {
         return userRepository.findById(userId)
-                .map(UserAdminService::toView)
+                .map(userAdminMapper::toView)
                 .orElseThrow(() -> new UserNotFoundException(userId));
     }
 
-    private static UserAdminView toView(User u) {
-        return new UserAdminView(
-                u.getId(), u.getEmail(), u.getDisplayName(), u.getRole(),
-                u.getSuspendedAt(), u.getIdentityVerifiedAt());
+    /**
+     * Admin user search. Email is a case-insensitive substring match. {@code suspended}
+     * is tri-state (null = all, true = only suspended, false = only active). Persona
+     * audit (Dayo) — tickets arrive with emails.
+     */
+    @Transactional(readOnly = true)
+    public org.springframework.data.domain.Page<UserAdminView> adminSearch(
+            String email,
+            Boolean suspended,
+            com.dreamhomes.haven.user.model.Role role,
+            org.springframework.data.domain.Pageable pageable) {
+        String emailLikePattern = null;
+        if (email != null && !email.isBlank()) {
+            String escaped = escapeLikePattern(email.strip());
+            emailLikePattern = "%" + escaped.toLowerCase(Locale.ROOT) + "%";
+        }
+        return userRepository.adminSearch(role, suspended, emailLikePattern, pageable)
+                .map(userAdminMapper::toView);
     }
+
+    private static String escapeLikePattern(String raw) {
+        return raw.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
+    }
+
 }

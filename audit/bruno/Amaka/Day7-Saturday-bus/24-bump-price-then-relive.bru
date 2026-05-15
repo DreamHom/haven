@@ -1,0 +1,33 @@
+meta {
+  name: 24 Bump price + go LIVE again
+  type: http
+  seq: 24
+}
+
+patch {
+  url: {{host}}/listings/{{listingId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{jwt}}
+}
+
+body:json {
+  {
+    "askingPrice": 7500000,
+    "status": "LIVE"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq LIVE
+  res.body.askingPrice: eq 7500000
+}
+
+docs {
+  Decision made. Bumping to 7.5M and putting it back LIVE. The spec says
+  PAUSED → LIVE is allowed.
+}

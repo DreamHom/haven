@@ -47,17 +47,6 @@ class AdminListingActionsIT extends AbstractPostgresIT {
     @Autowired VerificationRepository verificationRepository;
     @Autowired AdminAuditLogRepository auditLogRepository;
 
-    @BeforeEach
-    @AfterEach
-    void clean() {
-        auditLogRepository.deleteAll();
-        notificationRepository.deleteAll();
-        verificationRepository.deleteAll();
-        listingRepository.deleteAll();
-        propertyRepository.deleteAll();
-        agentProfileRepository.deleteAll();
-        userRepository.deleteAll();
-    }
 
     @Test
     void adminApprovesListingStampsApprovedAtAndOwnerSeesNotification() throws Exception {
@@ -82,7 +71,9 @@ class AdminListingActionsIT extends AbstractPostgresIT {
     }
 
     @Test
-    void adminTakedownTransitionsListingToClosedAndOwnerSeesReason() throws Exception {
+    void adminTakedownTransitionsListingToTakenDownAndOwnerSeesReason() throws Exception {
+        // Phase v2 (persona audit, Dayo): takedown now flips to TAKEN_DOWN (not CLOSED)
+        // so moderation history can separate admin-takedown from owner-closed-the-deal.
         User owner = jwtTestSupport.persistUser(Role.OWNER);
         User admin = jwtTestSupport.persistUser(Role.ADMIN);
         Long listingId = persistLiveListingFor(owner.getId());
@@ -94,10 +85,10 @@ class AdminListingActionsIT extends AbstractPostgresIT {
                                 { "reason": "Reported as fraudulent" }
                                 """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("CLOSED"));
+                .andExpect(jsonPath("$.status").value("TAKEN_DOWN"));
 
         assertThat(listingRepository.findById(listingId).orElseThrow().getStatus())
-                .isEqualTo(ListingStatus.CLOSED);
+                .isEqualTo(ListingStatus.TAKEN_DOWN);
 
         Notification ownerNotif = notificationRepository
                 .findByRecipientIdOrderByCreatedAtDesc(owner.getId()).get(0);

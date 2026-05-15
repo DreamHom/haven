@@ -57,13 +57,6 @@ class AuthFlowEndToEndIT extends AbstractPostgresIT {
     @Autowired
     JwtTestSupport jwtTestSupport;
 
-    @BeforeEach
-    @org.junit.jupiter.api.AfterEach
-    void cleanUsers() {
-        // Run before AND after — non-transactional ITs commit rows that leak otherwise.
-        agentProfileRepository.deleteAll();
-        userRepository.deleteAll();
-    }
 
     @Test
     void registerThenLoginThenAccessProtectedEndpoint() throws Exception {
@@ -80,9 +73,9 @@ class AuthFlowEndToEndIT extends AbstractPostgresIT {
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(registerBody))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.email").value("ada@example.com"))
-                .andExpect(jsonPath("$.role").value("OWNER"));
+                .andExpect(status().isAccepted());
+        // Anti-enumeration contract: 202 + empty body. The side effect (user row
+        // written) is verified indirectly by the login call below succeeding.
 
         String loginBody = """
                 {
@@ -145,7 +138,7 @@ class AuthFlowEndToEndIT extends AbstractPostgresIT {
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
-                .andExpect(status().isCreated());
+                .andExpect(status().isAccepted());
 
         Optional<AgentProfile> profile = agentProfileRepository.findByLicenseNumber("LIC-E2E-001");
         assertThat(profile).isPresent();

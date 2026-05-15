@@ -6,7 +6,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
 import java.util.Map;
 import com.dreamhomes.haven.admin.model.AdminAction;
 import com.dreamhomes.haven.admin.model.AdminAuditLog;
@@ -40,8 +39,24 @@ public class AdminAuditService implements AdminAuditApi {
                 .targetType(targetType)
                 .targetId(targetId)
                 .metadata(serialize(metadata))
-                .createdAt(Instant.now())
                 .build());
+    }
+
+    /**
+     * Backs {@code GET /api/admin/audit-logs}. Every filter optional; null = wildcard.
+     * Persona audit (Dayo) — the read-side that made every other moderation guarantee
+     * unfalsifiable until now.
+     */
+    @Transactional(readOnly = true)
+    public org.springframework.data.domain.Page<com.dreamhomes.haven.admin.dto.AdminAuditLogResponse> list(
+            Long actorId, AdminAction action, AuditTargetType targetType, Long targetId,
+            java.time.Instant from, java.time.Instant to,
+            org.springframework.data.domain.Pageable pageable) {
+        return auditLogRepository.search(actorId, action, targetType, targetId, from, to, pageable)
+                .map(log -> new com.dreamhomes.haven.admin.dto.AdminAuditLogResponse(
+                        log.getId(), log.getAdminId(), log.getAction(),
+                        log.getTargetType(), log.getTargetId(),
+                        log.getMetadata(), log.getCreatedAt()));
     }
 
     private String serialize(Object payload) {

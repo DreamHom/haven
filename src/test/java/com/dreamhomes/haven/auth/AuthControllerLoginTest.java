@@ -28,14 +28,13 @@ import com.dreamhomes.haven.auth.service.JwtService;
  * the validator unit tests; one smoke test for @Valid wiring is enough.
  */
 @WebMvcTest(AuthController.class)
-@Import(SecurityConfig.class)
+@Import({SecurityConfig.class, com.dreamhomes.haven.support.JwtCookieTestStubConfiguration.class})
 @TestPropertySource(properties = {
         "haven.rate-limit.enabled=false",
         "cors.allowed-origins=http://localhost:3000",
-        "jwt.secret=test-secret-not-a-placeholder-and-32-bytes-or-more",
-        "jwt.expiration-ms=3600000",
-        "jwt.issuer=test-issuer",
-        "jwt.audience=test-audience"
+        "haven.jwt.expiration-ms=3600000",
+        "haven.jwt.issuer=test-issuer",
+        "haven.jwt.audience=test-audience"
 })
 class AuthControllerLoginTest {
 
@@ -46,14 +45,25 @@ class AuthControllerLoginTest {
     AuthService authService;
 
     @MockBean
+    com.dreamhomes.haven.auth.passwordreset.PasswordResetService passwordResetService;
+
+    @MockBean
     JwtService jwtService;
+
+    @MockBean
+    com.dreamhomes.haven.auth.blocklist.JwtBlocklistRepository jwtBlocklistRepository;
 
     @MockBean
     com.dreamhomes.haven.user.service.UserCredentialsService userCredentialsService;
 
+    @MockBean
+    com.dreamhomes.haven.auth.cookie.JwtCookieService jwtCookieService;
+
     @Test
     void successfulLoginReturns200WithTokenInBody() throws Exception {
-        when(authService.login(any())).thenReturn("jwt-token-value");
+        when(authService.login(any())).thenReturn(new com.dreamhomes.haven.auth.dto.LoginResult(
+                "jwt-token-value", 7L,
+                com.dreamhomes.haven.user.model.Role.OWNER, "Ada Lovelace", 3600L));
 
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -64,7 +74,12 @@ class AuthControllerLoginTest {
                                 }
                                 """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.token", is("jwt-token-value")));
+                .andExpect(jsonPath("$.token", is("jwt-token-value")))
+                .andExpect(jsonPath("$.tokenType", is("Bearer")))
+                .andExpect(jsonPath("$.expiresInSeconds", is(3600)))
+                .andExpect(jsonPath("$.userId", is(7)))
+                .andExpect(jsonPath("$.role", is("OWNER")))
+                .andExpect(jsonPath("$.fullName", is("Ada Lovelace")));
     }
 
     @Test

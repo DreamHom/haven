@@ -38,21 +38,22 @@ import com.dreamhomes.haven.notification.model.NotificationKind;
 import com.dreamhomes.haven.notification.model.NotificationSource;
 
 @WebMvcTest(NotificationController.class)
-@Import(SecurityConfig.class)
+@Import({SecurityConfig.class, com.dreamhomes.haven.support.JwtCookieTestStubConfiguration.class})
 @TestPropertySource(properties = {
         "haven.rate-limit.enabled=false",
         "cors.allowed-origins=http://localhost:3000",
-        "jwt.secret=test-secret-not-a-placeholder-and-32-bytes-or-more",
-        "jwt.expiration-ms=3600000",
-        "jwt.issuer=test-issuer",
-        "jwt.audience=test-audience"
+        "haven.jwt.expiration-ms=3600000",
+        "haven.jwt.issuer=test-issuer",
+        "haven.jwt.audience=test-audience"
 })
 class NotificationControllerTest {
 
     @Autowired MockMvc mockMvc;
     @MockBean NotificationService notificationService;
     @MockBean JwtService jwtService;
+    @MockBean com.dreamhomes.haven.auth.blocklist.JwtBlocklistRepository jwtBlocklistRepository;
     @MockBean UserCredentialsService userCredentialsService;
+    @MockBean NotificationSseEmitters notificationSseEmitters;
 
     @Test
     void anonymousCannotReadNotifications() throws Exception {
@@ -65,7 +66,7 @@ class NotificationControllerTest {
         Page<Notification> page = new PageImpl<>(
                 List.of(stub(1L, 50L, NotificationKind.OFFER_SUBMITTED)),
                 PageRequest.of(0, 20), 1);
-        when(notificationService.listMine(eq(50L), eq(false), any())).thenReturn(page);
+        when(notificationService.listMine(eq(50L), eq(false), any(), any())).thenReturn(page);
 
         mockMvc.perform(get("/api/notifications/mine")
                         .with(asPrincipal(50L, Role.OWNER)))
@@ -76,13 +77,13 @@ class NotificationControllerTest {
 
     @Test
     void unreadOnlyQueryParamRoutesToFilteredService() throws Exception {
-        when(notificationService.listMine(eq(50L), eq(true), any())).thenReturn(Page.empty());
+        when(notificationService.listMine(eq(50L), eq(true), any(), any())).thenReturn(Page.empty());
 
         mockMvc.perform(get("/api/notifications/mine?unreadOnly=true")
                         .with(asPrincipal(50L, Role.OWNER)))
                 .andExpect(status().isOk());
 
-        verify(notificationService).listMine(eq(50L), eq(true), any());
+        verify(notificationService).listMine(eq(50L), eq(true), any(), any());
     }
 
     @Test
@@ -113,6 +114,36 @@ class NotificationControllerTest {
                 .andExpect(status().isUnauthorized());
 
         verify(notificationService, never()).markRead(any(), any());
+    }
+
+    @Test
+    void markAllReadDelegatesAndReturnsCount() throws Exception {
+        when(notificationService.markAllRead(50L)).thenReturn(7);
+
+        mockMvc.perform(post("/api/notifications/mark-all-read")
+                        .with(asPrincipal(50L, Role.OWNER)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.marked", is(7)));
+    }
+
+    @Test
+    void anonymousCannotMarkAllRead() throws Exception {
+        mockMvc.perform(post("/api/notifications/mark-all-read"))
+                .andExpect(status().isUnauthorized());
+
+        verify(notificationService, never()).markAllRead(any());
+    }
+
+    @Test
+    void kindQueryParamRoutesToFilteredService() throws Exception {
+        when(notificationService.listMine(eq(50L), eq(false), eq(NotificationKind.OFFER_SUBMITTED), any()))
+                .thenReturn(Page.empty());
+
+        mockMvc.perform(get("/api/notifications/mine?kind=OFFER_SUBMITTED")
+                        .with(asPrincipal(50L, Role.OWNER)))
+                .andExpect(status().isOk());
+
+        verify(notificationService).listMine(eq(50L), eq(false), eq(NotificationKind.OFFER_SUBMITTED), any());
     }
 
     private static Notification stub(Long id, Long recipientId, NotificationKind kind) {

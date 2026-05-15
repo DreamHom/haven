@@ -41,20 +41,20 @@ import com.dreamhomes.haven.admin.controller.AdminVerificationController;
 import com.dreamhomes.haven.admin.service.AdminVerificationService;
 
 @WebMvcTest(AdminVerificationController.class)
-@Import(SecurityConfig.class)
+@Import({SecurityConfig.class, com.dreamhomes.haven.support.JwtCookieTestStubConfiguration.class})
 @TestPropertySource(properties = {
         "haven.rate-limit.enabled=false",
         "cors.allowed-origins=http://localhost:3000",
-        "jwt.secret=test-secret-not-a-placeholder-and-32-bytes-or-more",
-        "jwt.expiration-ms=3600000",
-        "jwt.issuer=test-issuer",
-        "jwt.audience=test-audience"
+        "haven.jwt.expiration-ms=3600000",
+        "haven.jwt.issuer=test-issuer",
+        "haven.jwt.audience=test-audience"
 })
 class AdminVerificationControllerTest {
 
     @Autowired MockMvc mockMvc;
     @MockBean AdminVerificationService adminVerificationService;
     @MockBean JwtService jwtService;
+    @MockBean com.dreamhomes.haven.auth.blocklist.JwtBlocklistRepository jwtBlocklistRepository;
     @MockBean UserCredentialsService userCredentialsService;
 
     @Test
@@ -62,7 +62,7 @@ class AdminVerificationControllerTest {
         Page<VerificationAdminView> page = new PageImpl<>(
                 List.of(pending(1L, VerificationType.OWNER_IDENTITY)),
                 PageRequest.of(0, 20), 1);
-        when(adminVerificationService.listPending(eq(VerificationType.OWNER_IDENTITY), any()))
+        when(adminVerificationService.list(eq(VerificationType.OWNER_IDENTITY), any(), any()))
                 .thenReturn(page);
 
         mockMvc.perform(get("/api/admin/verifications?type=OWNER_IDENTITY")

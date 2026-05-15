@@ -38,12 +38,13 @@ class OfferServiceCounterTest {
 
     @Mock OfferRepository offerRepository;
     @Mock NotificationApi notificationApi;
+    @Mock com.dreamhomes.haven.agentlisting.AgentListingRepository agentListingRepository;
 
     OfferService service;
 
     @BeforeEach
     void setUp() {
-        service = new OfferService(offerRepository, null, null, notificationApi,
+        service = new OfferService(offerRepository, null, agentListingRepository, null, notificationApi,
                 new com.fasterxml.jackson.databind.ObjectMapper(), null);
     }
 

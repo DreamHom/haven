@@ -69,6 +69,11 @@ public class ListingPhotoService {
 
     @Transactional(readOnly = true)
     public List<ListingPhoto> list(Long listingId) {
+        // 404 if the listing doesn't exist — otherwise the sub-resource lies that
+        // a ghost listing has zero photos (audit finding B-2).
+        if (!listingService.exists(listingId)) {
+            throw new com.dreamhomes.haven.listing.exception.ListingNotFoundException(listingId);
+        }
         return photoRepository.findByListingIdOrderByDisplayOrderAscIdAsc(listingId);
     }
 }

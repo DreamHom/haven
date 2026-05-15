@@ -1,0 +1,46 @@
+meta {
+  name: 03-SuspendUser
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{host}}/api/admin/users/{{suspendTargetUserId}}/suspend
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{jwt}}
+}
+
+body:json {
+  {
+    "reason": "Took inspection fee off-platform — confirmed via reporter screenshot in support ticket #4421. Agent admitted in WhatsApp screenshot to asking applicant to pay 25,000 NGN to personal Opay before showing the unit. Suspending pending review."
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  # The serious action.
+
+  Spec says reason has `minLength: 0` — same lie as reject and takedown.
+  I'm sending a real one because that's what the persona doc demands.
+  Will probe empty in Defensive-checks.
+
+  Things I can't verify from the API alone:
+  - Did the user's existing JWTs actually become invalid? Persona doc
+    Story 4 says tokenVersion is bumped — but the response body isn't
+    documented and I can't read tokenVersion from anywhere. I just have
+    to TRUST the implementation.
+  - Was a notification sent to the user? Not visible to me.
+  - Was an audit log row written? No way to read it (no audit log
+    endpoint exists).
+
+  The whole "I did the right thing" feedback loop is implicit. For T&S
+  that's the wrong default — sensitive actions should be loudly
+  observable.
+}

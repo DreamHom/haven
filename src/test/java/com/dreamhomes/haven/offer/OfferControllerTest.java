@@ -28,6 +28,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -37,20 +39,20 @@ import com.dreamhomes.haven.offer.model.Offer;
 import com.dreamhomes.haven.offer.model.OfferStatus;
 
 @WebMvcTest(OfferController.class)
-@Import(SecurityConfig.class)
+@Import({SecurityConfig.class, com.dreamhomes.haven.support.JwtCookieTestStubConfiguration.class, com.dreamhomes.haven.offer.OfferMapperImpl.class})
 @TestPropertySource(properties = {
         "haven.rate-limit.enabled=false",
         "cors.allowed-origins=http://localhost:3000",
-        "jwt.secret=test-secret-not-a-placeholder-and-32-bytes-or-more",
-        "jwt.expiration-ms=3600000",
-        "jwt.issuer=test-issuer",
-        "jwt.audience=test-audience"
+        "haven.jwt.expiration-ms=3600000",
+        "haven.jwt.issuer=test-issuer",
+        "haven.jwt.audience=test-audience"
 })
 class OfferControllerTest {
 
     @Autowired MockMvc mockMvc;
     @MockBean OfferService offerService;
     @MockBean JwtService jwtService;
+    @MockBean com.dreamhomes.haven.auth.blocklist.JwtBlocklistRepository jwtBlocklistRepository;
     @MockBean UserCredentialsService userCredentialsService;
 
     @Test
@@ -89,7 +91,7 @@ class OfferControllerTest {
 
     @Test
     void ownerAcceptsOfferReturns200WithUpdatedStatus() throws Exception {
-        when(offerService.respond(eq(99L), eq(50L), eq(OfferStatus.ACCEPTED)))
+        when(offerService.respond(eq(99L), eq(50L), eq(OfferStatus.ACCEPTED), any()))
                 .thenAnswer(inv -> stub(50L, OfferStatus.ACCEPTED));
 
         mockMvc.perform(patch("/api/offers/50")
@@ -116,6 +118,44 @@ class OfferControllerTest {
                 .andExpect(status().isForbidden());
 
         verify(offerService, never()).respond(any(), any(), any());
+    }
+
+    @Test
+    void listMineReturnsOffersWhereCallerIsApplicantOrOwner() throws Exception {
+        when(offerService.listMine(eq(100L), any())).thenReturn(
+                new org.springframework.data.domain.PageImpl<>(List.of(
+                        stub(42L, OfferStatus.PENDING))));
+
+        mockMvc.perform(get("/api/offers/mine")
+                        .with(asPrincipal(100L, Role.APPLICANT)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].id", is(42)));
+    }
+
+    @Test
+    void listMineRequiresAuthentication() throws Exception {
+        mockMvc.perform(get("/api/offers/mine"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void applicantCanWithdrawTheirPendingOffer() throws Exception {
+        when(offerService.withdraw(eq(100L), eq(42L))).thenReturn(stub(42L, OfferStatus.WITHDRAWN));
+
+        mockMvc.perform(delete("/api/offers/42")
+                        .with(asPrincipal(100L, Role.APPLICANT)))
+                .andExpect(status().isNoContent());
+
+        verify(offerService).withdraw(100L, 42L);
+    }
+
+    @Test
+    void withdrawRequiresApplicantRole() throws Exception {
+        mockMvc.perform(delete("/api/offers/42")
+                        .with(asPrincipal(99L, Role.OWNER)))
+                .andExpect(status().isForbidden());
+
+        verify(offerService, never()).withdraw(any(), any());
     }
 
     private static Offer stub(Long id, OfferStatus status) {

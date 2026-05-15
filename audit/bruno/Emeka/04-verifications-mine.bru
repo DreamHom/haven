@@ -1,0 +1,35 @@
+meta {
+  name: 04 List my verifications
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{host}}/api/verifications/mine?page=0&size=20
+  auth: bearer
+}
+
+params:query {
+  page: 0
+  size: 20
+}
+
+auth:bearer {
+  token: {{jwt}}
+}
+
+assert {
+  res.status: eq 200
+  res.body: isDefined
+}
+
+docs {
+  Half an hour later. I'm refreshing this page like every applicant refreshes
+  their offer status — "is my badge approved yet?"
+
+  Expected:
+  - 200 with a paged list
+  - my one PENDING AGENT_CREDENTIALS submission visible
+  - ideally a way to know "estimated review time" (it's not in the schema —
+    finding)
+}

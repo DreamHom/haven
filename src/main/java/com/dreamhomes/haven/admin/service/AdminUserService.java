@@ -61,15 +61,34 @@ public class AdminUserService {
     }
 
     @Transactional
-    public UserAdminView reactivate(Long adminId, Long userId) {
+    public UserAdminView reactivate(Long adminId, Long userId, String reason) {
         if (adminId.equals(userId)) {
             throw new CannotModerateSelfException();
         }
         UserAdminView reactivated = userAdminService.reactivate(userId);
-        recordAudit(adminId, AdminAction.USER_REACTIVATED, userId, null);
+        recordAudit(adminId, AdminAction.USER_REACTIVATED, userId, reason);
         adminMetrics.recordUserModeration(AdminAction.USER_REACTIVATED);
-        log.info("Admin {} reactivated userId={}", adminId, userId);
+        log.info("Admin {} reactivated userId={} reason='{}'", adminId, userId, reason);
         return reactivated;
+    }
+
+    /** Back-compat overload for call sites that don't carry a reason. */
+    @Transactional
+    public UserAdminView reactivate(Long adminId, Long userId) {
+        return reactivate(adminId, userId, null);
+    }
+
+    /**
+     * Admin user search — by email substring, suspended state, role. Persona audit
+     * (Dayo): "tickets arrive with emails, not IDs — probing 2-10 is not a workflow."
+     */
+    @Transactional(readOnly = true)
+    public org.springframework.data.domain.Page<UserAdminView> adminSearch(
+            String email,
+            Boolean suspended,
+            com.dreamhomes.haven.user.model.Role role,
+            org.springframework.data.domain.Pageable pageable) {
+        return userAdminService.adminSearch(email, suspended, role, pageable);
     }
 
     private void recordAudit(Long adminId, AdminAction action, Long userId, String reason) {
@@ -83,7 +102,6 @@ public class AdminUserService {
                 .targetType(AuditTargetType.USER)
                 .targetId(userId)
                 .metadata(metadata.isEmpty() ? null : serialize(metadata))
-                .createdAt(Instant.now())
                 .build());
     }
 

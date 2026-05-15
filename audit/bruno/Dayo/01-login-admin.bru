@@ -1,0 +1,37 @@
+meta {
+  name: 01 Login admin
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{host}}/auth/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "admin@dreamhomes.local",
+    "password": "AuditAdmin#1!"
+  }
+}
+
+script:post-response {
+  if (res.status === 200 && res.body && res.body.token) {
+    bru.setVar("adminJwt", res.body.token);
+    bru.setVar("adminUserId", res.body.userId);
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.role: eq ADMIN
+  res.body.fullName: isDefined
+  res.body.token: isDefined
+}
+
+docs {
+  Login as seeded admin. If this 401s, the admin seed is broken and nothing
+  else in this folder can succeed — that itself is the headline finding.
+}

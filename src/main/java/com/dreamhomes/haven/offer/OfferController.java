@@ -6,7 +6,6 @@ import com.dreamhomes.haven.offer.dto.OfferResponse;
 import com.dreamhomes.haven.offer.dto.RespondToOfferRequest;
 import com.dreamhomes.haven.offer.dto.SubmitOfferCommand;
 import com.dreamhomes.haven.offer.dto.SubmitOfferRequest;
-import com.dreamhomes.haven.offer.model.Offer;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -18,9 +17,14 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -36,6 +40,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class OfferController {
 
     private final OfferService offerService;
+    private final OfferMapper offerMapper;
 
     @Operation(
             summary = "Submit an offer on a listing",
@@ -82,8 +87,29 @@ public class OfferController {
     @PreAuthorize("hasRole('APPLICANT')")
     public OfferResponse submit(@AuthenticationPrincipal JwtPrincipal principal,
                                 @Valid @RequestBody SubmitOfferRequest request) {
-        return toResponse(offerService.submit(principal.userId(), new SubmitOfferCommand(
-                request.listingId(), request.amount(), request.currency(), request.message())));
+        return offerMapper.toResponse(offerService.submit(principal.userId(), new SubmitOfferCommand(
+                request.listingId(), request.amount(), request.currency(), request.message(), request.intent())));
+    }
+
+    @Operation(
+            summary = "List my offers",
+            description = """
+                    Returns every offer where the caller is either the applicant who
+                    submitted it or the owner who received it, newest first. The persona audit
+                    (Temi, Biodun) flagged this as the single biggest "lost the thread" gap:
+                    a missed notification meant a permanently lost deal, since there was no
+                    other path back to the offer's ID.
+                    """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Paginated list of the caller's offers."),
+            @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthenticated")
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @GetMapping("/mine")
+    public Page<OfferResponse> listMine(@AuthenticationPrincipal JwtPrincipal principal,
+                                        @PageableDefault(size = 20) Pageable pageable) {
+        return offerService.listMine(principal.userId(), pageable).map(offerMapper::toResponse);
     }
 
     @Operation(
@@ -127,12 +153,37 @@ public class OfferController {
     })
     @SecurityRequirement(name = "bearerAuth")
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('OWNER', 'APPLICANT')")
+    @PreAuthorize("hasAnyRole('OWNER', 'APPLICANT', 'AGENT')")
     public OfferResponse respond(@AuthenticationPrincipal JwtPrincipal principal,
                                  @Parameter(description = "Offer ID to respond to.", example = "42")
                                  @PathVariable Long id,
                                  @Valid @RequestBody RespondToOfferRequest request) {
-        return toResponse(offerService.respond(principal.userId(), id, request.status()));
+        return offerMapper.toResponse(offerService.respond(
+                principal.userId(), id, request.status().toOfferStatus(), request.reason()));
+    }
+
+    @Operation(
+            summary = "Withdraw my offer",
+            description = """
+                    Applicant withdraws a PENDING offer they submitted. Frees the listing to
+                    receive a fresh offer from the same applicant. Returns 409 if the offer
+                    is no longer PENDING (owner already accepted/declined/countered). 403 if
+                    the caller is not the applicant on this offer.
+                    """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Offer withdrawn."),
+            @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthenticated"),
+            @ApiResponse(responseCode = "403", ref = "#/components/responses/Forbidden"),
+            @ApiResponse(responseCode = "404", ref = "#/components/responses/NotFound"),
+            @ApiResponse(responseCode = "409", ref = "#/components/responses/Conflict")
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasRole('APPLICANT')")
+    public void withdraw(@AuthenticationPrincipal JwtPrincipal principal, @PathVariable Long id) {
+        offerService.withdraw(principal.userId(), id);
     }
 
     @Operation(
@@ -172,19 +223,12 @@ public class OfferController {
     })
     @SecurityRequirement(name = "bearerAuth")
     @PostMapping("/{id}/counter")
-    @PreAuthorize("hasAnyRole('OWNER', 'APPLICANT')")
+    @PreAuthorize("hasAnyRole('OWNER', 'APPLICANT', 'AGENT')")
     public OfferResponse counter(@AuthenticationPrincipal JwtPrincipal principal,
                                  @Parameter(description = "Parent offer ID being countered.", example = "42")
                                  @PathVariable Long id,
                                  @Valid @RequestBody CounterOfferRequest request) {
-        return toResponse(offerService.counter(
+        return offerMapper.toResponse(offerService.counter(
                 principal.userId(), id, request.amount(), request.message()));
-    }
-
-    static OfferResponse toResponse(Offer o) {
-        return new OfferResponse(o.getId(), o.getListingId(), o.getApplicantId(), o.getOwnerId(),
-                o.getAmount(), o.getCurrency(), o.getMessage(), o.getStatus(),
-                o.getParentOfferId(), o.getProposedByUserId(),
-                o.getCreatedAt(), o.getUpdatedAt());
     }
 }

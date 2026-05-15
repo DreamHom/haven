@@ -57,10 +57,10 @@ Last updated after Phase 15 (consolidation back to single Maven module after the
 
 ## Auth & security
 
-### HS256 (HMAC) JWT signing over RS256 (RSA)
-- **Why**: single-service deployment; symmetric key is simpler.
-- **Cost**: can't share verifier with an external service without sharing the secret.
-- **Revisit when**: a second service needs to verify tokens.
+### RS256 (RSA) JWT signing with `haven.jwt.private-key` + `haven.jwt.public-key`
+- **Why**: the private key signs, the public key verifies. Any future fan-out (vista SSR, mobile, internal services) can hold the public half and verify tokens without ever being able to mint one — that asymmetry is the whole point.
+- **Cost**: env vars are PEM-encoded multiline strings instead of a flat secret. Constructor validates: RSA-only, ≥ 2048 bits, modulus matches between private + public. `JwtService.stripPemHeaders` normalises literal `\n` escape sequences so `.env`-style single-line PEMs work alongside real-newline PEMs from `"$(cat private.pem)"`. README documents the `openssl genpkey` workflow.
+- **Revisit**: never. If we serve the public key via JWKS later, the verifier side gets simpler still.
 
 ### Token revocation via `token_version` column + DB lookup per request
 - **Why**: simple, no Redis dependency; logout invalidates all tokens for the user.
@@ -675,6 +675,110 @@ longer manifest as Maven modules — the codebase consolidated back in Phase 15.
 - **Why**: factories in -api couldn't see -impl entities. Inlining the construction in controllers / services keeps DTOs in -api as pure data shapes.
 - **Cost**: 12+ inlined `toResponse(Entity)` static helpers in controllers (one per impl module). Boilerplate but explicit.
 - **Revisit**: when MapStruct or similar gets adopted; right now manual construction is fine.
+
+---
+
+## Phase 16 — Post-audit improvements (gaps surfaced by silas's branch + the Kafka audit)
+
+### `NewTopic` beans pin partition count + replication factor
+- **Why**: partition count is the throughput knob you can't change later without operational pain (re-partitioning preserves neither order nor downstream consumer offsets). Auto-create at first publish would inherit broker defaults silently. `KafkaTopicConfig` declares one `NewTopic` bean per produced topic plus a sibling `.DLT` so spring-kafka's admin creates them with the shape we want on broker connect.
+- **Cost**: another two beans per topic, two new properties (`haven.kafka.topic-partitions`, `haven.kafka.replication-factor`). Trivial.
+- **Revisit**: when scaling the cluster — bump `replication-factor` to match the broker count.
+
+### `PhotoStorage` interface + `R2PhotoStorage` / `LocalPhotoStorage`
+- **Why**: needed real image hosting, not the URL-passing placeholder we shipped earlier. Cloudflare R2 is S3-compatible so the AWS SDK v2 client works against it with a custom endpoint — no Cloudflare-specific SDK lock-in. The pluggable interface lets dev + tests run with `LocalPhotoStorage` (synthesises a placeholder URL, no bytes persisted) so we don't need R2 credentials to exercise the upload pipeline. Production overrides `haven.photos.storage=r2` and supplies the credentials.
+- **Cost**: one new dependency (`software.amazon.awssdk:s3`), one wire-contract change on `POST /api/listings/{id}/photos` (now multipart instead of JSON), one new package `photo/storage/`. The endpoint change broke the existing IT — fixed by switching to `MockMultipartFile` + `multipart()` request builder.
+- **Revisit**: when we want CDN in front (Cloudflare Workers / R2 custom domain) — the URL the storage returns becomes the CDN-fronted URL, no app change needed.
+
+### JPA auditing as belt-and-suspenders for entity timestamps
+- **Why**: every entity used to set `createdAt = Instant.now()` either in its default initializer or in the service before save. Easy to forget on a new path. `@EnableJpaAuditing` + `@CreatedDate` / `@LastModifiedDate` makes the auditor populate them on persist/update if the field is null — a free safety net. The existing manual `Instant.now()` calls stay (so behaviour is unchanged) and auditing only fires when someone forgets.
+- **Cost**: one new config bean + one annotation per entity (12 entities) + import bookkeeping. Harmless if nobody ever forgets to set the timestamp manually; meaningful when somebody does.
+- **Revisit**: never. Could push further to delete the manual `Instant.now()` calls and rely only on auditing — defer until a future cleanup since the current shape is strictly safer.
+
+### `spring-boot-devtools` for local hot reload
+- **Why**: silas had it, we didn't. Iteration speed during local dev is real productivity. Marked `optional` so it never reaches the production classpath (Spring Boot's auto-config disables it in jars launched via `java -jar`).
+- **Cost**: one pom dependency, scope=runtime+optional. Zero impact in prod.
+- **Revisit**: never.
+
+### Admin analytics endpoint with real (not hardcoded) aggregates
+- **Why**: ops needs a one-shot platform-health view. Six counts: total users, suspended users, open listings, closed listings, pending verifications, pending offers. Each is a single index-backed query — endpoint runs O(1) regardless of table size.
+- **Cost**: one new controller, service, DTO + four `countBy...` repository methods. ~80 lines of source + 200 of tests.
+- **Revisit**: when the dashboard is polled aggressively or the field count grows (>10 fields) — back this with a Micrometer metric pipeline or a materialised view rather than per-request `count(*)`.
+
+---
+
+## Phase 16.5 — Trade-offs ledger cleanup (post-audit Tier 1/2/3 sprint)
+
+This block resolves the 13 entries flagged as "lazy coding or ops polish" by the
+honest re-audit of all 126 prior TRADEOFFS entries. Items not listed here
+remain as-is; they were classified as legitimate scoped trade-offs.
+
+### `POST /auth/register` returns 202 Accepted in every branch (anti-enumeration)
+- **Why**: the previous 201/409 split let an attacker probe whether an email was registered just by hitting the endpoint. Always-202-with-empty-body removes that signal entirely. Service still inserts the user for fresh emails; duplicates and TOCTOU collisions are silently swallowed (logged for ops).
+- **Cost**: caller no longer learns server-issued user id from the register response — they call `POST /auth/login` next, which returns a JWT (with the userId embedded). One wire-contract change. Drop two now-dead types: `UserResponse` DTO + `EmailAlreadyRegisteredException`.
+- **Revisit**: never. If async email verification is ever added, the 202 already implies "we're processing it" — the contract's already aligned.
+
+### Seeded-admin env vars fail loud on missing
+- **Why**: `application.yml` previously shipped a bcrypt hash of "ChangeMeNow!" as the default admin password. A deploy that forgot to override `ADMIN_PASSWORD_HASH` would silently ship that. Removed both defaults — Spring property resolution now refuses to start if either is unset, mirroring how `HAVEN_JWT_PRIVATE_KEY` works.
+- **Cost**: every IT had to register `ADMIN_EMAIL` + `ADMIN_PASSWORD_HASH` via `@DynamicPropertySource` (done in `AbstractPostgresIT`); local dev needs an `htpasswd -nbBC 10 "" "..." | tail -c +2` one-liner (documented in README).
+- **Revisit**: never.
+
+### `POST /api/listings/{id}/report` (Ngozi backlog item)
+- **Why**: any authenticated user can flag a listing for moderation. Single insert into `listing_reports` (with a `(listing_id, reporter_user_id)` unique constraint enforcing one-report-per-user) plus a `LISTING_REPORTED` notification fanned out to every admin so the moderation queue surfaces fresh reports without polling.
+- **Cost**: new `listingreport` feature package (model + repo + dto + service + controller + exception), V20 Flyway migration, one new `NotificationKind`. Admin read endpoint (paginated queue + filter by reason) is intentionally NOT in this PR — separate ticket.
+- **Revisit**: when the read side ships, the `OFF_PLATFORM_FEES` payload is the place to add aggregate-by-reason analytics for ops.
+
+### Manual `Instant.now()` removed from services; JPA auditing is the only path
+- **Why**: every service previously stamped `createdAt` / `updatedAt` by hand alongside the `.builder()`. JPA auditing already populated the same fields on persist/update — two sources of truth, inconsistent in practice (some services forgot `setUpdatedAt` on PATCH paths). Drop the manual calls; trust the auditor.
+- **Cost**: a handful of service unit tests had assertions like `assertThat(...getCreatedAt()).isNotNull()` that broke once the service no longer set the field — those moved either to "the IT verifies the persist path" or to a Mockito stub that mimics auditing. Rewrites the prior "JPA auditing as belt-and-suspenders" entry: it's now the single mechanism, not a safety net.
+- **Revisit**: never.
+
+### `DatabaseCleanupTestExecutionListener` replaces 21 per-IT `@AfterEach` cleanup blocks
+- **Why**: every IT used to redeclare a private `clean()` method with FK-ordered `deleteAll()` calls. 21 files, all subtly different, easy to forget when adding a new table. Centralised into a single `TRUNCATE … RESTART IDENTITY CASCADE` statement run by a `TestExecutionListener` registered on `AbstractPostgresIT`.
+- **Cost**: ~232 lines of test code deleted; adding a new table now requires updating the listener's `TRUNCATE_SQL` constant. Listener is registered FIRST in the `@TestExecutionListeners` list so its `afterTestMethod` runs LAST — after Spring's transactional rollback releases the connection.
+- **Revisit**: never.
+
+### Auto-decline sibling `PENDING` offers when one accepts
+- **Why**: previously, accepting one offer left every other PENDING offer on the listing in PENDING — they'd sit forever, the owner saw stale rows in the queue, and the losing applicant never learned the deal closed without them. Now `OfferService.respond` flips siblings to `DECLINED` in the same transaction and fires `OFFER_AUTO_DECLINED` notifications.
+- **Cost**: one new `OfferRepository` method, one new `NotificationKind`, ~40 lines of service. Decline path is unchanged (no fan-out).
+- **Revisit**: when async email/SMS notifications join the system, the auto-decline notifications might want a different priority tag than first-class user actions.
+
+### MapStruct adoption for entity → DTO mapping
+- **Why**: 12 hand-rolled `static toResponse(Entity)` helpers across controllers + services. Each is a positional record constructor — adding a field to the DTO means hand-editing every callsite (which is exactly what the `displayName` change last sprint demanded). MapStruct generates the implementation at compile time, infers the field-by-field copy from same-named accessors, and surfaces missing or ambiguous mappings as compile errors.
+- **Cost**: one new dependency + annotation processor (`org.mapstruct:mapstruct` + `mapstruct-processor` + `lombok-mapstruct-binding`). 11 new `@Mapper(componentModel = "spring")` interfaces. `ListingMapper` had to spell out per-field `@Mapping(source = "listing.x")` because both arguments expose `id`. Service unit tests construct mappers via `new XxxMapperImpl()` (the generated impl); `@WebMvcTest` controller slices `@Import` the impl class so the bean is in the slice context.
+- **Revisit**: never. Rewrites the prior "static mappers — fine for now" entry from Phase 15.
+
+### `OutboxRelay` publishes async (no `.get()`); `kafka.publish.duration` Timer
+- **Why**: the previous `kafkaTemplate.send(...).get()` blocked the relay thread on broker latency — a slow ISR sync would hold open whatever transaction the after-commit hook ran in. Now the publish is fire-and-callback via `whenComplete`. The callback runs on the producer I/O thread and stamps `publishedAt` in a fresh transaction (via `TransactionTemplate`) because the originating tx is already closed. `Timer.Sample` wraps each attempt and registers under `haven.kafka.publish.duration` tagged by `topic` + `outcome=success|failure`.
+- **Cost**: relay constructor grew two args (`TransactionTemplate`, `MeterRegistry`). Publish failures and post-publish save failures both log + retry on the next scheduled poll — the consumer-side `event_id` dedup keeps that idempotent. Existing `OutboxRelayTest` updated to assert the timer fires with the right tags; existing listener ITs already used Awaitility, so the async timing change didn't break them.
+- **Revisit**: when the producer thread pool gets tuned for throughput, we'd want a dedicated executor for the markPublished callback rather than running it on the Kafka I/O thread.
+
+### Listener concurrency = `${haven.kafka.topic-partitions:3}`
+- **Why**: default `concurrency = 1` left N-1 partitions queueing behind a single consumer thread. Setting it equal to the topic's partition count gives one consumer thread per partition — full parallel drain at the cost of N threads in the consumer container.
+- **Cost**: spelled out as the property reference rather than a literal so the listener's parallelism stays in sync with `KafkaTopicConfig`'s partition count if either is changed.
+- **Revisit**: when partition count grows past available CPU, decouple consumer thread count from partition count by introducing a separate property.
+
+### `haven.outbox.dlt` depth gauge (mirror of `haven.outbox.unpublished`)
+- **Why**: ops can already alert on `haven.outbox.unpublished > 0` — that's "outbox row stuck before Kafka". The new `haven.outbox.dlt` gauge covers the post-DLT-route side: "consumer-side processing failed long enough to exhaust retries". One Gauge per DLT topic, tagged with `topic=`, sourced via Kafka `AdminClient` end-offset query. `sum(haven_outbox_dlt)` gives platform-wide DLT depth; `haven_outbox_dlt{topic="..."}` drills in.
+- **Cost**: new component + one Kafka AdminClient call per scrape per topic. AdminClient timeout (5s) bounded; failures emit `-1` so dashboards distinguish "not measured" from "0 depth". Scrape adds a few hundred ms when broker is healthy.
+- **Revisit**: when the AdminClient overhead matters (i.e. scrape interval drops below 5s), cache the last value and refresh on a separate schedule.
+
+## Phase 17 — Account-settings surface (merged in from PR #6, hardened in `checklist/v1`)
+
+### `PATCH /api/me` rewrites email directly (no verify-the-new-address flow)
+- **Why**: the platform has no email-delivery infrastructure yet. A proper change-email flow needs: generate single-use token → mail it to the *new* address → user clicks → swap on the user row. Until that pipeline exists, gating email change behind it would block the Settings page entirely. The temporary shortcut is "any authenticated caller can rewrite their own email synchronously".
+- **Cost**: an attacker who briefly holds a victim's JWT can swap the address of record before initiating a password reset to *their* email — classic account-takeover pivot. Mitigated by bumping `tokenVersion` on email change (so the leaked JWT dies on its next request, before the attacker can use it to chain to password reset), but the legitimate user has no defence if the attacker controls both the swap and the password-reset trigger in the same minute.
+- **Revisit**: as soon as email delivery lands. Move email change to a two-step flow (`POST /api/me/email-change-requests` → token → confirm), keep `PATCH /api/me` for everything else.
+
+### `userId` (not `id`) is canonical inside the `/api/me/*` family
+- **Why**: Dayo's persona audit flagged the mixed `id` / `userId` field naming as a real frontend papercut. PR #6 originally used `id` on `MyAccountProfile`; we renamed it to `PrivateUserProfile.userId` so every response under `/api/me` (`MeResponse`, `PrivateUserProfile`) uses `userId`. Admin writes still return `id` — that's a separate concern outside this family.
+- **Cost**: temporary asymmetry between the `/me` family (`userId`) and admin/public projections (`id`). Two names for one concept, but they're consistently grouped now.
+- **Revisit**: a v2 contract pass to unify the full surface on one name. Likely `id` because it's the broader-used token across REST APIs — but it's a frontend-breaking rename, so explicit deprecation cycle required.
+
+### `/error` is `permitAll()` (not auth-gated)
+- **Why**: Spring Boot dispatches every servlet forward (validation 400s, type-mismatch 400s, 404 on unmapped paths) through `/error` for body rendering. If the security filter auth-gates `/error`, every error response gets rewritten to 401 with `instance: "/error"`, masking the real failure shape. Persona audit (Dayo) caught it on `RejectWithEmptyReason` — empty body → 400 expected → seen as 401. Fixed by adding `/error` to the `permitAll` matcher list in `SecurityConfig`.
+- **Cost**: `/error` itself is now anonymous-reachable. The endpoint returns a generic Spring error page when hit directly — no sensitive data, just `{"status":404,"error":"Not Found","path":"/error"}` or similar.
+- **Revisit**: when we adopt a custom `ErrorController` that returns Problem+JSON on every dispatch (not just controller-thrown exceptions), we can re-evaluate whether anonymous reach to `/error` is still appropriate. Likely still fine, since the content is generic-shape, but worth a re-look.
 
 ---
 

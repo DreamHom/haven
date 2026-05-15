@@ -1,0 +1,34 @@
+meta {
+  name: 02-LookupAgentByGuessedId
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/api/users/2/profile
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  # I'm hitting GET /users/2/profile because /users/{id}/profile is the
+  # only user-facing lookup that exists, and Emeka registered before me
+  # so he probably has a low ID. This is "guess-the-ID-by-trial".
+  #
+  # In Bruno I cannot iterate so I'm just doing one shot. In real life
+  # I would either:
+  #   - call Emeka and have him read me his ID (works but is humiliating
+  #     and slow), OR
+  #   - paginate through /users/1/profile, /users/2/profile, /users/3/...
+  #     looking for "Emeka, AGENT, verified" until I find him (this is
+  #     literally enumerating the user table; great way to harvest names).
+  #
+  # I'll also note: the profile endpoint exposes role + verified-credential
+  # timestamp, so by enumerating I can build a list of all verified agents
+  # on the platform. There is no rate limit on this endpoint per the spec.
+  # That is a privacy + scraping concern.
+}

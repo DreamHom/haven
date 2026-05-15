@@ -1,0 +1,24 @@
+meta {
+  name: 02-AuditLogsByTargetUser
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/api/admin/audit-logs?target_user_id={{suspendTargetUserId}}
+  auth: bearer
+}
+
+params:query {
+  target_user_id: {{suspendTargetUserId}}
+}
+
+auth:bearer {
+  token: {{jwt}}
+}
+
+docs {
+  # Same call, by target user. The Story 7 acceptance criteria explicitly
+  # say "filterable by action type, target type, target id, actor id,
+  # date range". None of that surface exists.
+}

@@ -37,11 +37,14 @@ class ListingServiceFindPubliclyVisibleTest {
     @Mock
     PropertyService propertyService;
 
+    @Mock
+    com.dreamhomes.haven.user.repository.UserRepository userRepository;
+
     ListingService listingService;
 
     @BeforeEach
     void setUp() {
-        listingService = new ListingService(listingRepository, propertyService);
+        listingService = new ListingService(listingRepository, propertyService, new com.dreamhomes.haven.listing.ListingMapperImpl(), org.mockito.Mockito.mock(com.dreamhomes.haven.agentlisting.AgentListingRepository.class), org.mockito.Mockito.mock(com.dreamhomes.haven.listingreport.ListingReportRepository.class), userRepository, org.mockito.Mockito.mock(com.dreamhomes.haven.listing.embedding.ListingSearchEmbeddingService.class));
     }
 
     @Test
@@ -49,6 +52,8 @@ class ListingServiceFindPubliclyVisibleTest {
         Listing live = listing(50L, 7L, ListingStatus.LIVE);
         when(listingRepository.findById(50L)).thenReturn(Optional.of(live));
         when(propertyService.findSummary(7L)).thenReturn(Optional.of(summary(7L)));
+        when(userRepository.findPublicBioByUserId(1L)).thenReturn(Optional.empty());
+        when(listingRepository.incrementViewCount(50L)).thenReturn(1);
 
         ListingWithProperty result = listingService.findPubliclyVisible(50L);
 
@@ -93,6 +98,6 @@ class ListingServiceFindPubliclyVisibleTest {
     }
 
     private static PropertySummary summary(Long id) {
-        return new PropertySummary(id, PropertyType.HOUSE, "Address", 3, 2, null, null);
+        return new PropertySummary(id, PropertyType.HOUSE, "Address", 3, 2, null, null, null, null);
     }
 }

@@ -1,5 +1,6 @@
 package com.dreamhomes.haven.comment;
 
+import com.dreamhomes.haven.comment.dto.CommentFlagResponse;
 import com.dreamhomes.haven.auth.JwtPrincipal;
 import com.dreamhomes.haven.auth.service.JwtService;
 import com.dreamhomes.haven.common.config.SecurityConfig;
@@ -37,20 +38,21 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(CommentController.class)
-@Import(SecurityConfig.class)
+@Import({SecurityConfig.class, com.dreamhomes.haven.support.JwtCookieTestStubConfiguration.class, com.dreamhomes.haven.comment.CommentMapperImpl.class})
 @TestPropertySource(properties = {
         "haven.rate-limit.enabled=false",
         "cors.allowed-origins=http://localhost:3000",
-        "jwt.secret=test-secret-not-a-placeholder-and-32-bytes-or-more",
-        "jwt.expiration-ms=3600000",
-        "jwt.issuer=test-issuer",
-        "jwt.audience=test-audience"
+        "haven.jwt.expiration-ms=3600000",
+        "haven.jwt.issuer=test-issuer",
+        "haven.jwt.audience=test-audience"
 })
 class CommentControllerTest {
 
     @Autowired MockMvc mockMvc;
     @MockBean CommentService commentService;
+    @MockBean CommentFlagService commentFlagService;
     @MockBean JwtService jwtService;
+    @MockBean com.dreamhomes.haven.auth.blocklist.JwtBlocklistRepository jwtBlocklistRepository;
     @MockBean UserCredentialsService userCredentialsService;
 
     @Test
@@ -95,6 +97,22 @@ class CommentControllerTest {
                 .andExpect(status().isBadRequest());
 
         verify(commentService, never()).post(any(), any(), any());
+    }
+
+    @Test
+    void flagCommentReturns201() throws Exception {
+        when(commentFlagService.flag(eq(100L), eq(7L), eq(50L), eq("spam")))
+                .thenReturn(new CommentFlagResponse(12L, 7L, 50L, 100L, "spam", CommentFlagStatus.OPEN, Instant.parse("2026-05-10T10:00:00Z")));
+
+        mockMvc.perform(post("/api/listings/7/comments/50/flag")
+                        .with(asPrincipal(100L, Role.APPLICANT))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"reason\":\"spam\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id", is(12)))
+                .andExpect(jsonPath("$.status", is("OPEN")));
+
+        verify(commentFlagService).flag(100L, 7L, 50L, "spam");
     }
 
     @Test

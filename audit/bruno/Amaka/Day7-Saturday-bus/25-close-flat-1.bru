@@ -1,0 +1,30 @@
+meta {
+  name: 25 CLOSE flat 1 (deal done off-platform, for the audit)
+  type: http
+  seq: 25
+}
+
+patch {
+  url: {{host}}/listings/{{listingId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{jwt}}
+}
+
+body:json {
+  {
+    "status": "CLOSED"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq CLOSED
+}
+
+docs {
+  Pretending the deal closed — exercise the CLOSED transition.
+}

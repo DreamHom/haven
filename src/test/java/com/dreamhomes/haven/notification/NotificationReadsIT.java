@@ -59,19 +59,6 @@ class NotificationReadsIT extends AbstractPostgresIT {
     @Autowired AdminAuditLogRepository auditLogRepository;
     @Autowired AgentListingRepository agentListingRepository;
 
-    @BeforeEach
-    @AfterEach
-    void clean() {
-        agentListingRepository.deleteAll();
-        auditLogRepository.deleteAll();
-        commentRepository.deleteAll();
-        verificationRepository.deleteAll();
-        notificationRepository.deleteAll();
-        listingRepository.deleteAll();
-        propertyRepository.deleteAll();
-        agentProfileRepository.deleteAll();
-        userRepository.deleteAll();
-    }
 
     @Test
     void ownerReadsTheirInboxThenMarksOneReadAndUnreadCountDecrements() throws Exception {

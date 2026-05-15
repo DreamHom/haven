@@ -1,0 +1,27 @@
+meta {
+  name: 03-day1-read-listing-detail
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{host}}/api/listings/17
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: lte 404
+}
+
+docs {
+  # Trying to open the listing detail. The OpenAPI example uses id=17, so
+  # I'm trying that — same as a curious browser would. I expect to see:
+  # - Property address
+  # - Documents-verified timestamp on the property (the "verified property
+  #   badge" my persona doc says I should see before I'd engage)
+  # - Owner / agent ID so I can click through to their profile
+  #
+  # If the listing is empty, that itself is a finding — there's nothing
+  # for me to look at on this platform tonight. I close the tab.
+}

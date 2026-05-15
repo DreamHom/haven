@@ -1,0 +1,33 @@
+meta {
+  name: 02-DeclineOffer
+  type: http
+  seq: 2
+}
+
+patch {
+  url: {{host}}/api/offers/{{secondOfferId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{biodunJwt}}
+}
+
+body:json {
+  {
+    "status": "DECLINED"
+  }
+}
+
+assert {
+  res.status: lte 499
+}
+
+docs {
+  # Same shape as accept. The only thing that bothers me: there is no
+  # "reason" or "message" field on a decline. As a developer I'd want
+  # to politely tell the applicant "the unit you wanted is not available
+  # at this price; please consider B1". The applicant just gets DECLINED.
+  # Cold.
+}

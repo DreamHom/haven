@@ -1,0 +1,28 @@
+meta {
+  name: 14-Save my favourite listing
+  type: http
+  seq: 14
+}
+
+post {
+  url: {{host}}/api/listings/1/save
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{temi_token}}
+}
+
+assert {
+  res.status: in [204, 401, 404]
+}
+
+docs {
+  Bookmarking the listing I liked yesterday so I can come back to
+  it. Spec says this is idempotent — saving twice doesn't error.
+
+  No request body even though the docs talk about pinning a
+  reason — it's just POST with no body, the listing ID in the URL
+  identifies what I'm saving. Fine, simple.
+}

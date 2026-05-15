@@ -21,13 +21,22 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Per-IP rate limiting on the unauthenticated auth endpoints. Caps registration and
- * login attempts at 5 per minute per IP — enough room for a fumbled password, narrow
- * enough to make automated credential-stuffing slow.
+ * login attempts per IP — wide enough for a fumbled password + a password-manager retry
+ * + a password-reset round-trip, narrow enough to make automated credential-stuffing slow.
  *
  * <p>State is in-memory only; for multi-instance deployments swap the
  * {@code ConcurrentHashMap} for a shared store (Redis, Hazelcast, etc.).
  *
- * <p>Returns {@code 429 Too Many Requests} with no body when exhausted.
+ * <p>Returns {@code 429 Too Many Requests} with a Problem+JSON body and a
+ * {@code Retry-After} header when exhausted.
+ *
+ * <p>Tuning: the persona audit caught the prior 5/min ceiling tripping legitimate
+ * 6-persona QA runs and password-manager retries. Default is 30/min — override via
+ * {@code haven.rate-limit.auth.capacity} / {@code window-seconds} per environment.
+ *
+ * <p>{@code /api/me/password} is included so the password-change path gets the same
+ * brute-force protection login does — leaked-token + change-password is a common
+ * account-takeover shape and shouldn't have unbounded attempts per IP.
  */
 @Component
 @Slf4j
@@ -35,20 +44,22 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
 
     private static final Set<String> RATE_LIMITED_PATHS = Set.of(
             "/api/auth/login",
-            "/api/auth/register"
+            "/api/auth/register",
+            "/api/auth/forgot-password",
+            "/api/auth/reset-password",
+            "/api/me/password"
     );
-
-    private static final int CAPACITY = 5;
-    private static final Duration WINDOW = Duration.ofMinutes(1);
 
     private final Map<String, Bucket> buckets = new ConcurrentHashMap<>();
 
-    /**
-     * Toggle for slice tests that focus on controller behaviour and don't want to fight
-     * the bucket. Production and full ITs leave this at the default {@code true}.
-     */
     @Value("${haven.rate-limit.enabled:true}")
     private boolean enabled;
+
+    @Value("${haven.rate-limit.auth.capacity:30}")
+    private int capacity;
+
+    @Value("${haven.rate-limit.auth.window-seconds:60}")
+    private long windowSeconds;
 
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request,
@@ -60,10 +71,11 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
         }
 
         String key = clientKey(request);
+        Duration window = Duration.ofSeconds(windowSeconds);
         Bucket bucket = buckets.computeIfAbsent(key, k -> Bucket.builder()
                 .addLimit(Bandwidth.builder()
-                        .capacity(CAPACITY)
-                        .refillIntervally(CAPACITY, WINDOW)
+                        .capacity(capacity)
+                        .refillIntervally(capacity, window)
                         .build())
                 .build());
 
@@ -71,15 +83,24 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
             chain.doFilter(request, response);
         } else {
             log.warn("Rate limit exceeded for {} on {}", key, request.getRequestURI());
+            long retryAfter = window.toSeconds();
             response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
-            response.setHeader("Retry-After", String.valueOf(WINDOW.toSeconds()));
+            response.setHeader("Retry-After", String.valueOf(retryAfter));
+            // Problem+JSON body so the client can show a real "try again in N seconds"
+            // message — persona audit (Temi) flagged the silent 429.
+            response.setContentType("application/problem+json");
+            response.getWriter().write(
+                    "{\"type\":\"about:blank\",\"title\":\"Too Many Requests\",\"status\":429," +
+                            "\"detail\":\"rate limit exceeded — try again in " + retryAfter + " seconds\"," +
+                            "\"instance\":\"" + request.getRequestURI() + "\"," +
+                            "\"retryAfterSeconds\":" + retryAfter + "}");
         }
     }
 
     private static String clientKey(HttpServletRequest request) {
         String forwarded = request.getHeader("X-Forwarded-For");
         if (forwarded != null && !forwarded.isBlank()) {
-            // X-Forwarded-For can be a comma-separated chain; the leftmost is the originator.
+
             return forwarded.split(",")[0].trim();
         }
         return request.getRemoteAddr();

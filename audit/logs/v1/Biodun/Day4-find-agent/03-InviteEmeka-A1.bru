@@ -1,0 +1,44 @@
+meta {
+  name: 03-InviteEmeka-A1
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{host}}/api/listings/{{listingA1}}/agent-assignment
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{biodunJwt}}
+}
+
+body:json {
+  {
+    "agentId": {{emekaUserId}}
+  }
+}
+
+assert {
+  res.status: lte 499
+}
+
+script:post-response {
+  if (res.body && res.body.id) {
+    bru.setVar("agentListingA1", res.body.id);
+  }
+}
+
+docs {
+  # `emekaUserId` will be set by the orchestrator from Emeka's persona
+  # capture. In a real human flow Biodun would have called Emeka and
+  # been told "I'm user 23". This is the cross-persona dependency.
+  #
+  # The endpoint name irritates me: it is /listings/{id}/agent-assignment
+  # (singular). I read that the first time and thought "okay, you can
+  # only have ONE assignment per listing, makes sense". Then I noticed
+  # AgentListing has a status field — REQUESTED / ACCEPTED / REVOKED —
+  # so over a listing's life there can be many assignments, just one
+  # ACCEPTED at a time. The path name lies to me.
+}

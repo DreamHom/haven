@@ -1,0 +1,21 @@
+meta {
+  name: 06-day1-listing-slots
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{host}}/api/listings/17/slots
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: lte 404
+}
+
+docs {
+  # If the agent has actually opened inspection slots for this week, that's
+  # a real signal — they're expecting visitors and have committed time.
+  # Empty slot list on a listing claiming it's for-rent-now is suspicious.
+}

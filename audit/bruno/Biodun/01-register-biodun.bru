@@ -1,0 +1,26 @@
+meta {
+  name: 01 Register Biodun (OWNER)
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{host}}/api/auth/register
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "biodun.developer.{{run_tag}}@dreamhomes.local",
+    "password": "OjoduBerger2026!",
+    "fullName": "Biodun Adeyemi",
+    "displayName": "Biodun A.",
+    "phone": "+2348023456712",
+    "role": "OWNER"
+  }
+}
+
+assert {
+  res.status: eq 202
+}

@@ -1,0 +1,26 @@
+meta {
+  name: 07-AgentAssignmentsMine
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{host}}/api/agent-listings/mine
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{amakaJwt}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  # Per the spec this works for both sides — for me as OWNER it should
+  # show any agent invites I've sent. I haven't sent any so it's empty.
+
+  ✅ Empty result, status 200. I'm not using an agent and never plan to.
+}

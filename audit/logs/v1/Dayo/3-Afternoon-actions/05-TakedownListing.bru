@@ -1,0 +1,45 @@
+meta {
+  name: 05-TakedownListing
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{host}}/api/admin/listings/{{targetListingId}}/takedown
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{jwt}}
+}
+
+body:json {
+  {
+    "reason": "Listing has been reported 3 times in 48h for off-platform-fee solicitation (the agent is asking applicants to pay 'inspection fee' via personal Opay before showing the unit). Confirmed via two reporter screenshots in support tickets #4413 and #4419. Taking down pending agent re-verification."
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  # This is the action that protects future Ngozis.
+
+  Spec requires `reason` (minLength 0 again — same complaint as reject).
+  Fine that the body schema accepts a long string. What I CAN'T do from
+  the API:
+  - Attach the reporter screenshots / ticket references as structured fields.
+  - See, before I push this button, who reported this listing. I'm taking
+    down on faith — the system gives me no way to cross-reference.
+  - Notify the owner *with* the reason. The persona doc says owner gets a
+    notification — but I have no way to verify what the owner actually
+    sees. (And I shouldn't have to trust the implementation; I want a
+    `notification_preview` in the takedown response.)
+
+  Response per spec is empty (no body shown). I would expect the
+  takedown to echo back at minimum: { listingId, status:'TAKEN_DOWN',
+  takenDownAt, takedownReason } so I can paste that into the support
+  ticket as proof of action.
+}

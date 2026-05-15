@@ -1,15 +1,17 @@
 package com.dreamhomes.haven.inspection.service;
 
+import com.dreamhomes.haven.agentlisting.AgentListingRepository;
+import com.dreamhomes.haven.agentlisting.model.AgentListingStatus;
 import com.dreamhomes.haven.listing.ListingService;
 import com.dreamhomes.haven.listing.exception.ListingNotFoundException;
 import com.dreamhomes.haven.listing.exception.NotPropertyOwnerException;
+import com.dreamhomes.haven.user.model.Role;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
 import java.util.List;
 import com.dreamhomes.haven.inspection.dto.CreateSlotCommand;
 import com.dreamhomes.haven.inspection.exception.InvalidSlotWindowException;
@@ -24,15 +26,19 @@ public class InspectionSlotService {
 
     private final InspectionSlotRepository slotRepository;
     private final ListingService listingService;
+    private final AgentListingRepository agentListingRepository;
 
     @Transactional
-    public InspectionSlot create(Long callerId, Long listingId, CreateSlotCommand cmd) {
+    public InspectionSlot create(Long callerId, Role role, Long listingId, CreateSlotCommand cmd) {
         if (!cmd.endsAt().isAfter(cmd.startsAt())) {
             throw new InvalidSlotWindowException();
         }
         Long ownerId = listingService.ownerOf(listingId)
                 .orElseThrow(() -> new ListingNotFoundException(listingId));
-        if (!ownerId.equals(callerId)) {
+        boolean allowed = callerId.equals(ownerId)
+                || (role == Role.AGENT && agentListingRepository.existsByListingIdAndAgentUserIdAndStatus(
+                        listingId, callerId, AgentListingStatus.ACCEPTED));
+        if (!allowed) {
             throw new NotPropertyOwnerException();
         }
 
@@ -44,7 +50,6 @@ public class InspectionSlotService {
                     .listingId(listingId)
                     .startsAt(cmd.startsAt())
                     .endsAt(cmd.endsAt())
-                    .createdAt(Instant.now())
                     .build());
         } catch (DataIntegrityViolationException overlap) {
             // Only the GiST EXCLUDE constraint can fire here.
@@ -57,6 +62,10 @@ public class InspectionSlotService {
 
     @Transactional(readOnly = true)
     public List<InspectionSlot> listAvailableForListing(Long listingId) {
+        // 404 if the listing is missing — see B-2 in the persona audit.
+        if (!listingService.exists(listingId)) {
+            throw new com.dreamhomes.haven.listing.exception.ListingNotFoundException(listingId);
+        }
         return slotRepository.findAvailableForListing(listingId);
     }
 }

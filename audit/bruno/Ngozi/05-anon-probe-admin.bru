@@ -1,0 +1,28 @@
+meta {
+  name: 05 Anon probe admin user 1
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{host}}/api/users/1/profile
+  body: none
+  auth: none
+}
+
+tests {
+  test("admin probe is hidden behind 404 (not 200 leaking ADMIN role)", function() {
+    expect(res.getStatus()).to.equal(404);
+  });
+  test("Problem+JSON response shape", function() {
+    expect(res.getHeader("Content-Type") || res.getHeader("content-type")).to.contain("problem+json");
+  });
+  test("error body has type/title/status/detail/instance", function() {
+    const body = res.getBody();
+    expect(body).to.have.property("type");
+    expect(body).to.have.property("title");
+    expect(body.status).to.equal(404);
+    expect(body).to.have.property("detail");
+    expect(body).to.have.property("instance");
+  });
+}

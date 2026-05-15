@@ -1,0 +1,29 @@
+meta {
+  name: 04-BrowseListings
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{host}}/api/listings?page=0&size=10
+  body: none
+  auth: none
+}
+
+params:query {
+  page: 0
+  size: 10
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  # Curious — let me see what other people's listings look like before I
+  # post mine. Want to know what my competition is charging on Admiralty.
+
+  No filter for "Lekki only" or "₦5M-₦8M" or "2-bed apartments". I just get
+  the firehose. For an owner doing market research that's frustrating —
+  I'd want to slice by area + bedrooms.
+}

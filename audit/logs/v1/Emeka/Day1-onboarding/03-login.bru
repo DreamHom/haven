@@ -1,0 +1,34 @@
+meta {
+  name: 03-Login and grab my JWT
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{host}}/api/auth/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "emeka.okorie.ph+{{run_tag}}@gmail.com",
+    "password": "Bik3AndPh0ne!ph"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.token: isString
+}
+
+script:post-response {
+  if (res.body && res.body.token) {
+    bru.setVar("emeka_jwt", res.body.token);
+  }
+}
+
+docs {
+  Log in to confirm the account exists. Token in hand — now I can act.
+  Token expires in 1h per the spec. Reasonable.
+}

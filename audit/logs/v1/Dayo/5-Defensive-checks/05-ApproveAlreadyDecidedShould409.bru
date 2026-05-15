@@ -1,0 +1,27 @@
+meta {
+  name: 05-ApproveAlreadyDecidedShould409
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{host}}/api/admin/verifications/{{ownerVerificationId}}/approve
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{jwt}}
+}
+
+assert {
+  res.status: eq 409
+}
+
+docs {
+  # Persona Story 2: cannot approve a non-PENDING submission (409).
+  # By this point ownerVerificationId has been approved already in
+  # Lunch-queue/03. Re-approving must 409 — otherwise approvals are
+  # idempotent in a dangerous way (notifications could get re-sent,
+  # audit log spammed, etc.).
+}

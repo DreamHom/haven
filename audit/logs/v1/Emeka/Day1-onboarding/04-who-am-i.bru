@@ -1,0 +1,32 @@
+meta {
+  name: 04-Confirm who I am
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{host}}/api/me
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{emeka_jwt}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.role: eq AGENT
+}
+
+script:post-response {
+  if (res.body && res.body.userId) {
+    bru.setVar("emeka_user_id", res.body.userId);
+  }
+}
+
+docs {
+  Quick sanity check — am I really an AGENT in the system's eyes?
+  Capture my user ID for later — I'll need it for the verification
+  payload.
+}

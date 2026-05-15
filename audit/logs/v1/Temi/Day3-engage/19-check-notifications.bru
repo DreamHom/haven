@@ -1,0 +1,31 @@
+meta {
+  name: 19-Did my verification get approved?
+  type: http
+  seq: 19
+}
+
+get {
+  url: {{host}}/api/notifications/mine?page=0&size=20
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{temi_token}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  Since I can't query my verification status directly, I'm forced
+  to check my notifications inbox to see if a VERIFICATION_APPROVED
+  or VERIFICATION_REJECTED has arrived.
+
+  Notification has a `payload` (typed as string but probably JSON)
+  and a `kind` enum. As a UI consumer, I'd have to JSON.parse the
+  payload string and switch on `kind` to format every line. That
+  works. But the payload schema is opaque — the spec just says
+  "payload: string" with no per-kind schema.
+}

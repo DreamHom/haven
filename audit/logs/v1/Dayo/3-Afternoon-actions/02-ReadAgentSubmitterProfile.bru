@@ -1,0 +1,27 @@
+meta {
+  name: 02-ReadAgentSubmitterProfile
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/api/users/{{agentSubmitterId}}/profile
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{jwt}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  # I want to see this agent's history before stamping a credential badge.
+
+  Same complaint as before: only public profile fields. No prior-
+  submission history, no report history, no email, no phone. I'm
+  flying blind on the very approval that will let this person collect
+  inspection fees from real Lagos tenants.
+}

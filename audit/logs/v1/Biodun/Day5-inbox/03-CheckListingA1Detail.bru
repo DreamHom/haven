@@ -1,0 +1,32 @@
+meta {
+  name: 03-CheckListingA1Detail
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{host}}/api/listings/{{listingA1}}
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  # Want to confirm A1 is still live before I act on offers. Open the
+  # listing detail.
+  #
+  # The response status field — per the OpenAPI schema — is one of
+  # ["LIVE", "PAUSED", "CLOSED"]. But the description text and the
+  # examples elsewhere (e.g. POST /listings) say "OPEN". Which is it?
+  # If I write a UI against this I do not know which strings to
+  # expect. ⚠️ Spec self-contradiction.
+  #
+  # Also: this endpoint returns price + property snapshot but NOT
+  # "how many offers are on this listing right now". So I cannot
+  # quickly tell from the listing detail "this one has 3 offers, look
+  # at it first". I would have to GET something else (which... doesn't
+  # exist — no /listings/{id}/offers endpoint in the spec).
+}

@@ -12,6 +12,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @AutoConfigureMockMvc
+@org.springframework.test.context.TestPropertySource(properties = {
+        // Pin the bucket to a small capacity in this IT so the test stays fast and
+        // deterministic regardless of the production default (currently 15/min).
+        "haven.rate-limit.auth.capacity=5",
+        "haven.rate-limit.auth.window-seconds=60"
+})
 class AuthRateLimitIT extends AbstractPostgresIT {
 
     @Autowired

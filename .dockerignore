@@ -1,0 +1,19 @@
+# Keep the build context lean — anything not needed by `mvn package` should be
+# excluded so Docker doesn't ship megabytes of irrelevant bytes to the daemon.
+.git
+.github
+.idea
+.vscode
+target
+docs
+audit
+*.md
+.env
+.env.example
+docker-compose*.yml
+Dockerfile
+.dockerignore
+*.pem
+*.log
+*.tmp
+.DS_Store

@@ -4,7 +4,6 @@ import com.dreamhomes.haven.agentlisting.dto.AgentListingResponse;
 import com.dreamhomes.haven.agentlisting.dto.DeclineAssignmentRequest;
 import com.dreamhomes.haven.agentlisting.dto.RequestAgentAssignmentRequest;
 import com.dreamhomes.haven.agentlisting.dto.RevokeAssignmentRequest;
-import com.dreamhomes.haven.agentlisting.model.AgentListing;
 import com.dreamhomes.haven.agentlisting.model.AgentListingStatus;
 import com.dreamhomes.haven.auth.JwtPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
@@ -46,11 +45,13 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api")
 @RequiredArgsConstructor
 @Tag(name = "Agent assignments")
+@org.springframework.validation.annotation.Validated
 public class AgentListingController {
 
     private static final int MAX_PAGE_SIZE = 100;
 
     private final AgentListingService agentListingService;
+    private final AgentListingMapper agentListingMapper;
 
     @Operation(
             summary = "Invite an agent to manage a listing",
@@ -96,8 +97,45 @@ public class AgentListingController {
             @Parameter(description = "Listing the agent is being invited to manage.", example = "17")
             @PathVariable Long listingId,
             @Valid @RequestBody RequestAgentAssignmentRequest request) {
-        return toResponse(
+        return agentListingMapper.toResponse(
                 agentListingService.request(principal.userId(), listingId, request.agentId()));
+    }
+
+    @Operation(
+            summary = "Invite agents to many listings in one call",
+            description = """
+                    Bulk variant of {@code POST /api/listings/{listingId}/agent-assignment}.
+                    Persona audit (Biodun): an owner with 60 freshly-listed units shouldn't
+                    have to fire 60 separate invite calls when they've already picked one
+                    or two agents to manage the whole tower. Each row pairs a listing with
+                    the agent to invite. Owner-of-listing + agent-role checks run per row.
+                    Whole batch is one transaction.
+
+                    **Limits**: at most 100 invitations per call.
+                    """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "All invitations created."),
+            @ApiResponse(responseCode = "400", ref = "#/components/responses/ValidationFailed"),
+            @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthenticated"),
+            @ApiResponse(responseCode = "403", ref = "#/components/responses/Forbidden"),
+            @ApiResponse(responseCode = "404", ref = "#/components/responses/NotFound"),
+            @ApiResponse(responseCode = "409", ref = "#/components/responses/Conflict")
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @PostMapping("/agent-listings/bulk")
+    @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasRole('OWNER')")
+    public java.util.List<AgentListingResponse> requestBulk(
+            @AuthenticationPrincipal JwtPrincipal principal,
+            @Valid @RequestBody @jakarta.validation.constraints.Size(min = 1, max = 100)
+            java.util.List<com.dreamhomes.haven.agentlisting.dto.BulkAssignmentRequest> requests) {
+        java.util.List<AgentListingResponse> out = new java.util.ArrayList<>(requests.size());
+        for (var r : requests) {
+            out.add(agentListingMapper.toResponse(
+                    agentListingService.request(principal.userId(), r.listingId(), r.agentId())));
+        }
+        return out;
     }
 
     @Operation(
@@ -132,7 +170,7 @@ public class AgentListingController {
             @AuthenticationPrincipal JwtPrincipal principal,
             @Parameter(description = "AgentListing ID.", example = "51")
             @PathVariable Long id) {
-        return toResponse(
+        return agentListingMapper.toResponse(
                 agentListingService.respond(principal.userId(), id, AgentListingStatus.ACCEPTED, null));
     }
 
@@ -164,7 +202,7 @@ public class AgentListingController {
             @Parameter(description = "AgentListing ID.", example = "51")
             @PathVariable Long id,
             @Valid @RequestBody DeclineAssignmentRequest request) {
-        return toResponse(
+        return agentListingMapper.toResponse(
                 agentListingService.respond(principal.userId(), id, AgentListingStatus.DECLINED, request.reason()));
     }
 
@@ -199,7 +237,7 @@ public class AgentListingController {
             @Parameter(description = "AgentListing ID.", example = "51")
             @PathVariable Long id,
             @Valid @RequestBody RevokeAssignmentRequest request) {
-        return toResponse(
+        return agentListingMapper.toResponse(
                 agentListingService.revoke(principal.userId(), principal.role(), id, request.reason()));
     }
 
@@ -232,16 +270,13 @@ public class AgentListingController {
     @GetMapping("/agent-listings/mine")
     public Page<AgentListingResponse> listMine(
             @AuthenticationPrincipal JwtPrincipal principal,
+            @io.swagger.v3.oas.annotations.Parameter(description = "Filter by status: REQUESTED, ACCEPTED, DECLINED, REVOKED.")
+            @RequestParam(required = false) com.dreamhomes.haven.agentlisting.model.AgentListingStatus status,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         Pageable pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), MAX_PAGE_SIZE));
-        return agentListingService.listMine(principal.userId(), principal.role(), pageable)
-                .map(AgentListingController::toResponse);
+        return agentListingService.listMine(principal.userId(), principal.role(), status, pageable)
+                .map(agentListingMapper::toResponse);
     }
 
-    static AgentListingResponse toResponse(AgentListing al) {
-        return new AgentListingResponse(al.getId(), al.getListingId(), al.getAgentUserId(),
-                al.getRequestedByOwnerId(), al.getStatus(), al.getDecisionReason(),
-                al.getRequestedAt(), al.getDecidedAt());
-    }
 }
