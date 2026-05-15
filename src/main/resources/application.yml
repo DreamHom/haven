@@ -150,12 +150,19 @@ haven:
     agent-marketing:
       # Max multipart size per agent gallery image (bytes). Default 8 MiB.
       max-bytes: ${HAVEN_PHOTOS_AGENT_MARKETING_MAX_BYTES:8388608}
+  demo:
+    # When true, an ApplicationRunner checks the listings table at boot. If empty,
+    # it self-seeds the demo dataset (10 users + 8 properties/listings + photos +
+    # agent assignments + verifications + 1 pending offer + audit log entries).
+    # If listings exist, the seeder is a no-op. NEVER enable in real production —
+    # demo accounts share a known password (Demo2026!).
+    auto-seed: ${HAVEN_DEMO_AUTO_SEED:false}
   dream-ai:
     anthropic:
       # When set, POST /api/dream-ai/suggestions ranks LIVE listings with Claude Haiku over the Messages API.
       # Leave empty to use the legacy location= substring stub (no outbound LLM call).
       api-key: ${HAVEN_ANTHROPIC_API_KEY:}
-      model: ${HAVEN_ANTHROPIC_MODEL:claude-3-5-haiku-20241022}
+      model: ${HAVEN_ANTHROPIC_MODEL:claude-haiku-4-5}
       base-url: ${HAVEN_ANTHROPIC_BASE_URL:https://api.anthropic.com}
       max-candidates: ${HAVEN_ANTHROPIC_MAX_CANDIDATES:80}
       max-output-tokens: ${HAVEN_ANTHROPIC_MAX_OUTPUT_TOKENS:512}

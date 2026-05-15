@@ -24,7 +24,12 @@ This document tells **what Haven already implements** so assistants and frontend
 ### Orchestration (single pipeline)
 
 - **Clarify**: very short prompts (heuristic) → `kind=clarify` + **chips** block + markdown.
-- **Compare**: two listing ids extracted from URLs/paths → `kind=compare` + compare block (LIVE visibility enforced).
+- **Compare** (now AI-backed):
+  - **Trigger A — URL-explicit**: prompt contains 2–5 `/listings/N` paths → those ids are pulled out and routed to compare.
+  - **Trigger B — conversation-aware**: when `chatId` is supplied AND the prior assistant turn surfaced listing ids AND the current prompt looks like a comparison question (`which is best…`, `compare these for…`, `recommend / pick / suit / fit…`), the orchestrator reuses the prior turn's ids without requiring URLs in the new prompt.
+  - With `HAVEN_ANTHROPIC_API_KEY` set, the matched ids (LIVE-checked, capped at 5) flow through `AnthropicListingCompareClient`. The model returns `{recommendedListingId, summary, perListing[]}`; ids are validated against the LIVE set, recommendations outside the set are coerced to `null`. The block ships back as `TurnBlock.compare` with both the legacy `compareListingIds` AND a populated `compareReasoning` payload.
+  - Without an Anthropic key (or on model failure), the block carries the legacy stub markdown + `compareListingIds` only — `compareReasoning` is omitted.
+  - On 0–1 LIVE matches → `kind=error` with the friendly "open each listing to confirm availability" markdown (no LLM call).
 - **Rank / reply**: Anthropic **Haiku** when `HAVEN_ANTHROPIC_API_KEY` is set over a **bounded LIVE catalogue**; otherwise **stub** browse (`location=` substring). Server **re-validates** listing ids.
 - **Empty states** (in `turn.meta`): **`inventoryEmpty`**, **`queryTooStrict`**, plus generic no-match copy where appropriate — distinct from “inventory empty”.
 
@@ -74,7 +79,8 @@ Do **not** implement these in Haven **unless** product re-opens the contract:
 | --- | --- |
 | Controllers | `DreamAiController`, `DreamAiTurnStreamController` |
 | Service / persistence | `DreamAiChatService`, `DreamAiTurnOrchestrator`, `DreamAiChatMessage*` |
-| DTOs / turn model | `DreamAiRunTurnRequest`, `DreamAiRunTurnResponse`, `AssistantTurnV1`, `TurnBlock`, `TurnMeta`, `DreamAiTurnKind` |
+| DTOs / turn model | `DreamAiRunTurnRequest`, `DreamAiRunTurnResponse`, `AssistantTurnV1`, `TurnBlock`, `TurnMeta`, `DreamAiTurnKind`, `CompareReasoning`, `PerListingNote` |
+| Compare client | `AnthropicListingCompareClient` — sister of `AnthropicListingSearchClient`; structured JSON-out with id-validation defence in depth |
 | Infra | `DreamAiRateLimitFilter`, `DreamAiModerationService`, Flyway `V40__dream_ai_message_envelope.sql` |
 
 When Vista bumps its frozen OpenAPI bundle, regenerate from **`GET /v3/api-docs`** and diff — see `docs/vista/integration-log.md`.

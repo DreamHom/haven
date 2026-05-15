@@ -20,7 +20,7 @@ public class DreamAiAnthropicProperties {
     /**
      * Claude model id (default: Claude 3.5 Haiku).
      */
-    private String model = "claude-3-5-haiku-20241022";
+    private String model = "claude-haiku-4-5";
 
     private String baseUrl = "https://api.anthropic.com";
 
