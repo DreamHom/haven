@@ -1,0 +1,31 @@
+meta {
+  name: 02-SuspendSelfShould403
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{host}}/api/admin/users/{{dayoSelfId}}/suspend
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{jwt}}
+}
+
+body:json {
+  {
+    "reason": "Defensive test — suspending the seeded admin (myself). Must 403."
+  }
+}
+
+assert {
+  res.status: eq 403
+}
+
+docs {
+  # Persona Story 4: cannot suspend self → 403 (CannotModerateSelfException).
+  # If this returns 200 the entire admin role is one click away from
+  # locking itself out of the platform. CRITICAL if it does.
+}

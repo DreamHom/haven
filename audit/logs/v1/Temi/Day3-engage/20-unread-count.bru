@@ -1,0 +1,23 @@
+meta {
+  name: 20-Unread badge count
+  type: http
+  seq: 20
+}
+
+get {
+  url: {{host}}/api/notifications/mine/unread-count
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{temi_token}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  Polling the unread count for the bell-icon badge. Standard.
+}

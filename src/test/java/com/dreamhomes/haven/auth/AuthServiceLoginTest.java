@@ -35,15 +35,18 @@ class AuthServiceLoginTest {
     @Mock
     JwtService jwtService;
 
+    @Mock
+    com.dreamhomes.haven.notification.NotificationApi notificationApi;
+
     AuthService authService;
 
     UserCredentials existing;
 
     @BeforeEach
     void setUp() {
-        authService = new AuthService(userCredentialsService, passwordEncoder, jwtService);
+        authService = new AuthService(userCredentialsService, passwordEncoder, jwtService, notificationApi, org.mockito.Mockito.mock(com.dreamhomes.haven.auth.blocklist.JwtBlocklistRepository.class));
         existing = new UserCredentials(
-                7L, "ada@example.com", "$2a$10$hashed", Role.OWNER, 1, false);
+                7L, "ada@example.com", "Ada Lovelace", "$2a$10$hashed", Role.OWNER, 1, false);
     }
 
     @Test
@@ -51,10 +54,16 @@ class AuthServiceLoginTest {
         when(userCredentialsService.loadByEmail("ada@example.com")).thenReturn(Optional.of(existing));
         when(passwordEncoder.matches("plaintext-pw", "$2a$10$hashed")).thenReturn(true);
         when(jwtService.issue(7L, "ada@example.com", Role.OWNER, 1)).thenReturn("the-jwt-token");
+        when(jwtService.expirationSeconds()).thenReturn(3600L);
 
-        String token = authService.login(new LoginCommand("ada@example.com", "plaintext-pw"));
+        com.dreamhomes.haven.auth.dto.LoginResult result =
+                authService.login(new LoginCommand("ada@example.com", "plaintext-pw"));
 
-        assertThat(token).isEqualTo("the-jwt-token");
+        assertThat(result.token()).isEqualTo("the-jwt-token");
+        assertThat(result.userId()).isEqualTo(7L);
+        assertThat(result.role()).isEqualTo(Role.OWNER);
+        assertThat(result.fullName()).isEqualTo("Ada Lovelace");
+        assertThat(result.expiresInSeconds()).isEqualTo(3600L);
     }
 
     @Test
@@ -73,10 +82,12 @@ class AuthServiceLoginTest {
         when(userCredentialsService.loadByEmail("ada@example.com")).thenReturn(Optional.of(existing));
         when(passwordEncoder.matches("plaintext-pw", "$2a$10$hashed")).thenReturn(true);
         when(jwtService.issue(7L, "ada@example.com", Role.OWNER, 1)).thenReturn("the-jwt-token");
+        when(jwtService.expirationSeconds()).thenReturn(3600L);
 
-        String token = authService.login(new LoginCommand("ADA@Example.COM", "plaintext-pw"));
+        com.dreamhomes.haven.auth.dto.LoginResult result =
+                authService.login(new LoginCommand("ADA@Example.COM", "plaintext-pw"));
 
-        assertThat(token).isEqualTo("the-jwt-token");
+        assertThat(result.token()).isEqualTo("the-jwt-token");
         verify(userCredentialsService).loadByEmail("ada@example.com");
     }
 
@@ -93,7 +104,7 @@ class AuthServiceLoginTest {
     @Test
     void suspendedUserCannotLoginEvenWithCorrectPassword() {
         UserCredentials suspended = new UserCredentials(
-                7L, "ada@example.com", "$2a$10$hashed", Role.OWNER, 1, true);
+                7L, "ada@example.com", "Ada Lovelace", "$2a$10$hashed", Role.OWNER, 1, true);
         when(userCredentialsService.loadByEmail("ada@example.com")).thenReturn(Optional.of(suspended));
         when(passwordEncoder.matches("plaintext-pw", "$2a$10$hashed")).thenReturn(true);
 

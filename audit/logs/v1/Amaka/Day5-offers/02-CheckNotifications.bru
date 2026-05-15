@@ -1,0 +1,36 @@
+meta {
+  name: 02-CheckNotifications
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/api/notifications/mine?unreadOnly=true&page=0&size=20
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{amakaJwt}}
+}
+
+params:query {
+  unreadOnly: true
+  page: 0
+  size: 20
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  # Refreshing my inbox, hoping for an inspection request or offer.
+
+  Empty for now (Temi hasn't acted yet — cross-persona BLOCKED). The
+  endpoint works. Notes:
+  - The `payload` field is a String, not a structured object. As an end
+    user I'd want to know what listing each notification is about WITHOUT
+    parsing JSON-in-a-string.
+  - There's no grouping by listing or by kind.
+}

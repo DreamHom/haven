@@ -70,6 +70,12 @@ public class UserProfileController {
     public PublicUserProfile getPublicProfile(
             @Parameter(description = "User ID to look up.", example = "7")
             @PathVariable Long id) {
-        return userProfileService.findPublicProfile(id);
+        PublicUserProfile profile = userProfileService.findPublicProfile(id);
+        // Hide ADMIN accounts from public lookup — surfacing role=ADMIN at /users/1/profile
+        // lets anyone enumerate admin user IDs (Temi flagged this in the persona audit).
+        if (profile.role() == com.dreamhomes.haven.user.model.Role.ADMIN) {
+            throw new com.dreamhomes.haven.user.exception.UserNotFoundException(id);
+        }
+        return profile;
     }
 }

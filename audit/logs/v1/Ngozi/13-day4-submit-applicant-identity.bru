@@ -1,0 +1,45 @@
+meta {
+  name: 13-day4-submit-applicant-identity
+  type: http
+  seq: 13
+}
+
+post {
+  url: {{host}}/api/verifications
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{ngozi_token}}
+}
+
+body:json {
+  {
+    "type": "APPLICANT_IDENTITY",
+    "documentRefs": {
+      "kind": "NIN",
+      "number": "12345678901",
+      "ref": "https://files.dreamhomes-test.example/ngozi/nin-slip.jpg"
+    }
+  }
+}
+
+assert {
+  res.status: in [200, 201]
+  res.body.status: eq PENDING
+  res.body.type: eq APPLICANT_IDENTITY
+}
+
+docs {
+  # Day 4 — Monday. I'm sending in my NIN slip so my offer carries
+  # the same verified badge I'm demanding from the agents. Fair is
+  # fair. I expect this to come back PENDING; an admin reviews it.
+  #
+  # Note: I'd love to upload the actual scan of my NIN slip here, but
+  # the spec doesn't expose a multipart upload endpoint — only a JSON
+  # `documentRefs` blob. I'm stuffing a placeholder URL. There's no
+  # validation in the schema to tell me what shape this dictionary
+  # should take. That's a gap in the contract, and I'd flag it on a
+  # real frontend too.
+}

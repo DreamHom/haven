@@ -1,0 +1,48 @@
+meta {
+  name: 01-Register
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{host}}/api/auth/register
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "amaka.okafor.lekki+{{run_tag}}@gmail.com",
+    "password": "MyLekkiFlats2025!",
+    "fullName": "Amaka Okafor",
+    "displayName": "Amaka O.",
+    "phone": "+2348031234567",
+    "role": "OWNER",
+    "publicRole": true
+  }
+}
+
+assert {
+  res.status: eq 202
+}
+
+script:post-response {
+  // Stash the email so I can log in with it next.
+  bru.setVar("amakaEmail", "amaka.okafor.lekki+" + bru.getEnvVar("run_tag") + "@gmail.com");
+  bru.setVar("amakaPassword", "MyLekkiFlats2025!");
+}
+
+docs {
+  # Day 1, ~9:30pm — just got home from Abuja office.
+
+  My friend Funke told me about DreamHomes at lunch. Sitting on the bed
+  scrolling on my phone. Let me just see what this is about.
+
+  I'm picking OWNER because I'm the landlord, not an applicant. I added my
+  Glo number too — that's the one I use for everything property.
+
+  Spec promised 202 with no body. I expected to also get a token back so I
+  could use the app right away — instead I have to make a SECOND call to
+  log in. That's annoying for a tired person. Why would you make me type
+  my password twice?
+}

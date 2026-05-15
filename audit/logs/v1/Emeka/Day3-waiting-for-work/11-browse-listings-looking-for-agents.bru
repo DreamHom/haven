@@ -1,0 +1,29 @@
+meta {
+  name: 11-Browse public listings, hunting for owners I could pitch
+  type: http
+  seq: 11
+}
+
+get {
+  url: {{host}}/api/listings?page=0&size=20
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{emeka_jwt}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  As an agent looking for work, I want to find listings WITHOUT an
+  assigned agent so I can DM the owner and pitch myself. The browse
+  endpoint takes a `pageable` only — no filter for "no agent",
+  no filter for city / Port Harcourt, no filter for property type.
+
+  GAP: This is the single biggest miss for an agent persona. I can't
+  prospect on this platform, period.
+}

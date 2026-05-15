@@ -1,0 +1,21 @@
+meta {
+  name: 05-day1-listing-comments
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{host}}/api/listings/17/comments?page=0&size=20
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: lte 404
+}
+
+docs {
+  # Comments are how I find the previous Ngozis. If someone has posted
+  # "is this still available?" three times with no reply, the listing is
+  # stale or the agent is ignoring people. Both are signals.
+}

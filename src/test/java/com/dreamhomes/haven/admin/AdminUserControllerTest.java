@@ -50,6 +50,7 @@ class AdminUserControllerTest {
     @Autowired MockMvc mockMvc;
     @MockBean AdminUserService adminUserService;
     @MockBean JwtService jwtService;
+    @MockBean com.dreamhomes.haven.auth.blocklist.JwtBlocklistRepository jwtBlocklistRepository;
     @MockBean UserCredentialsService userCredentialsService;
 
     @Test
@@ -95,7 +96,7 @@ class AdminUserControllerTest {
     @Test
     void adminReactivatesUserReturns200WithSuspendedAtCleared() throws Exception {
         UserAdminView reactivated = view(50L, Role.OWNER, null);
-        when(adminUserService.reactivate(eq(7L), eq(50L))).thenReturn(reactivated);
+        when(adminUserService.reactivate(eq(7L), eq(50L), org.mockito.ArgumentMatchers.isNull())).thenReturn(reactivated);
 
         mockMvc.perform(post("/api/admin/users/50/reactivate")
                         .with(asPrincipal(7L, Role.ADMIN)))

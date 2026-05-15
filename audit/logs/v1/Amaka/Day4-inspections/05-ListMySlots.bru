@@ -1,0 +1,24 @@
+meta {
+  name: 05-ListMySlots
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{host}}/api/listings/{{amakaListingId}}/slots
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body[0].id: isDefined
+}
+
+docs {
+  # Let me confirm both slots are visible to applicants.
+
+  ✅ Both slots show up. But this endpoint is paginated-list-style only;
+  no per-listing dashboard view from MY side that says "you have 2 open
+  slots, 0 booked". I have to count them myself.
+}

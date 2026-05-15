@@ -1,0 +1,29 @@
+meta {
+  name: 14-Did the AGENT_ASSIGNMENT_REQUESTED notification arrive
+  type: http
+  seq: 14
+}
+
+get {
+  url: {{host}}/api/notifications/mine?page=0&size=50
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{emeka_jwt}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  An owner (Biodun) was supposed to invite me on a listing. I'd
+  expect a notification of kind AGENT_ASSIGNMENT_REQUESTED in this
+  list with the listingId and the owner's reason.
+
+  BLOCKED: requires the OWNER persona (Biodun) to have called
+  POST /listings/{id}/agent-assignment with my agentId. Solo, I can't
+  fabricate this. Documenting the dependency here.
+}

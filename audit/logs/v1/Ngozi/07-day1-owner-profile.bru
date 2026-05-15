@@ -1,0 +1,29 @@
+meta {
+  name: 07-day1-owner-profile
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{host}}/api/users/7/profile
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: lte 404
+}
+
+docs {
+  # Now the most important request of the whole night for me — the agent
+  # / owner profile. I want to see:
+  # - identityVerifiedAt: a real ISO timestamp, not null
+  # - agentCredentialVerifiedAt (if AGENT)
+  # - averageRating
+  # - reviewCount
+  # - closedDealCount  <-- my persona doc says I look for this. Let's see
+  #   if the platform actually exposes it.
+  #
+  # If averageRating is null and reviewCount is 0, this person has done
+  # zero deals on the platform. I'm not their first.
+}

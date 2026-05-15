@@ -27,6 +27,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -63,6 +64,9 @@ class PropertyControllerTest {
 
     @MockBean
     JwtService jwtService;
+
+    @MockBean
+    com.dreamhomes.haven.auth.blocklist.JwtBlocklistRepository jwtBlocklistRepository;
 
     @MockBean
     UserCredentialsService userCredentialsService;
@@ -117,6 +121,58 @@ class PropertyControllerTest {
                                 }
                                 """))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void ownerListMineReturnsTheirProperties() throws Exception {
+        when(propertyService.listMine(eq(99L), any())).thenReturn(
+                new org.springframework.data.domain.PageImpl<>(List.of(
+                        new com.dreamhomes.haven.property.dto.PropertyResponse(
+                                7L, 99L, PropertyType.APARTMENT,
+                                "12 Lekki Phase 1, Lagos", 3, 2, new BigDecimal("128.50"),
+                                "Top floor", Instant.now()))));
+
+        mockMvc.perform(get("/api/properties/mine")
+                        .with(asPrincipal(99L, Role.OWNER)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].id", is(7)))
+                .andExpect(jsonPath("$.content[0].ownerId", is(99)));
+    }
+
+    @Test
+    void getByIdReturnsPropertyWhenCallerOwnsIt() throws Exception {
+        when(propertyService.ownerOf(7L))
+                .thenReturn(java.util.Optional.of(99L));
+        when(propertyService.findById(7L)).thenReturn(
+                new com.dreamhomes.haven.property.dto.PropertyResponse(
+                        7L, 99L, PropertyType.APARTMENT,
+                        "12 Lekki Phase 1, Lagos", 3, 2, new BigDecimal("128.50"),
+                        "Top floor", Instant.now()));
+
+        mockMvc.perform(get("/api/properties/7")
+                        .with(asPrincipal(99L, Role.OWNER)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id", is(7)));
+    }
+
+    @Test
+    void getByIdReturns404WhenCallerIsNotOwner() throws Exception {
+        when(propertyService.ownerOf(7L))
+                .thenReturn(java.util.Optional.of(99L));
+
+        mockMvc.perform(get("/api/properties/7")
+                        .with(asPrincipal(50L, Role.OWNER)))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void getByIdReturns404WhenPropertyMissing() throws Exception {
+        when(propertyService.ownerOf(404L))
+                .thenReturn(java.util.Optional.empty());
+
+        mockMvc.perform(get("/api/properties/404")
+                        .with(asPrincipal(99L, Role.OWNER)))
+                .andExpect(status().isNotFound());
     }
 
     @Test

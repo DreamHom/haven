@@ -1,0 +1,27 @@
+meta {
+  name: 02 Anon listing detail - trust signals
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/api/listings/{{listing_id}}
+  body: none
+  auth: none
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  test("listing has property block with documentsVerifiedAt (verified-property badge)", function() {
+    expect(res.getBody().property).to.have.property("documentsVerifiedAt");
+  });
+  test("listing has ownerId so I can drill into the agent/owner profile", function() {
+    expect(res.getBody()).to.have.property("ownerId");
+  });
+  test("rent listing has at least price + currency I can sanity-check against the Lekki market", function() {
+    expect(res.getBody().askingPrice).to.not.be.null;
+    expect(res.getBody().currency).to.not.be.null;
+  });
+}

@@ -128,6 +128,7 @@ class ListingPhotoServiceTest {
     void listForListingReturnsOrderedSequence() {
         ListingPhoto a = ListingPhoto.builder().id(1L).listingId(7L).displayOrder(1).build();
         ListingPhoto b = ListingPhoto.builder().id(2L).listingId(7L).displayOrder(2).build();
+        when(listingService.exists(7L)).thenReturn(true);
         when(photoRepository.findByListingIdOrderByDisplayOrderAscIdAsc(7L))
                 .thenReturn(java.util.List.of(a, b));
 

@@ -1,0 +1,27 @@
+meta {
+  name: 02 Get /me
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/me
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminJwt}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.role: eq ADMIN
+  res.body.fullName: isDefined
+  res.body.email: isDefined
+  res.body.tokenVersion: isUndefined
+}
+
+docs {
+  Confirm /me shape: must carry fullName (new) and must NOT leak tokenVersion
+  (cleaned up). If tokenVersion shows up, contract regression.
+}

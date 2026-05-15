@@ -1,0 +1,23 @@
+meta {
+  name: 09-How many unread notifications do I have
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{host}}/api/notifications/mine/unread-count
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{emeka_jwt}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  Quick badge-style count. Useful if a UI ever surfaces it.
+}

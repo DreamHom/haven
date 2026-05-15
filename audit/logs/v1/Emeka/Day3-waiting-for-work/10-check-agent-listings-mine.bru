@@ -1,0 +1,27 @@
+meta {
+  name: 10-Check my pipeline (agent-listings/mine)
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{host}}/api/agent-listings/mine?page=0&size=20
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{emeka_jwt}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  My pipeline page. Should be empty since no owner has invited me yet.
+  Real concern: there's no filter by status (REQUESTED vs ACCEPTED vs
+  DECLINED vs REVOKED). I want to see "open invites" separately from
+  "active listings" — that's how every CRM works. Spec gives me one
+  paginated list mixed together.
+}

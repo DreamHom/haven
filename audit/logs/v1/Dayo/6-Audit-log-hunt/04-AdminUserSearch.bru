@@ -1,0 +1,27 @@
+meta {
+  name: 04-AdminUserSearch
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{host}}/api/admin/users?email=emeka.hustler@gmail.com
+  auth: bearer
+}
+
+params:query {
+  email: emeka.hustler@gmail.com
+}
+
+auth:bearer {
+  token: {{jwt}}
+}
+
+docs {
+  # Hunting for any "find user by email" admin endpoint. There isn't one
+  # in openapi.json — I'm probing in case it exists undocumented (which
+  # would be a different kind of finding: "spec lies").
+  #
+  # Without this I cannot act on a support ticket that says "please
+  # suspend foo@bar.com" — I have no way to turn an email into a userId.
+}

@@ -1,0 +1,36 @@
+meta {
+  name: 05-UploadPhoto-A1
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{host}}/api/listings/{{listingA1}}/photos
+  body: multipartForm
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{biodunJwt}}
+}
+
+body:multipart-form {
+  file: @file(../../assets/biodun/ojodu-unit.jpg)
+  caption: Unit A1 living room — Berger Road, Ojodu
+}
+
+assert {
+  res.status: eq 201
+  res.body.listingId: eq {{listingA1}}
+}
+
+docs {
+  # Uploading one real photo of an Ojodu-style apartment for unit A1.
+
+  # Note: I have to upload photos for each of the 12 listings separately.
+  # No bulk upload. No "use this photo set on all units of type 1-bed".
+  # And typically the developer's marketing pack has the SAME 8 photos
+  # for every 1-bed unit (because they are all the same layout). I would
+  # have to upload 8 × 12 = 96 photos. That is going to make me hate the
+  # platform by Tuesday.
+}

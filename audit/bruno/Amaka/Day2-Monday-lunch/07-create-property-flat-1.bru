@@ -1,0 +1,47 @@
+meta {
+  name: 07 Create my first Lekki flat (property)
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{host}}/properties
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{jwt}}
+}
+
+body:json {
+  {
+    "type": "APARTMENT",
+    "address": "Plot 14, Admiralty Way, Lekki Phase 1, Lagos",
+    "bedrooms": 3,
+    "bathrooms": 3,
+    "sizeSqm": 142.5,
+    "description": "3-bedroom upper-floor flat in a serviced compound. 24/7 power, water, swimming pool. Walking distance to Admiralty Way shops. Previously occupied by an expat family."
+  }
+}
+
+assert {
+  res.status: eq 201
+  res.body.ownerId: isDefined
+  res.body.id: isNumber
+}
+
+script:post-response {
+  if (res.body && res.body.id) {
+    bru.setVar("propertyId", res.body.id);
+  }
+}
+
+docs {
+  My late father's first flat. Admiralty Way, Lekki Phase 1 — this is the
+  flagship one.
+
+  I'm not waiting for verification to come back before creating the property —
+  the spec doesn't say I have to be verified to create a property, just to
+  earn the verified-owner badge.
+}

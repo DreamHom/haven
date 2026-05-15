@@ -52,20 +52,40 @@ public class AdminListingService {
     private final AdminMetrics adminMetrics;
 
     @Transactional
-    public ListingResponse approve(Long adminId, Long listingId) {
+    public ListingResponse approve(Long adminId, Long listingId, String reason) {
         ListingResponse listing = listingService.findById(listingId);
+        Instant now = Instant.now();
+
+        // Two semantics for "approve":
+        //   1. Re-publishing a previously-taken-down listing — flips status TAKEN_DOWN → LIVE.
+        //   2. Stamping the verified-listing badge for the first time.
+        // Both fall under the same endpoint; we branch on current state.
+        if (listing.status() == ListingStatus.TAKEN_DOWN) {
+            listingService.forceStatus(listingId, ListingStatus.LIVE, now);
+            ListingResponse restored = listingService.findById(listingId);
+            recordAudit(adminId, AdminAction.LISTING_APPROVED, restored, reason);
+            recordOwnerNotification(restored, NotificationKind.LISTING_APPROVED, reason);
+            adminMetrics.recordListingAction(AdminAction.LISTING_APPROVED);
+            log.info("Admin {} re-published listingId={} (TAKEN_DOWN → LIVE) reason='{}'", adminId, listingId, reason);
+            return restored;
+        }
         if (listing.approvedAt() != null) {
             throw new ListingAlreadyApprovedException(listingId);
         }
-        Instant now = Instant.now();
         listingService.markApproved(listingId, now);
 
-        recordAudit(adminId, AdminAction.LISTING_APPROVED, listing, null);
-        recordOwnerNotification(listing, NotificationKind.LISTING_APPROVED, null);
+        recordAudit(adminId, AdminAction.LISTING_APPROVED, listing, reason);
+        recordOwnerNotification(listing, NotificationKind.LISTING_APPROVED, reason);
         adminMetrics.recordListingAction(AdminAction.LISTING_APPROVED);
 
-        log.info("Admin {} approved listingId={}", adminId, listingId);
+        log.info("Admin {} approved listingId={} reason='{}'", adminId, listingId, reason);
         return listingService.findById(listingId);
+    }
+
+    /** Back-compat overload — callers without a reason still work. */
+    @Transactional
+    public ListingResponse approve(Long adminId, Long listingId) {
+        return approve(adminId, listingId, null);
     }
 
     @Transactional
@@ -74,19 +94,19 @@ public class AdminListingService {
             throw new IllegalArgumentException("Takedown reason is required");
         }
         ListingResponse listing = listingService.findById(listingId);
-        if (listing.status() == ListingStatus.CLOSED) {
+        if (listing.status() == ListingStatus.CLOSED || listing.status() == ListingStatus.TAKEN_DOWN) {
             throw new ListingAlreadyClosedException(listingId);
         }
         Instant now = Instant.now();
-        listingService.forceStatus(listingId, ListingStatus.CLOSED, now);
+        listingService.forceStatus(listingId, ListingStatus.TAKEN_DOWN, now);
 
-        ListingResponse closed = listingService.findById(listingId);
-        recordAudit(adminId, AdminAction.LISTING_TAKEDOWN, closed, reason);
-        recordOwnerNotification(closed, NotificationKind.LISTING_TAKEDOWN, reason);
+        ListingResponse takenDown = listingService.findById(listingId);
+        recordAudit(adminId, AdminAction.LISTING_TAKEDOWN, takenDown, reason);
+        recordOwnerNotification(takenDown, NotificationKind.LISTING_TAKEDOWN, reason);
         adminMetrics.recordListingAction(AdminAction.LISTING_TAKEDOWN);
 
         log.info("Admin {} took down listingId={} reason='{}'", adminId, listingId, reason);
-        return closed;
+        return takenDown;
     }
 
     private void recordAudit(Long adminId, AdminAction action, ListingResponse listing, String reason) {

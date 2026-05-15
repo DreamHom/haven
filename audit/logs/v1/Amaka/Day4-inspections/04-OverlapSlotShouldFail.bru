@@ -1,0 +1,38 @@
+meta {
+  name: 04-OverlapSlotShouldFail
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{host}}/api/listings/{{amakaListingId}}/slots
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{amakaJwt}}
+}
+
+body:json {
+  {
+    "startsAt": "{{slotStart}}",
+    "endsAt": "{{slotEnd}}"
+  }
+}
+
+assert {
+  res.status: eq 409
+}
+
+docs {
+  # I accidentally tried to open the same Saturday window twice — sleepy.
+
+  ✅ Got 409 as the spec promised. Good — I won't accidentally
+  double-book.
+
+  😕 The error body uses RFC 7807 ProblemDetail. As a normal user the word
+  "Conflict" doesn't tell me anything. The "detail" string is supposedly
+  "slot overlaps an existing active slot" — I hope the UI surfaces THAT
+  to me, not the HTTP status name.
+}

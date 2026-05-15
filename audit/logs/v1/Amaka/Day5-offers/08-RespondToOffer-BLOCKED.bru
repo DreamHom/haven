@@ -1,0 +1,34 @@
+meta {
+  name: 08-RespondToOffer-BLOCKED
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{host}}/api/notifications/mine
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{amakaJwt}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  # 🛑 BLOCKED — to test PATCH /offers/{id} (accept/decline) I need an
+  # APPLICANT (Temi) to first POST /offers against my listing. That's a
+  # cross-persona dependency. Per RULES I will not fake it. The
+  # orchestrator can chain Temi after me.
+
+  # When unblocked, my flow would be:
+  #   - Temi POST /offers { listingId: amakaListingId, amount: 4000000 }
+  #   - I see OFFER_SUBMITTED in /notifications/mine
+  #   - I PATCH /offers/{id} { status: ACCEPTED }
+  #   - I PATCH /listings/{amakaListingId} { status: CLOSED }
+
+  # For now: just reading the inbox to confirm nothing is waiting.
+}

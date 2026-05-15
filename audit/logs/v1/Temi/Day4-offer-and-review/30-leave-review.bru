@@ -1,0 +1,40 @@
+meta {
+  name: 30-Leave a 5-star review
+  type: http
+  seq: 30
+}
+
+post {
+  url: {{host}}/api/listings/1/reviews
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{temi_token}}
+}
+
+body:json {
+  {
+    "revieweeUserId": 1,
+    "rating": 5,
+    "body": "First place I ever rented and the owner was amazing — answered every silly question, didn't push me on the price, gave me till month-end to move in. The flat is exactly what the photos showed. Would 100% rent from again."
+  }
+}
+
+assert {
+  res.status: in [201, 400, 401, 403, 404, 409]
+}
+
+docs {
+  Two weeks after move-in. Closing the loop with a 5-star review.
+
+  Two things bother me about this endpoint:
+  1. I have to know the revieweeUserId — I have to remember /
+     re-fetch the listing detail to get the ownerId. The platform
+     could just default the reviewee to "the other party of the
+     accepted offer" without me having to specify.
+  2. There's no field for "reviewing the agent vs the owner" — if
+     I'd dealt with both, I'd want to leave separate ratings. The
+     persona doc hints at this but the schema doesn't.
+}

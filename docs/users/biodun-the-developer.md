@@ -100,18 +100,20 @@ if developer-scale usage becomes common.
 
 ---
 
-### Story 6 — Stay out of inspection scheduling ✅ Implemented (by absence)
+### Story 6 — Stay out of inspection scheduling ✅ Partially implemented (slot creation only)
 
 **As a** developer with an assigned agent
-**I want** the assigned agent to handle inspection slot creation, slot publishing, and inspection request acknowledgement
+**I want** the assigned agent to handle inspection slot creation and respond to incoming inspection requests
 **So that** I'm not woken at 6am for an inspection booking.
 
 **Acceptance criteria**
-- [x] Once Emeka has accepted the assignment, he can `POST /listings/{id}/slots` and respond to inspection requests.
-- [x] Both Biodun AND Emeka receive notifications on inspection events (so Biodun can spot-check) — *but Biodun isn't required to act*.
+- [x] Once Emeka has accepted the assignment, he can `POST /api/listings/{id}/slots` on Biodun's listings.
+- [x] Both Biodun AND Emeka receive notifications on inspection events (so Biodun can spot-check) — *Biodun isn't required to act*.
+- [ ] **Agent (or owner) approves/declines a PENDING inspection request** — *no backend endpoint exists*. See Amaka Story 9 for the full picture; the inspection-response surface is genuinely pending on the server side. For now, neither Biodun nor Emeka can transition `InspectionRequest.status` away from `PENDING` (only the applicant can cancel their own).
 
 **Endpoints involved**
-- *Driven by Emeka*: `POST /listings/{id}/slots`, response to inspection requests.
+- *Driven by Emeka*: `POST /api/listings/{id}/slots`.
+- *Pending backend support*: an `agent-or-owner` approve/decline endpoint on inspection requests. Track alongside Amaka Story 9.
 
 ---
 
@@ -127,19 +129,30 @@ if developer-scale usage becomes common.
 - [x] Bulk-respond UX is a frontend concern; backend supports per-offer calls.
 
 **Endpoints involved**
-- `GET /notifications/mine` (filtered to OFFER_SUBMITTED)
-- `POST /offers/{id}/respond` × N
-- `POST /offers/{id}/counter` × N
+- `GET /api/notifications/mine` (filter client-side on `kind = OFFER_SUBMITTED`).
+- `PATCH /api/offers/{id}` × N (body: `{ "status": "ACCEPTED" | "DECLINED", "reason": "..." }` — OWNER and APPLICANT share this endpoint; service rejects "responding to your own proposal" with 403).
+- `POST /api/offers/{id}/counter` × N (creates a child offer; parent → `COUNTERED`).
 
 ---
 
-### Story 8 — See dashboard of all 12 listings' status ⬜ Future
+### Story 8 — See dashboard of all 12 listings' status ⬜ Pending backend support
 
 **As a** developer
 **I want to** see a single view: per listing, status (OPEN/PAUSED/CLOSED), open offers count, scheduled inspections this week
-**So that** I know where the project stands.
+**So that** I know where the project stands without three round-trips per row.
 
-**Status**: No aggregated dashboard endpoint yet. `GET /listings/mine` (if it exists, *confirm in inventory*) returns the list, but per-listing engagement summary is a future enhancement.
+**Current state on the backend**
+- `GET /api/listings/mine` returns Biodun's listings — paginated, OWNER-gated, **works**.
+- `GET /api/offers/mine` returns offers where Biodun is either applicant *or* listing owner — **works**, but doesn't roll up per listing; the frontend has to fan-out + group.
+- `GET /api/listings/{id}/slots` returns inspection slots on one listing — public, **works**.
+- **There is no single rollup endpoint** that returns `(listingId, status, openOffersCount, scheduledInspectionsThisWeek, savesCount, viewCount)` in one shot. `viewCount` is on the listing row already (cheap); the rest would have to be aggregated server-side.
+
+**What the frontend should do until this lands**
+- Fan-out: 1 call to `GET /api/listings/mine`, then 1 call to `GET /api/offers/mine` grouped client-side by `listingId`, then 1 call per listing to `GET /api/listings/{id}/slots` (or skip slots in the dashboard view entirely).
+- The `viewCount` field on each `ListingResponse` is already aggregated — render that directly. No second call needed.
+
+**What the eventual contract probably looks like** *(not built yet — design sketch)*
+- `GET /api/listings/mine?include=engagement` returning each row augmented with `openOfferCount`, `pendingInspectionCount`, `saveCount` — one DB query with a couple of LEFT JOINs + GROUP BY. Indexed paths already exist for the underlying counts.
 
 ---
 
@@ -162,7 +175,7 @@ Biodun's chronological flow:
 6. **Emeka accepts each.**
 7. **Biodun goes back to Ibadan and starts the next project.**
 8. **Every Friday: scroll notifications, accept the offers Emeka has clearly endorsed, decline / counter the rest.**
-9. **Three units close in the first month** → 3× `POST /offers/{id}/respond` (ACCEPT) + 3× `PUT /listings/{id}` (status → CLOSED).
+9. **Three units close in the first month** → 3× `PATCH /api/offers/{id}` with `{ "status": "ACCEPTED" }` + 3× `PATCH /api/listings/{id}` (status → CLOSED).
 10. **Months later: applicants leave reviews on Biodun + Emeka.**
 
 ## Possible errors he encounters

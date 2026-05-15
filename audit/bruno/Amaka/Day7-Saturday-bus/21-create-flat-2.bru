@@ -1,0 +1,42 @@
+meta {
+  name: 21 Create second flat
+  type: http
+  seq: 21
+}
+
+post {
+  url: {{host}}/properties
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{jwt}}
+}
+
+body:json {
+  {
+    "type": "MINI_FLAT",
+    "address": "5 Freedom Way, Lekki Phase 1, Lagos",
+    "bedrooms": 1,
+    "bathrooms": 1,
+    "sizeSqm": 55,
+    "description": "Compact mini-flat above a bakery. Perfect for a young professional. Inverter installed."
+  }
+}
+
+assert {
+  res.status: eq 201
+}
+
+script:post-response {
+  if (res.body && res.body.id) {
+    bru.setVar("propertyId2", res.body.id);
+  }
+}
+
+docs {
+  Day 7, Saturday morning on the bus from Abuja-on-a-cousin's-visit. Now that
+  the first flat is properly listed I'm doing the second one too. This is
+  the smaller mini-flat unit at Freedom Way.
+}

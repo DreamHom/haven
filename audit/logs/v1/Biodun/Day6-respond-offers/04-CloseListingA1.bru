@@ -1,0 +1,42 @@
+meta {
+  name: 04-CloseListingA1
+  type: http
+  seq: 4
+}
+
+patch {
+  url: {{host}}/api/listings/{{listingA1}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{biodunJwt}}
+}
+
+body:json {
+  {
+    "status": "CLOSED"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq CLOSED
+}
+
+docs {
+  # Unit A1 is sold. Closing the listing.
+  #
+  # I'd expect that ACCEPTING the offer auto-closes the listing —
+  # the persona doc + spec implies "one accepted offer per listing,
+  # then it's done". But based on the spec I have to manually PATCH
+  # it CLOSED myself. So a developer who forgets this step leaves
+  # zombie listings up taking new offers nobody can accept. ⚠️
+  #
+  # Also note: the response status enum says LIVE/PAUSED/CLOSED —
+  # but the listing's initial status is OPEN per the example. So
+  # what does the response actually say after I close? I'm asserting
+  # CLOSED based on the enum. If it returns "INACTIVE" or something
+  # this assert will fail and that itself would be a finding.
+}

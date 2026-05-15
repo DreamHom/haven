@@ -154,7 +154,8 @@ class ListingReportServiceTest {
         return new ListingResponse(id, 1L, ownerId, ListingType.SALE,
                 new BigDecimal("1000000"), "NGN",
                 null, null, null,
+                null, null, null, null,
                 ListingStatus.LIVE, null, 0L,
-                Instant.now(), Instant.now(), null);
+                Instant.now(), Instant.now(), null, null, null);
     }
 }

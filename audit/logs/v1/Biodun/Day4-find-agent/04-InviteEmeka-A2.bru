@@ -1,0 +1,35 @@
+meta {
+  name: 04-InviteEmeka-A2
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{host}}/api/listings/{{listingA2}}/agent-assignment
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{biodunJwt}}
+}
+
+body:json {
+  {
+    "agentId": {{emekaUserId}}
+  }
+}
+
+assert {
+  res.status: lte 499
+}
+
+docs {
+  # Second of 12 invites. Twelve POSTs, twelve confirmations Emeka has
+  # to click. There is no "invite Emeka to MY ENTIRE PORTFOLIO" call.
+  # Not even "invite Emeka to listings [a, b, c, d]".
+  #
+  # And — what about the next development I start in Ibadan? When I add
+  # those 12 units in 6 months, I have to re-invite Emeka 12 more times.
+  # No "default agent" setting on my owner profile.
+}

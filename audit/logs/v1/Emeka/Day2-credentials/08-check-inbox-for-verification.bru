@@ -1,0 +1,26 @@
+meta {
+  name: 08-Check my inbox for any update on the verification
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{host}}/api/notifications/mine?page=0&size=20
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{emeka_jwt}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  An hour later I check back — has the admin reviewed me? The only
+  channel I have is notifications. If nothing's there, I just wait
+  and refresh. No "submission status: PENDING since 2h ago" widget
+  for me anywhere.
+}

@@ -1,0 +1,34 @@
+meta {
+  name: 05-QueueApplicantIdentity
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{host}}/api/admin/verifications?type=APPLICANT_IDENTITY&page=0&size=20
+  auth: bearer
+}
+
+params:query {
+  type: APPLICANT_IDENTITY
+  page: 0
+  size: 20
+}
+
+auth:bearer {
+  token: {{jwt}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+script:post-response {
+  if (res && res.body && Array.isArray(res.body.content) && res.body.content.length > 0) {
+    bru.setVar("applicantVerificationId", res.body.content[0].id);
+  }
+}
+
+docs {
+  # Second of four queue calls just to see my morning's work.
+}

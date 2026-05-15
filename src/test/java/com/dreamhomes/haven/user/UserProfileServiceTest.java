@@ -31,12 +31,15 @@ class UserProfileServiceTest {
     @Mock UserRepository userRepository;
     @Mock AgentProfileRepository agentProfileRepository;
     @Mock ReviewService reviewService;
+    @Mock com.dreamhomes.haven.listing.ListingRepository listingRepository;
+    @Mock com.dreamhomes.haven.offer.OfferRepository offerRepository;
 
     UserProfileService service;
 
     @BeforeEach
     void setUp() {
-        service = new UserProfileService(userRepository, agentProfileRepository, reviewService);
+        service = new UserProfileService(userRepository, agentProfileRepository, reviewService,
+                listingRepository, offerRepository);
         // Default: no reviews. Individual tests override when they need real numbers.
         org.mockito.Mockito.lenient().when(reviewService.aggregateForUser(org.mockito.ArgumentMatchers.anyLong()))
                 .thenReturn(ReviewAggregate.empty());

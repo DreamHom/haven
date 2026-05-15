@@ -1,0 +1,38 @@
+meta {
+  name: 21-day9-report-suspicious-listing
+  type: http
+  seq: 21
+}
+
+post {
+  url: {{host}}/api/listings/17/report
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{ngozi_token}}
+}
+
+body:json {
+  {
+    "reason": "OFF_PLATFORM_FEES",
+    "details": "Agent contacted me on WhatsApp asking for a NGN 50,000 'inspection deposit' before they would confirm the slot. This is exactly what got me burned last time. Please look at this listing."
+  }
+}
+
+assert {
+  res.status: lte 500
+}
+
+docs {
+  # Day 9 — A different listing started smelling wrong (agent asking
+  # for off-platform fees). This is THE moment that decides whether
+  # I trust this platform long-term. If this report goes through
+  # cleanly and I get any acknowledgement at all, I'll keep using
+  # DreamHomes. If it silently fails or there's no channel, I'm out
+  # forever.
+  #
+  # The reason `OFF_PLATFORM_FEES` exists in the enum, which is
+  # genuinely reassuring — someone designed for my exact scar.
+}

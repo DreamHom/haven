@@ -1,0 +1,35 @@
+meta {
+  name: 03-RevokeAgentLastResort
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{host}}/api/agent-listings/{{agentListingA1}}/revoke
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{biodunJwt}}
+}
+
+body:json {
+  {
+    "reason": "Switching agents on Unit A1 — moving to a different agent for closing."
+  }
+}
+
+assert {
+  res.status: lte 499
+}
+
+docs {
+  # If the relationship with Emeka soured (it hasn't — this is just
+  # to exercise the path), I revoke the assignment. Per-listing.
+  # Twelve revokes if I want to fire him fully.
+  #
+  # And then 12 invites to the new agent. And then 12 accepts from
+  # them. So changing agent for my whole portfolio = 36 requests.
+  # 🚫 No bulk-revoke. 🚫 No "fire this agent from EVERYTHING".
+}

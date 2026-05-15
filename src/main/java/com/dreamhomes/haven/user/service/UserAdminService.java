@@ -89,4 +89,19 @@ public class UserAdminService {
                 .orElseThrow(() -> new UserNotFoundException(userId));
     }
 
+    /**
+     * Admin user search. Email is a case-insensitive substring match. {@code suspended}
+     * is tri-state (null = all, true = only suspended, false = only active). Persona
+     * audit (Dayo) — tickets arrive with emails.
+     */
+    @Transactional(readOnly = true)
+    public org.springframework.data.domain.Page<UserAdminView> adminSearch(
+            String email,
+            Boolean suspended,
+            com.dreamhomes.haven.user.model.Role role,
+            org.springframework.data.domain.Pageable pageable) {
+        return userRepository.adminSearch(role, suspended, email, pageable)
+                .map(userAdminMapper::toView);
+    }
+
 }

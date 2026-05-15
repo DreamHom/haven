@@ -1,5 +1,8 @@
 package com.dreamhomes.haven.user.service;
 
+import com.dreamhomes.haven.listing.ListingRepository;
+import com.dreamhomes.haven.listing.model.ListingStatus;
+import com.dreamhomes.haven.offer.OfferRepository;
 import com.dreamhomes.haven.review.dto.ReviewAggregate;
 import com.dreamhomes.haven.review.ReviewService;
 import lombok.RequiredArgsConstructor;
@@ -7,6 +10,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import com.dreamhomes.haven.user.dto.PublicUserProfile;
 import com.dreamhomes.haven.user.exception.UserNotFoundException;
@@ -31,21 +36,32 @@ public class UserProfileService {
     private final UserRepository userRepository;
     private final AgentProfileRepository agentProfileRepository;
     private final ReviewService reviewService;
+    private final ListingRepository listingRepository;
+    private final OfferRepository offerRepository;
 
     @Transactional(readOnly = true)
     public PublicUserProfile findPublicProfile(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException(userId));
 
-        Instant credentialVerifiedAt = null;
-        if (user.getRole() == Role.AGENT) {
-            credentialVerifiedAt = agentProfileRepository.findById(userId)
-                    .map(AgentProfile::getCredentialVerifiedAt)
-                    .orElse(null);
-        }
+        AgentProfile agentProfile = user.getRole() == Role.AGENT
+                ? agentProfileRepository.findById(userId).orElse(null)
+                : null;
 
         ReviewAggregate reviews = reviewService.aggregateForUser(userId);
 
+        return toPublicProfile(user, agentProfile, reviews);
+    }
+
+    /**
+     * Build the public-facing projection from a (user, optional-agent-profile, reviews) triple.
+     * The agent-discovery fields ({@code serviceAreas}, {@code languages},
+     * {@code specializationTags}, {@code feeSchedule}) come from {@code AgentProfile}; for
+     * non-agents (and agents who haven't filled them in) the arrays default to empty and
+     * the fee schedule is null so the JSON shape is identical across roles.
+     */
+    private PublicUserProfile toPublicProfile(User user, AgentProfile agentProfile, ReviewAggregate reviews) {
+        Instant credentialVerifiedAt = agentProfile == null ? null : agentProfile.getCredentialVerifiedAt();
         return new PublicUserProfile(
                 user.getId(),
                 user.getFullName(),
@@ -56,7 +72,25 @@ public class UserProfileService {
                 user.getSuspendedAt() != null,
                 reviews.averageRating(),
                 reviews.count(),
-                user.getCreatedAt());
+                listingRepository.countByOwnerIdAndStatus(user.getId(), ListingStatus.CLOSED),
+                roundedMedianMinutes(offerRepository.medianResponseMinutesForOwner(user.getId())),
+                user.getCreatedAt(),
+                safeList(agentProfile == null ? null : agentProfile.getServiceAreas()),
+                safeList(agentProfile == null ? null : agentProfile.getLanguages()),
+                safeList(agentProfile == null ? null : agentProfile.getSpecializationTags()),
+                agentProfile == null ? null : agentProfile.getFeeSchedule());
+    }
+
+    private static List<String> safeList(List<String> raw) {
+        // Defensive: an AgentProfile row with a NULL array column (pre-V30 rows that somehow
+        // weren't backfilled, or a future code path that nulls them out) still produces a
+        // stable empty-array on the wire. The DB-level DEFAULT '{}' makes this near-unreachable
+        // but the cost of the guard is one branch.
+        return raw == null ? Collections.emptyList() : raw;
+    }
+
+    private static Long roundedMedianMinutes(Double minutes) {
+        return minutes == null ? null : Math.round(minutes);
     }
 
     @Transactional(readOnly = true)
@@ -67,5 +101,23 @@ public class UserProfileService {
     @Transactional(readOnly = true)
     public Optional<Role> roleOf(Long userId) {
         return userRepository.findById(userId).map(User::getRole);
+    }
+
+    /**
+     * Public agent directory — non-suspended AGENT users. {@code q} is a case-insensitive
+     * substring of name; {@code verified} requires identity-verified badge.
+     * Persona audit (Biodun): "delegation-first product where the owner cannot find an
+     * agent to delegate to is broken at the design level."
+     */
+    @Transactional(readOnly = true)
+    public org.springframework.data.domain.Page<PublicUserProfile> searchAgents(
+            String q, boolean verified,
+            org.springframework.data.domain.Pageable pageable) {
+        return userRepository.searchAgents(q, verified, pageable)
+                .map(user -> {
+                    AgentProfile agentProfile = agentProfileRepository.findById(user.getId()).orElse(null);
+                    ReviewAggregate reviews = reviewService.aggregateForUser(user.getId());
+                    return toPublicProfile(user, agentProfile, reviews);
+                });
     }
 }

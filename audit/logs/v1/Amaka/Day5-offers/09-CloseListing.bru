@@ -1,0 +1,37 @@
+meta {
+  name: 09-CloseListing
+  type: http
+  seq: 9
+}
+
+patch {
+  url: {{host}}/api/listings/{{amakaListingId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{amakaJwt}}
+}
+
+body:json {
+  {
+    "status": "CLOSED"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq CLOSED
+}
+
+docs {
+  # Pretending I just closed a deal off-platform with a tenant I met
+  # through the listing. Marking CLOSED.
+
+  ✅ Closed transition allowed even though I don't have an ACCEPTED offer
+  recorded. Hmm — the spec said reviews require an ACCEPTED offer, but
+  CLOSED itself doesn't. I'm honestly fine with that as a landlord (deals
+  often happen off-platform), but it does mean the "closed" badge can
+  be set without any deal record. Worth noting.
+}

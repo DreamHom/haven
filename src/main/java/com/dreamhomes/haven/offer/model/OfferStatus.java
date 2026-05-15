@@ -15,5 +15,12 @@ public enum OfferStatus {
     PENDING,
     ACCEPTED,
     DECLINED,
-    COUNTERED
+    COUNTERED,
+    /**
+     * Applicant withdrew a PENDING offer before the owner acted. Frees the listing
+     * to receive a fresh offer from the same applicant. Distinct from DECLINED
+     * (owner-side) and CANCELLED-style semantics — kept terminal for the chain.
+     * Persona audit (Temi).
+     */
+    WITHDRAWN
 }

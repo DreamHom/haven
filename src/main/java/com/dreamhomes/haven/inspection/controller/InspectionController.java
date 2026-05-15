@@ -16,9 +16,15 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -58,7 +64,7 @@ public class InspectionController {
                             schema = @Schema(implementation = InspectionResponse.class),
                             examples = @ExampleObject(name = "ClaimedSlot", value = """
                                     { "id": 33, "slotId": 12, "applicantId": 89,
-                                      "status": "REQUESTED", "notes": "Coming with my husband.",
+                                      "status": "PENDING", "notes": "Coming with my husband.",
                                       "createdAt": "2026-05-10T12:00:00Z",
                                       "updatedAt": "2026-05-10T12:00:00Z" }
                                     """))),
@@ -76,7 +82,69 @@ public class InspectionController {
                                       @Valid @RequestBody RequestInspectionRequest body) {
         InspectionRequest saved = inspectionService.requestSlot(principal.userId(),
                 new RequestInspectionCommand(body.slotId(), body.notes()));
-        return new InspectionResponse(saved.getId(), saved.getSlotId(), saved.getApplicantId(),
-                saved.getStatus(), saved.getNotes(), saved.getCreatedAt(), saved.getUpdatedAt());
+        return toResponse(saved);
+    }
+
+    @Operation(
+            summary = "List my inspection requests",
+            description = """
+                    Returns the caller's own inspection bookings, newest first. Closes the \
+                    gap Temi flagged: after booking a slot there was no way to see your \
+                    upcoming inspections, no status, no recovery.
+
+                    **Observed statuses today**: `PENDING` (default after `POST`) or \
+                    `CANCELLED` (after the caller's own `DELETE`). `APPROVED` / `DECLINED` \
+                    are reserved for the future owner approve/decline endpoint and will not \
+                    appear in production responses until that endpoint ships.
+                    """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Paginated list of the caller's bookings."),
+            @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthenticated")
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @GetMapping("/mine")
+    public Page<InspectionResponse> listMine(@AuthenticationPrincipal JwtPrincipal principal,
+                                             @PageableDefault(size = 20) Pageable pageable) {
+        return inspectionService.listMine(principal.userId(), pageable).map(this::toResponse);
+    }
+
+    @Operation(
+            summary = "Cancel my inspection request",
+            description = """
+                    Withdraws a PENDING inspection request the caller made — status flips to \
+                    `CANCELLED`, the slot is freed for other applicants (the partial UQ on \
+                    `inspection_requests(slot_id) WHERE status IN ('PENDING','APPROVED')` \
+                    is what enforces the slot lock; the cancel drops out of that index).
+
+                    **Failure modes**:
+                    - `403` if the caller isn't the applicant on the row.
+                    - `404` if the row doesn't exist.
+                    - `409` if the row is already in a terminal state (`CANCELLED`, or — once \
+                      the future owner approve/decline endpoint ships — `APPROVED` / \
+                      `DECLINED`). In production today, the only terminal state reachable is \
+                      `CANCELLED`, so a 409 here means "you already cancelled this."
+
+                    Persona audit (Temi) flagged the missing cancel surface.
+                    """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Cancelled; slot freed."),
+            @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthenticated"),
+            @ApiResponse(responseCode = "403", ref = "#/components/responses/Forbidden"),
+            @ApiResponse(responseCode = "404", ref = "#/components/responses/NotFound"),
+            @ApiResponse(responseCode = "409", ref = "#/components/responses/Conflict")
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasRole('APPLICANT')")
+    public void cancel(@AuthenticationPrincipal JwtPrincipal principal, @PathVariable Long id) {
+        inspectionService.cancel(principal.userId(), id);
+    }
+
+    private InspectionResponse toResponse(InspectionRequest r) {
+        return new InspectionResponse(r.getId(), r.getSlotId(), r.getApplicantId(),
+                r.getStatus(), r.getNotes(), r.getCreatedAt(), r.getUpdatedAt());
     }
 }

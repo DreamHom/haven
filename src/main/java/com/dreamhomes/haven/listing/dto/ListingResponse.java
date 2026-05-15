@@ -4,6 +4,7 @@ import com.dreamhomes.haven.property.dto.PropertySummary;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import com.dreamhomes.haven.listing.model.ListingStatus;
 import com.dreamhomes.haven.listing.model.ListingType;
 
@@ -21,11 +22,17 @@ public record ListingResponse(
         BigDecimal cautionFee,
         BigDecimal serviceCharge,
         BigDecimal agencyFee,
+        String title,
+        String description,
+        String headline,
+        LocalDate handoverDate,
         ListingStatus status,
         Instant approvedAt,
         Long viewCount,
         Instant createdAt,
         Instant updatedAt,
-        PropertySummary property
+        PropertySummary property,
+        Long assignedAgentId,
+        Long pendingReportCount
 ) {
 }

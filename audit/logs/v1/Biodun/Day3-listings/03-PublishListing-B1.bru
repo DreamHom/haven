@@ -1,0 +1,39 @@
+meta {
+  name: 03-PublishListing-B1
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{host}}/api/listings
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{biodunJwt}}
+}
+
+body:json {
+  {
+    "propertyId": {{propertyB1}},
+    "listingType": "SALE",
+    "askingPrice": 58000000,
+    "currency": "NGN",
+    "agencyFee": 2900000
+  }
+}
+
+assert {
+  res.status: eq 201
+}
+
+script:post-response {
+  if (res.body && res.body.id) {
+    bru.setVar("listingB1", res.body.id);
+  }
+}
+
+docs {
+  # 2-bed first floor at ₦58M. Standard for new-build 2-beds in Ojodu.
+}

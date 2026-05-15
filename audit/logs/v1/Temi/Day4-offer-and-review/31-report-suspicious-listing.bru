@@ -1,0 +1,38 @@
+meta {
+  name: 31-Report a sketchy listing
+  type: http
+  seq: 31
+}
+
+post {
+  url: {{host}}/api/listings/2/report
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{temi_token}}
+}
+
+body:json {
+  {
+    "reason": "OFF_PLATFORM_FEES",
+    "details": "The agent on this listing asked me to pay a ₦20k 'inspection fee' to a personal account on WhatsApp before letting me see the place. That's exactly the scam I came to DreamHomes to avoid."
+  }
+}
+
+assert {
+  res.status: in [201, 400, 401, 404, 409]
+}
+
+docs {
+  Browsing other listings later, I came across one where the agent
+  pulled the classic Lagos "₦20k inspection fee" line. Reporting
+  it. Reason enum has SCAM / OFF_PLATFORM_FEES /
+  STALE_OR_TAKEN / INAPPROPRIATE_CONTENT / OTHER — that's a great
+  spread for the Lagos market. OFF_PLATFORM_FEES being its own
+  category is exactly what we need.
+
+  No "I want to be notified when this is resolved" toggle though,
+  and no read-side for me to see what reports I've filed.
+}

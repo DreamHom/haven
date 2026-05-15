@@ -1,0 +1,40 @@
+meta {
+  name: 07-RejectPropertyDocsAddressMismatch
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{host}}/api/admin/verifications/{{propertyVerificationId}}/reject
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{jwt}}
+}
+
+body:json {
+  {
+    "reason": "Address on the C of O ('15 Admiralty Way, Lekki Phase 1') does not match the property address you registered ('17 Admiralty Way, Lekki Phase 1'). The numbers are different. Please resubmit a C of O matching the listed property, or update the property address to match the document — whichever is correct."
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  # The rejection that the persona doc is built around.
+
+  I write a real explanation here — not just "rejected". The submitter
+  needs to know exactly which field to fix. This is the difference
+  between a useful T&S team and a useless one.
+
+  But — looking at the spec — `RejectVerificationRequest.reason` is
+  declared with `minLength: 0`. The contract says I'm allowed to reject
+  with `""`. The persona doc Story 3 says empty reasons should 400
+  before any DB write. Either the schema is wrong or the validation is
+  weaker than the persona doc claims. I will probe with `""` in the
+  Defensive-checks folder to find out.
+}

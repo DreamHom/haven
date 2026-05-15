@@ -1,0 +1,31 @@
+meta {
+  name: 06-MySaves
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{host}}/api/saves/mine
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{amakaJwt}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  # Curious what "saves/mine" is — maybe it's people who saved my
+  # listing?
+
+  Looking at the spec it's actually MY bookmarks (a feature I'd never use
+  as a landlord — I'm not house-hunting).
+
+  🚫 What I'd actually want is the inverse: "How many people have saved
+  MY listings?" — that's a lead-quality signal. The spec doesn't expose
+  that.
+}

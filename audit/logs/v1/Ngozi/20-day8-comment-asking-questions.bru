@@ -1,0 +1,31 @@
+meta {
+  name: 20-day8-comment-asking-questions
+  type: http
+  seq: 20
+}
+
+post {
+  url: {{host}}/api/listings/17/comments
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{ngozi_token}}
+}
+
+body:json {
+  {
+    "body": "Is the apartment still available? And does the rent include the service charge for the building, or is that separate?"
+  }
+}
+
+assert {
+  res.status: lte 500
+}
+
+docs {
+  # Day 8 — Public comment. I want to ask in public so other Ngozis
+  # can see whether the agent actually replies, and how fast. A
+  # responsive agent thread reassures the next applicant.
+}

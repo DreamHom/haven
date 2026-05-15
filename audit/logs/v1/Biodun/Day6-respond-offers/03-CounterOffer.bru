@@ -1,0 +1,34 @@
+meta {
+  name: 03-CounterOffer
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{host}}/api/offers/{{thirdOfferId}}/counter
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{biodunJwt}}
+}
+
+body:json {
+  {
+    "amount": 60000000,
+    "message": "Closer to my floor on the 2-bed. Could meet at ₦60M with 50% down by 30 days."
+  }
+}
+
+assert {
+  res.status: lte 499
+}
+
+docs {
+  # Counter at ₦60M. Counter creates a new child offer in PENDING and
+  # the parent goes COUNTERED. Clean enough.
+  #
+  # Currency is not on this request — it inherits from the parent? The
+  # spec doesn't say. ⚠️ Ambiguous.
+}

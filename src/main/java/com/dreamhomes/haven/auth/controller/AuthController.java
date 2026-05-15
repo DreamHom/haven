@@ -70,11 +70,13 @@ public class AuthController {
     @SecurityRequirements // public — opt out of bearerAuth
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.ACCEPTED)
-    public void register(@Valid @RequestBody RegisterRequest request) {
+    public com.dreamhomes.haven.auth.dto.RegisterAcceptedResponse register(
+            @Valid @RequestBody RegisterRequest request) {
         authService.register(new RegisterCommand(
                 request.email(), request.password(), request.fullName(),
                 request.displayName(), request.phone(),
                 request.role(), request.licenseNumber()));
+        return com.dreamhomes.haven.auth.dto.RegisterAcceptedResponse.DEFAULT;
     }
 
     @Operation(
@@ -100,8 +102,10 @@ public class AuthController {
                     content = @Content(
                             schema = @Schema(implementation = LoginResponse.class),
                             examples = @ExampleObject(name = "TokenIssued", value = """
-                                    { "token": "eyJhbGciOiJIUzI1NiJ9...<truncated>",
-                                      "tokenType": "Bearer", "expiresInSeconds": 3600 }
+                                    { "token": "eyJhbGciOiJSUzI1NiJ9...<truncated>",
+                                      "tokenType": "Bearer", "expiresInSeconds": 3600,
+                                      "userId": 7, "role": "OWNER",
+                                      "fullName": "Amaka Okafor" }
                                     """))),
             @ApiResponse(responseCode = "400", ref = "#/components/responses/ValidationFailed"),
             @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthenticated"),
@@ -111,28 +115,46 @@ public class AuthController {
     @SecurityRequirements // public
     @PostMapping("/login")
     public LoginResponse login(@Valid @RequestBody LoginRequest request) {
-        return new LoginResponse(authService.login(new LoginCommand(request.email(), request.password())));
+        com.dreamhomes.haven.auth.dto.LoginResult result =
+                authService.login(new LoginCommand(request.email(), request.password()));
+        return new LoginResponse(result.token(), "Bearer", result.expiresInSeconds(),
+                result.userId(), result.role(), result.fullName());
     }
 
     @Operation(
             summary = "Log out the current user",
             description = """
-                    Bumps the user's `tokenVersion`, which invalidates **all** outstanding \
-                    JWTs for the account on their next request — not just the one used to \
-                    call this endpoint. This is the right behaviour for a logout-everywhere \
-                    flow (lost device, ended session on shared computer).
+                    Two scopes, selected via `?scope=`:
+
+                    - `device` (default) — adds the current JWT's `jti` to the blocklist so
+                      that one specific token is rejected on the next request. Other tokens
+                      this user issued (other browsers, the mobile app) keep working.
+                      Persona audit (Amaka, Temi): "logout the laptop I'm sitting at, not
+                      every device I own".
+                    - `all` — bumps the user's `tokenVersion`, invalidating every JWT for
+                      this account on the next request. The right choice for "lost device"
+                      or "ended a session on a shared computer".
 
                     Returns 204 No Content on success.
                     """
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "204", description = "Logged out; tokenVersion bumped."),
+            @ApiResponse(responseCode = "204", description = "Logged out."),
             @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthenticated")
     })
     @SecurityRequirement(name = "bearerAuth")
     @PostMapping("/logout")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void logout(@AuthenticationPrincipal JwtPrincipal principal) {
-        authService.logout(principal.userId());
+    public void logout(@AuthenticationPrincipal JwtPrincipal principal,
+                       @org.springframework.web.bind.annotation.RequestParam(name = "scope", defaultValue = "device")
+                       String scope,
+                       jakarta.servlet.http.HttpServletRequest request) {
+        switch (scope.toLowerCase(java.util.Locale.ROOT)) {
+            case "all" -> authService.logout(principal.userId());
+            case "device" -> authService.logoutDevice(principal.userId(),
+                    request.getHeader("Authorization"));
+            default -> throw new IllegalArgumentException(
+                    "Unknown logout scope: " + scope + " (expected device or all)");
+        }
     }
 }

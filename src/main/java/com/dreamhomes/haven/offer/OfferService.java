@@ -47,6 +47,18 @@ public class OfferService {
     private final ObjectMapper objectMapper;
     private final ApplicationEventPublisher applicationEventPublisher;
 
+    /**
+     * Every offer where the caller is on either side — submitted (applicant) or
+     * received (owner). Backs {@code GET /api/offers/mine} — the read-side gap
+     * Temi and Biodun called out: a missed notification meant a permanently
+     * lost deal because there was no other path back to an offer's ID.
+     */
+    @Transactional(readOnly = true)
+    public org.springframework.data.domain.Page<Offer> listMine(
+            Long userId, org.springframework.data.domain.Pageable pageable) {
+        return offerRepository.findByApplicantIdOrOwnerIdOrderByCreatedAtDesc(userId, userId, pageable);
+    }
+
     @Transactional
     public Offer submit(Long applicantId, SubmitOfferCommand cmd) {
         // Throws ListingNotFoundException if missing — surfaces as RFC 7807 404.
@@ -62,6 +74,7 @@ public class OfferService {
                 .amount(cmd.amount())
                 .currency(cmd.currency() != null ? cmd.currency() : DEFAULT_CURRENCY)
                 .message(cmd.message())
+                .intent(cmd.intent())
                 .status(OfferStatus.PENDING)
                 // Original offer: applicant proposed it. The owner is the one who
                 // will accept/decline/counter. Counter-offers (Phase 13) flip this.
@@ -96,6 +109,12 @@ public class OfferService {
 
         log.info("Submitted offerId={} listingId={} applicantId={} amount={} eventId={}",
                 saved.getId(), listing.id(), applicantId, saved.getAmount(), eventId);
+        // Persona audit (Ngozi, Temi): give the applicant a same-transaction ack so the
+        // tray reflects "the platform received your offer" without waiting for the Kafka
+        // fanout that's keyed to the owner/agent recipients.
+        notificationApi.recordSync(NotificationKind.OFFER_RECEIVED_BY_PLATFORM, applicantId,
+                Map.of("offerId", saved.getId(), "listingId", listing.id(),
+                        "amount", saved.getAmount().toPlainString()));
         return saved;
     }
 
@@ -106,6 +125,41 @@ public class OfferService {
      */
     @Transactional
     public Offer respond(Long callerId, Long offerId, OfferStatus newStatus) {
+        return respond(callerId, offerId, newStatus, null);
+    }
+
+    /**
+     * Applicant withdraws their own PENDING offer. Persona audit (Temi): "no way to
+     * withdraw a PENDING offer. If I change my mind, or made a typo on the amount,
+     * I'm stuck waiting for the owner to decline."
+     */
+    @Transactional
+    public Offer withdraw(Long callerId, Long offerId) {
+        Offer offer = offerRepository.findById(offerId)
+                .orElseThrow(() -> new OfferNotFoundException(offerId));
+        if (!offer.getApplicantId().equals(callerId)) {
+            throw new NotPropertyOwnerException();
+        }
+        if (offer.getStatus() != OfferStatus.PENDING) {
+            throw new com.dreamhomes.haven.offer.exception.OfferNotWithdrawableException(offerId);
+        }
+        offer.setStatus(OfferStatus.WITHDRAWN);
+        Offer saved = offerRepository.save(offer);
+        log.info("Applicant {} withdrew offerId={}", callerId, offerId);
+        return saved;
+    }
+
+    /**
+     * Accept or decline an offer, with optional caller-facing reason on decline.
+     * When the new status is {@code ACCEPTED}:
+     * <ul>
+     *   <li>Auto-decline every other PENDING sibling on the same listing (notifications fire).</li>
+     *   <li>Auto-close the listing — owner doesn't have to remember to PATCH the listing
+     *       to CLOSED separately. Persona audit (Biodun) flagged the missed-close gap.</li>
+     * </ul>
+     */
+    @Transactional
+    public Offer respond(Long callerId, Long offerId, OfferStatus newStatus, String declineReason) {
         Offer offer = offerRepository.findById(offerId)
                 .orElseThrow(() -> new OfferNotFoundException(offerId));
 
@@ -123,11 +177,18 @@ public class OfferService {
         // updatedAt is bumped by JPA auditing on save (entity has @LastModifiedDate).
         Offer saved = offerRepository.save(offer);
 
-        // When one offer wins, every PENDING sibling on the same listing loses. Flip them
-        // to DECLINED in the same transaction and notify their applicants — otherwise
-        // those rows sit forever and the losing applicant never finds out.
         if (newStatus == OfferStatus.ACCEPTED) {
+            // When one offer wins, every PENDING sibling on the same listing loses. Flip them
+            // to DECLINED in the same transaction and notify their applicants — otherwise
+            // those rows sit forever and the losing applicant never finds out.
             autoDeclineSiblings(saved);
+            // Auto-close the listing so it stops attracting new offers. Owner no longer
+            // has to remember the PATCH step.
+            listingService.forceStatus(saved.getListingId(), ListingStatus.CLOSED, Instant.now());
+            log.info("Auto-closed listingId={} after accepting offerId={}", saved.getListingId(), saved.getId());
+        } else if (newStatus == OfferStatus.DECLINED && declineReason != null && !declineReason.isBlank()) {
+            log.info("Decline reason for offerId={}: {}", offerId, declineReason);
+            // (Notification payload extension is in a follow-up — keeping the change minimal here.)
         }
 
         log.info("Caller {} responded to offerId={} with status={}", callerId, offerId, newStatus);

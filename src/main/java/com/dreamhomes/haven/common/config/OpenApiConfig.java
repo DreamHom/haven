@@ -27,11 +27,33 @@ import org.springframework.http.ProblemDetail;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * OpenAPI metadata + path normalisation for the Scalar / springdoc UI.
+ *
+ * <ul>
+ *   <li><b>Strips the {@code /api} prefix</b> from every documented path so endpoints
+ *       in Scalar read as {@code /listings} instead of {@code /api/listings}. The
+ *       {@code /api} stays on the runtime route — it's just hoisted into the
+ *       declared server URL so "Try it out" still hits the right endpoint.</li>
+ *   <li>Defines tags so controllers group cleanly in the sidebar.</li>
+ *   <li>Wires the bearer-token security scheme so the "Authorize" button in Scalar
+ *       prompts for a JWT and threads it into every authenticated request.</li>
+ *   <li>Re-tags + enriches actuator endpoints under the curated Observability group.</li>
+ *   <li>Reusable RFC 7807 ProblemDetail responses with a configurable type-URI namespace
+ *       (see {@code haven.errors.type-base} property).</li>
+ * </ul>
+ */
 @Configuration
 public class OpenApiConfig {
 
     private static final String BEARER_SCHEME = "bearerAuth";
 
+    /**
+     * Namespace for ProblemDetail {@code type} URIs. Override per environment via
+     * {@code haven.errors.type-base} (env var or yaml). Default points at a non-routable
+     * placeholder so the docs ship with a self-explanatory URL even before a real
+     * docs site exists.
+     */
     @Value("${haven.errors.type-base:https://github.com/DreamHom/haven/blob/main/docs/errors/}")
     private String errorTypeBase;
 
@@ -66,6 +88,7 @@ public class OpenApiConfig {
                                 .url("https://github.com/DreamHom/haven/blob/main/LICENSE")))
                 .servers(List.of(
                         new Server().url("http://localhost:8080/api").description("Local dev")
+                        // additional environments (staging, prod) get added here as deployments land
                 ))
                 .tags(List.of(
                         new Tag().name("Auth").description("Register, log in, and identify the current user."),
@@ -73,7 +96,7 @@ public class OpenApiConfig {
                         new Tag().name("Properties").description("The physical asset — what the listing is *of*. Owned by a single user; one property may back many listings over time."),
                         new Tag().name("Listings").description("The thing applicants browse, save, comment on, request inspections for, and submit offers against."),
                         new Tag().name("Listing photos").description("Owner / assigned-agent uploads that drive the visual hero of a listing."),
-                        new Tag().name("Inspections").description("Slots an owner / agent opens, and inspection requests an applicant claims against them."),
+                        new Tag().name("Inspections").description("Slots an owner / agent opens (`POST /api/listings/{id}/slots`), and inspection requests an applicant claims against them (`POST /api/inspections`). **Owner approve/decline of a PENDING request is not yet a backend feature** — see the `DELETE /api/inspections/{id}` description for the current state machine and what the FE should render until that ships."),
                         new Tag().name("Offers").description("Applicant-submitted bids on a listing, including counter-offer chains and accept/decline state machine."),
                         new Tag().name("Comments").description("Public Q&A on listings — anyone authenticated can post, owner / agent / commenter can soft-delete."),
                         new Tag().name("Reviews").description("Post-deal reviews (rating + text) on the user the deal closed with. Gates on a CLOSED listing + ACCEPTED offer."),
@@ -90,7 +113,11 @@ public class OpenApiConfig {
                                 .scheme("bearer")
                                 .bearerFormat("JWT")
                                 .description("JWT issued by `POST /auth/login`. Send as `Authorization: Bearer <token>`."))
-             
+                        // Reusable RFC 7807 ProblemDetail responses. Endpoints reference these via
+                        // @ApiResponse(ref = "#/components/responses/<Name>") to avoid copy-pasting
+                        // schema declarations and example bodies on every error path. Type URIs
+                        // match what GlobalExceptionHandler stamps on real responses, so docs and
+                        // runtime stay in lockstep.
                         .addResponses("Unauthenticated", problemResponse(
                                 "Missing, expired, or revoked JWT.",
                                 "Unauthenticated",
@@ -139,6 +166,7 @@ public class OpenApiConfig {
                 .addSecurityItem(new SecurityRequirement().addList(BEARER_SCHEME));
     }
 
+    /** Build a Components-level ApiResponse object backed by ProblemDetail (RFC 7807). */
     private static ApiResponse problemResponse(String description,
                                                String exampleName, String exampleJson) {
         return new ApiResponse()
@@ -150,7 +178,14 @@ public class OpenApiConfig {
                                 .addExamples(exampleName, new Example().value(exampleJson))));
     }
 
-
+    /**
+     * Hoists the {@code /api} prefix out of every path and into the server URL.
+     * springdoc generates paths from {@code @RequestMapping} literally, so the
+     * default UI shows {@code /api/listings} on every endpoint — visually noisy
+     * because the prefix is the same everywhere. Stripping it once + declaring
+     * the server with {@code .../api} gives the cleaner look without touching
+     * controller code or runtime routing.
+     */
     @Bean
     OpenApiCustomizer stripApiPrefix() {
         return openApi -> {
@@ -165,7 +200,12 @@ public class OpenApiConfig {
         };
     }
 
-
+    /**
+     * Re-tag actuator operations from springdoc's auto-assigned {@code "actuator"} tag
+     * to our curated {@code "Observability"} group. Per-operation prose is added by
+     * {@link #enrichActuatorOperations()} which matches by path (more reliable than
+     * springdoc-generated operationIds, which vary across actuator versions).
+     */
     @Bean
     OperationCustomizer reTagActuatorOperations() {
         return (operation, handlerMethod) -> {
@@ -178,6 +218,14 @@ public class OpenApiConfig {
         };
     }
 
+    /**
+     * Path-keyed enrichment of actuator endpoints — adds a real summary + description
+     * per path so they don't read as bare auto-generated stubs in Scalar.
+     *
+     * <p>Path-based matching is more robust than operationId-based matching because
+     * springdoc assigns operationIds like {@code health_3} that drift across versions,
+     * while paths come straight from the actuator endpoint mapping and are stable.</p>
+     */
     @Bean
     OpenApiCustomizer enrichActuatorOperations() {
         Map<String, ActuatorDoc> docs = Map.of(
@@ -248,6 +296,11 @@ public class OpenApiConfig {
         };
     }
 
+    /**
+     * springdoc declares an "Actuator" entry in the spec's top-level `tags` array even
+     * after we've moved every operation off it. Drops that orphan so Scalar doesn't show
+     * an empty group.
+     */
     @Bean
     OpenApiCustomizer dropEmptyActuatorTopLevelTag() {
         return openApi -> {

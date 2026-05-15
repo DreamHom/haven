@@ -148,12 +148,14 @@ class ListingFlowEndToEndIT extends AbstractPostgresIT {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("CLOSED"));
 
-        // 7. CLOSED is terminal — owner cannot reopen to LIVE.
+        // 7. CLOSED is terminal — owner cannot reopen to LIVE. Returns 409 Conflict
+        // (state conflict, not malformed input). Persona audit (Amaka) caught the
+        // 400 vs 409 drift; spec already documented 409.
         mockMvc.perform(patch("/api/listings/" + listingId)
                         .header("Authorization", bearer)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"status\": \"LIVE\"}"))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isConflict());
     }
 
     @Test

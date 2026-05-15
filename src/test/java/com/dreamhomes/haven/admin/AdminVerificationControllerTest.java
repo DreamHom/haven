@@ -54,6 +54,7 @@ class AdminVerificationControllerTest {
     @Autowired MockMvc mockMvc;
     @MockBean AdminVerificationService adminVerificationService;
     @MockBean JwtService jwtService;
+    @MockBean com.dreamhomes.haven.auth.blocklist.JwtBlocklistRepository jwtBlocklistRepository;
     @MockBean UserCredentialsService userCredentialsService;
 
     @Test
@@ -61,7 +62,7 @@ class AdminVerificationControllerTest {
         Page<VerificationAdminView> page = new PageImpl<>(
                 List.of(pending(1L, VerificationType.OWNER_IDENTITY)),
                 PageRequest.of(0, 20), 1);
-        when(adminVerificationService.listPending(eq(VerificationType.OWNER_IDENTITY), any()))
+        when(adminVerificationService.list(eq(VerificationType.OWNER_IDENTITY), any(), any()))
                 .thenReturn(page);
 
         mockMvc.perform(get("/api/admin/verifications?type=OWNER_IDENTITY")

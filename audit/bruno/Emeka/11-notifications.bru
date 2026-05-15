@@ -1,0 +1,33 @@
+meta {
+  name: 11 Check my notifications
+  type: http
+  seq: 11
+}
+
+get {
+  url: {{host}}/api/notifications/mine?page=0&size=20
+  auth: bearer
+}
+
+params:query {
+  page: 0
+  size: 20
+}
+
+auth:bearer {
+  token: {{jwt}}
+}
+
+assert {
+  res.status: eq 200
+  res.body: isDefined
+}
+
+docs {
+  Tuesday afternoon. Inbox check. Owner-invites and credential-decisions
+  arrive here — this is how I know to react.
+
+  Expected: 200 with whatever's queued. In a fresh single-persona run this
+  is likely empty (or has a "verification received" confirmation if the
+  product is friendly).
+}

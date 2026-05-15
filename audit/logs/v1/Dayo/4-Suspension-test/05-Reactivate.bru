@@ -1,0 +1,31 @@
+meta {
+  name: 05-Reactivate
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{host}}/api/admin/users/{{suspendTargetUserId}}/reactivate
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{jwt}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  # Reactivate. The user gave evidence the report was wrong, so I'm reversing.
+
+  Two design problems with the contract:
+  - No `reason` body. Persona doc Story 5 says the audit log should
+    capture WHY I reactivated. Without a `reason` field on the request
+    there's nothing for the audit row to store except "actor=Dayo".
+  - No way for me to see, from the API response, whether tokenVersion was
+    NOT re-bumped (the persona doc says it should NOT be). I have no
+    server-side signal at all.
+}

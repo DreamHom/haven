@@ -1,0 +1,27 @@
+meta {
+  name: 01-Browse listings (anonymous)
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/api/listings?page=0&size=10
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.headers["cache-control"]: contains public
+}
+
+docs {
+  Day 1, lunchtime at the office. I literally just heard about
+  DreamHomes from a colleague who said it's where she found her
+  place in Lekki. I'm not going to give my email yet — I just want
+  to see what's even on this thing.
+
+  I'm going to load the first page of listings. As an anonymous
+  visitor with no login. If this requires me to register first,
+  that's a deal-breaker — I'll close the tab.
+}

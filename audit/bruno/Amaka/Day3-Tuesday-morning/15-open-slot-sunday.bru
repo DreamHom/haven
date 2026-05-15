@@ -1,0 +1,30 @@
+meta {
+  name: 15 Open second slot — Sunday morning
+  type: http
+  seq: 15
+}
+
+post {
+  url: {{host}}/listings/{{listingId}}/slots
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{jwt}}
+}
+
+body:json {
+  {
+    "startsAt": "2026-05-17T10:00:00Z",
+    "endsAt": "2026-05-17T12:00:00Z"
+  }
+}
+
+assert {
+  res.status: eq 201
+}
+
+docs {
+  Adding a Sunday-morning window too, so I get more coverage over the weekend.
+}

@@ -1,0 +1,42 @@
+meta {
+  name: 04-PublishListing-B2
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{host}}/api/listings
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{biodunJwt}}
+}
+
+body:json {
+  {
+    "propertyId": {{propertyB2}},
+    "listingType": "SALE",
+    "askingPrice": 58000000,
+    "currency": "NGN",
+    "agencyFee": 2900000
+  }
+}
+
+assert {
+  res.status: eq 201
+}
+
+script:post-response {
+  if (res.body && res.body.id) {
+    bru.setVar("listingB2", res.body.id);
+  }
+}
+
+docs {
+  # Done with my 4-of-12. Real Biodun would have done this 8 more times.
+  # I have made 8 requests today (4 properties + 4 listings). For the
+  # full 12-unit block I'd be at 24 requests just to get listings live —
+  # before a single photo or agent invite.
+}

@@ -1,0 +1,41 @@
+meta {
+  name: 03-OpenSundaySlot
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{host}}/api/listings/{{amakaListingId}}/slots
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{amakaJwt}}
+}
+
+script:pre-request {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() + 8);
+  d.setUTCHours(13, 0, 0, 0); // 14:00 WAT
+  bru.setVar("slotStart2", d.toISOString());
+  const e = new Date(d.getTime() + 2 * 60 * 60 * 1000);
+  bru.setVar("slotEnd2", e.toISOString());
+}
+
+body:json {
+  {
+    "startsAt": "{{slotStart2}}",
+    "endsAt": "{{slotEnd2}}"
+  }
+}
+
+assert {
+  res.status: eq 201
+}
+
+docs {
+  # And one for Sunday afternoon — for people who can't make Saturday.
+
+  ✅ Two slots open now.
+}

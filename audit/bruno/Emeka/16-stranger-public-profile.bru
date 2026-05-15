@@ -1,0 +1,27 @@
+meta {
+  name: 16 Look up another user's profile (1) for comparison
+  type: http
+  seq: 16
+}
+
+get {
+  url: {{host}}/api/users/1/profile
+}
+
+assert {
+  res.status: eq 200
+  res.body.id: isDefined
+  res.body.role: isDefined
+}
+
+docs {
+  Note: deliberately no auth — the public profile should be public.
+
+  This is a "what does ANY agent's profile look like" comparison. If user
+  id=1 is the admin/seed user, fine — I want to see what fields are
+  populated for a longer-tenured user. Especially looking for
+  `closedDealCount` / `responseRate` again (post-audit promise).
+
+  If the response 401s, that's a finding: a public profile should be
+  reachable when an owner is comparing agents before signup.
+}

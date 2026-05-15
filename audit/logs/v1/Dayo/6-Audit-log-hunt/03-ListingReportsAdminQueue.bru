@@ -1,0 +1,29 @@
+meta {
+  name: 03-ListingReportsAdminQueue
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{host}}/api/admin/listing-reports
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{jwt}}
+}
+
+docs {
+  # Persona Story 8: "I want to see a queue of user-reported listings".
+  # The spec has POST /listings/{id}/report (users can file reports) and a
+  # ListingReportResponse schema (so reports DO get persisted). But there
+  # is NO admin endpoint to LIST those reports. They go into a black hole.
+  #
+  # This is the same shape of bug as the audit-log gap: write is
+  # implemented, read is not. From the operator's seat I'd never know any
+  # listing has been reported until somebody emails me about it. That
+  # defeats the whole point of the report flow.
+  #
+  # I am sending the most plausible URL — `/admin/listing-reports` — and
+  # whatever I get back IS the finding. Probably 404.
+}

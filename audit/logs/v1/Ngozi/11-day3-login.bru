@@ -1,0 +1,35 @@
+meta {
+  name: 11-day3-login
+  type: http
+  seq: 11
+}
+
+post {
+  url: {{host}}/api/auth/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "ngozi.eze.lagos+{{run_tag}}@gmail.com",
+    "password": "Surulere2-bedr00m!"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.token: isString
+}
+
+script:post-response {
+  if (res.body && res.body.token) {
+    bru.setVar("ngozi_token", res.body.token);
+  }
+}
+
+docs {
+  # Logging in. Capturing the JWT so the next requests can carry it.
+  # The login response per the spec returns `token` — I'll use it as
+  # `Authorization: Bearer <token>`.
+}

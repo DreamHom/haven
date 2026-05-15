@@ -47,9 +47,10 @@ public class InspectionSlotController {
                     Records an `InspectionSlot` window during which applicants can claim an \
                     inspection. Slots are publicly visible to anyone browsing the listing.
 
-                    **Authorisation**: the listing's owner (today). Assigned-agent slot \
-                    creation is wired in the service layer for when the AgentListing flow \
-                    grants the agent permission.
+                    **Authorisation**: only the listing's owner can open slots today. \
+                    Assigned-agent slot creation is a roadmap item — the service layer has \
+                    the hook, but the controller still rejects non-owner callers with 403. \
+                    Any extension here will be additive.
 
                     **Overlap constraint**: enforced by a Postgres `EXCLUDE USING GIST` \
                     constraint on `(listing_id, time_range)`. Trying to open a slot that \

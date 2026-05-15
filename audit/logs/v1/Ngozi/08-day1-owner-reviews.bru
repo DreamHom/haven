@@ -1,0 +1,22 @@
+meta {
+  name: 08-day1-owner-reviews
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{host}}/api/users/7/reviews?page=0&size=20
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: lte 404
+}
+
+docs {
+  # The reviews — the part I read most carefully. I'm looking for any
+  # 1-2 star outliers and reading their text. A 4.6 average with 23 reviews
+  # and one furious 1-star saying "took my deposit and ghosted" is a
+  # different agent than a 4.6 with all 4s and 5s.
+}

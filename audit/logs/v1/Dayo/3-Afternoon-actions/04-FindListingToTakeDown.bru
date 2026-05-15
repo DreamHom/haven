@@ -1,0 +1,40 @@
+meta {
+  name: 04-FindListingToTakeDown
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{host}}/api/listings?page=0&size=10
+  auth: bearer
+}
+
+params:query {
+  page: 0
+  size: 10
+}
+
+auth:bearer {
+  token: {{jwt}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+script:post-response {
+  if (res && res.body && Array.isArray(res.body.content) && res.body.content.length > 0) {
+    bru.setVar("targetListingId", res.body.content[0].id);
+  }
+}
+
+docs {
+  # Need to find ANY live listing to demonstrate the takedown flow.
+  # In real life the listing ID would come from a complaint email, a
+  # support ticket, or — IF IT EXISTED — a moderation queue (Story 8).
+
+  Notice what I have to do: query the public listings endpoint as if I
+  were a renter. There's no admin "search listings by owner ID" or
+  "listings with N reports" endpoint. The admin tooling is bolted on
+  top of the consumer endpoints rather than purpose-built.
+}

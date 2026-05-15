@@ -57,6 +57,18 @@ public class PropertyService {
                 .orElseThrow(() -> new PropertyNotFoundException(propertyId));
     }
 
+    /**
+     * Owner's portfolio. Backs {@code GET /api/properties/mine} — the read-side
+     * the persona audit (Amaka, Biodun) flagged as missing for owners with even
+     * a handful of properties.
+     */
+    @Transactional(readOnly = true)
+    public org.springframework.data.domain.Page<PropertyResponse> listMine(
+            Long ownerId, org.springframework.data.domain.Pageable pageable) {
+        return propertyRepository.findByOwnerIdOrderByCreatedAtDesc(ownerId, pageable)
+                .map(propertyMapper::toResponse);
+    }
+
     @Transactional(readOnly = true)
     public Optional<PropertySummary> findSummary(Long propertyId) {
         return propertyRepository.findById(propertyId).map(propertyMapper::toSummary);

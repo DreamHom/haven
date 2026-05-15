@@ -1,0 +1,32 @@
+meta {
+  name: 11 Upload listing photo (multipart)
+  type: http
+  seq: 11
+}
+
+post {
+  url: {{host}}/listings/{{listingId}}/photos
+  body: multipartForm
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{jwt}}
+}
+
+body:multipart-form {
+  file: @file(../../../assets/amaka/lekki_flat.jpg)
+  caption: Living room with sea-facing balcony — Admiralty Way Lekki
+}
+
+assert {
+  res.status: eq 201
+}
+
+docs {
+  Day 3, Tuesday morning. Before work I'm uploading a photo of the living
+  room. Without a photo nobody is going to book an inspection.
+
+  Real image of a Lekki-style apartment downloaded from the open web for
+  this audit.
+}

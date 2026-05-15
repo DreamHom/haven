@@ -1,0 +1,21 @@
+meta {
+  name: 04 Anon read owner reviews
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{host}}/api/users/{{owner_id}}/reviews?page=0&size=10
+  body: none
+  auth: none
+}
+
+tests {
+  test("status 200 - reviews public, no auth required", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  test("paginated envelope present", function() {
+    expect(res.getBody()).to.have.property("content");
+    expect(res.getBody()).to.have.property("page");
+  });
+}

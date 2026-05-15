@@ -1,0 +1,31 @@
+meta {
+  name: 13 Open inspection slot — Saturday afternoon
+  type: http
+  seq: 13
+}
+
+post {
+  url: {{host}}/listings/{{listingId}}/slots
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{jwt}}
+}
+
+body:json {
+  {
+    "startsAt": "2026-05-16T14:00:00Z",
+    "endsAt": "2026-05-16T16:00:00Z"
+  }
+}
+
+assert {
+  res.status: eq 201
+}
+
+docs {
+  My cousin Tunde lives in Lekki — he agreed to host inspections on Saturday
+  afternoon for me. I'm opening a 2-hour window.
+}

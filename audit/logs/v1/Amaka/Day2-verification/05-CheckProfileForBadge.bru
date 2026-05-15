@@ -1,0 +1,32 @@
+meta {
+  name: 05-CheckProfileForBadge
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{host}}/api/users/{{amakaUserId}}/profile
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.role: eq OWNER
+}
+
+docs {
+  # Let me view my own public profile to see how applicants will see me
+  # right now.
+
+  ⚠️ `identityVerifiedAt` is null because Dayo hasn't approved me yet, but
+  there's no field saying "submission pending". From the public's POV, my
+  profile looks identical whether I never submitted or whether I'm waiting
+  on review. That undermines trust both directions.
+
+  ✅ Good news — my email and phone are correctly hidden. Only public bits.
+
+  BLOCKED: To get my badge stamped, an admin (Dayo) has to approve my
+  verification. Cross-persona dependency — I'll continue WITHOUT a badge
+  and see how far I can get. Per RULES, I'll note this and move on.
+}

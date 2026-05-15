@@ -1,0 +1,27 @@
+meta {
+  name: 19-Wait for INSPECTION_REQUESTED notifications
+  type: http
+  seq: 19
+}
+
+get {
+  url: {{host}}/api/notifications/mine?unreadOnly=true&page=0&size=20
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{emeka_jwt}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  Story 6 acceptance criteria says inspection request notifications
+  fan out to BOTH owner and assigned agent. If an applicant claims
+  one of my slots, I should get an INSPECTION_REQUESTED here.
+  Solo I won't see anything — needs an applicant persona (Temi /
+  Ngozi) to claim.
+}

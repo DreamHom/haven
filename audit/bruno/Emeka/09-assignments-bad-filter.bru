@@ -1,0 +1,32 @@
+meta {
+  name: 09 Bad status filter — does it 400 cleanly?
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{host}}/api/agent-listings/mine?status=PURGATORY
+  auth: bearer
+}
+
+params:query {
+  status: PURGATORY
+}
+
+auth:bearer {
+  token: {{jwt}}
+}
+
+assert {
+  res.status: gte 400
+  res.status: lt 500
+}
+
+docs {
+  Defensive probe. If a typo on the client side silently returns "all
+  assignments" instead of an error, that's the kind of bug that hides in
+  production for months.
+
+  Expected: 400 with a clear "PURGATORY is not a valid status" detail. A
+  200 with everything would be a meaningful problem.
+}

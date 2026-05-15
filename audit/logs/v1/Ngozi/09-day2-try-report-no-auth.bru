@@ -1,0 +1,35 @@
+meta {
+  name: 09-day2-try-report-no-auth
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{host}}/api/listings/17/report
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "reason": "SCAM",
+    "details": "Trying anonymously — does this platform even let me flag a bad actor?"
+  }
+}
+
+assert {
+  res.status: lte 404
+}
+
+docs {
+  # Day 2 — late evening. Husband nudged me again. I came back. I want
+  # to know: if I FOUND a scam listing right now, could I tell the
+  # platform about it? I deliberately try without logging in. I expect
+  # 401 "log in first" — that would actually reassure me. What I'm
+  # afraid of is a silent 200 OK that does nothing, or a 404 meaning
+  # the channel doesn't exist at all.
+  #
+  # If I get a clean 401 with a real "log in" prompt, I'll grit my
+  # teeth and consider registering. If the endpoint isn't here, this
+  # is over for me.
+}

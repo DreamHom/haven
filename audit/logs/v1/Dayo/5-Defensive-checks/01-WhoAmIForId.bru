@@ -1,0 +1,33 @@
+meta {
+  name: 01-WhoAmIForId
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/api/me
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{jwt}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+script:post-response {
+  if (res && res.body && (res.body.userId || res.body.id)) {
+    bru.setVar("dayoSelfId", res.body.userId || res.body.id);
+  }
+}
+
+docs {
+  # Need my own admin user ID for the "suspend yourself" defensive test.
+  #
+  # NOTE: `/me` returns `userId`, not `id` — every other admin response
+  # uses `id`. That inconsistency cost me a debugging round. T&S tooling
+  # that depends on "which field is the principal ID" should not have
+  # to branch on response shape.
+}

@@ -1,0 +1,25 @@
+meta {
+  name: 12-Try to comment on a listing (owner-of-record discovery)
+  type: http
+  seq: 12
+}
+
+get {
+  url: {{host}}/api/listings/1/comments
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{emeka_jwt}}
+}
+
+assert {
+  res.status: in [200, 404]
+}
+
+docs {
+  Maybe I can find the owner via the comment thread? At least see
+  what other people are saying. If the listing doesn't exist this
+  may 404 — fine, that's the gap I expected.
+}

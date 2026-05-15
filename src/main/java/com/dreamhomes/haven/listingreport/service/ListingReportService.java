@@ -68,6 +68,76 @@ public class ListingReportService {
         return saved;
     }
 
+    /**
+     * Admin queue read — {@code GET /api/admin/listing-reports}. Persona audit (Dayo)
+     * flagged that user-filed reports were going into a black box: write-only moderation.
+     */
+    @Transactional(readOnly = true)
+    public org.springframework.data.domain.Page<com.dreamhomes.haven.listingreport.dto.AdminListingReportResponse> adminList(
+            com.dreamhomes.haven.listingreport.model.ListingReportStatus status,
+            com.dreamhomes.haven.listingreport.model.ReportReason reason,
+            Long listingId, Long reporterUserId,
+            org.springframework.data.domain.Pageable pageable) {
+        return listingReportRepository.search(status, reason, listingId, reporterUserId, pageable)
+                .map(this::toAdminResponse);
+    }
+
+    /** Reporter's own filings — backs {@code GET /api/listings/reports/mine}. */
+    @Transactional(readOnly = true)
+    public org.springframework.data.domain.Page<com.dreamhomes.haven.listingreport.dto.AdminListingReportResponse> listMine(
+            Long reporterUserId, org.springframework.data.domain.Pageable pageable) {
+        return listingReportRepository.findByReporterUserIdOrderByCreatedAtDesc(reporterUserId, pageable)
+                .map(this::toAdminResponse);
+    }
+
+    /** Admin marks a report RESOLVED (acted on) with a note for the audit trail. */
+    @Transactional
+    public com.dreamhomes.haven.listingreport.dto.AdminListingReportResponse resolve(
+            Long adminId, Long reportId, String note) {
+        return decide(adminId, reportId, note, com.dreamhomes.haven.listingreport.model.ListingReportStatus.RESOLVED);
+    }
+
+    /** Admin marks a report DISMISSED (not actionable) with a note. */
+    @Transactional
+    public com.dreamhomes.haven.listingreport.dto.AdminListingReportResponse dismiss(
+            Long adminId, Long reportId, String note) {
+        return decide(adminId, reportId, note, com.dreamhomes.haven.listingreport.model.ListingReportStatus.DISMISSED);
+    }
+
+    private com.dreamhomes.haven.listingreport.dto.AdminListingReportResponse decide(
+            Long adminId, Long reportId, String note,
+            com.dreamhomes.haven.listingreport.model.ListingReportStatus newStatus) {
+        ListingReport report = listingReportRepository.findById(reportId)
+                .orElseThrow(() -> new com.dreamhomes.haven.listingreport.exception.ListingReportNotFoundException(reportId));
+        if (report.getStatus() != com.dreamhomes.haven.listingreport.model.ListingReportStatus.PENDING) {
+            throw new com.dreamhomes.haven.listingreport.exception.ListingReportAlreadyResolvedException(reportId);
+        }
+        report.setStatus(newStatus);
+        report.setResolutionNote(note);
+        report.setResolvedByAdminId(adminId);
+        report.setResolvedAt(java.time.Instant.now());
+        ListingReport saved = listingReportRepository.save(report);
+
+        // Notify the original reporter that their report was actioned.
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("reportId", saved.getId());
+        payload.put("listingId", saved.getListingId());
+        payload.put("status", saved.getStatus().name());
+        payload.put("note", note);
+        notificationApi.recordSync(NotificationKind.LISTING_REPORT_RESOLVED, saved.getReporterUserId(), payload);
+
+        log.info("Admin {} {} reportId={} listingId={} note='{}'",
+                adminId, newStatus, reportId, saved.getListingId(), note);
+        return toAdminResponse(saved);
+    }
+
+    private com.dreamhomes.haven.listingreport.dto.AdminListingReportResponse toAdminResponse(ListingReport r) {
+        return new com.dreamhomes.haven.listingreport.dto.AdminListingReportResponse(
+                r.getId(), r.getListingId(), r.getReporterUserId(), r.getReason(), r.getDetails(),
+                r.getStatus(), r.getResolutionNote(), r.getResolvedByAdminId(), r.getResolvedAt(),
+                r.getCreatedAt());
+    }
+
     private void fanOutToAdmins(ListingReport report) {
         List<Long> adminIds = userRepository.findIdsByRole(Role.ADMIN);
         if (adminIds.isEmpty()) {

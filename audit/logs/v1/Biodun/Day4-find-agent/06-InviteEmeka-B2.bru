@@ -1,0 +1,35 @@
+meta {
+  name: 06-InviteEmeka-B2
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{host}}/api/listings/{{listingB2}}/agent-assignment
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{biodunJwt}}
+}
+
+body:json {
+  {
+    "agentId": {{emekaUserId}}
+  }
+}
+
+assert {
+  res.status: lte 499
+}
+
+docs {
+  # 4 of 4 done. Now I sit and wait for Emeka to log in and accept each
+  # one individually. There is no bulk-accept on his side either (per
+  # the spec — POST /agent-listings/{id}/accept is one-at-a-time).
+  #
+  # If Emeka is on his bus to Lekki he'll have to tap "accept" 12 times
+  # in the notifications screen. We'll both be cursing this product by
+  # the end of the week.
+}

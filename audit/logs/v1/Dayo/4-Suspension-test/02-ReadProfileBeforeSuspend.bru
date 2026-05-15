@@ -1,0 +1,31 @@
+meta {
+  name: 02-ReadProfileBeforeSuspend
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/api/users/{{suspendTargetUserId}}/profile
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{jwt}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  # Sanity-check: who am I about to suspend?
+
+  My persona doc explicitly says: "Before suspending an agent, he reads
+  the audit log to make sure he's not about to revoke a badge from someone
+  who flagged something legitimate."
+
+  I CAN'T do that. There's no `/admin/audit-logs` endpoint in the spec
+  (see Audit-log-hunt folder). All I can do is look at the public profile
+  and trust the support ticket that brought me here. That is not safe
+  trust-and-safety practice — it's "act first, hope second".
+}

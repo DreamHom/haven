@@ -55,6 +55,15 @@ public class Offer {
     @Column(columnDefinition = "TEXT")
     private String message;
 
+    /**
+     * Applicant-declared intent: RENT / BUY / RENT_TO_BUY. Optional; null = unspecified.
+     * Persona audit (Ngozi) — rent-to-buy needs to be a first-class field, not a hope
+     * buried in {@code message}.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(length = 16)
+    private OfferIntent intent;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 32)
     @Builder.Default
