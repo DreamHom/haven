@@ -1,0 +1,31 @@
+meta {
+  name: 03 Login canary owner
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{host}}/api/auth/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "kafka-canary-owner@demo.dreamhomes.local",
+    "password": "{{password}}"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.token: isDefined
+  res.body.role: eq OWNER
+}
+
+script:post-response {
+  if (res.status === 200 && res.body && res.body.token) {
+    bru.setVar("owner_token", res.body.token);
+    bru.setVar("owner_id", res.body.userId);
+  }
+}

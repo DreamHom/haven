@@ -1,0 +1,31 @@
+meta {
+  name: 04 Login canary applicant
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{host}}/api/auth/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "kafka-canary-applicant@demo.dreamhomes.local",
+    "password": "{{password}}"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.token: isDefined
+  res.body.role: eq APPLICANT
+}
+
+script:post-response {
+  if (res.status === 200 && res.body && res.body.token) {
+    bru.setVar("applicant_token", res.body.token);
+    bru.setVar("applicant_id", res.body.userId);
+  }
+}

@@ -1,0 +1,53 @@
+meta {
+  name: 08 ✅ Owner checks notifications (Kafka green-light)
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{host}}/api/notifications/mine?size=5
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{owner_token}}
+}
+
+script:pre-request {
+  // Give the outbox relay + Kafka producer + consumer a moment to do their thing.
+  // OutboxRelay polls every few seconds; total round-trip should be < 5s on
+  // a healthy cluster. Bump to 10s if the assertion below is flaky.
+  await new Promise(r => setTimeout(r, 5000));
+}
+
+assert {
+  res.status: eq 200
+  res.body.content: isDefined
+}
+
+script:post-response {
+  // The hard check — pipeline is healthy iff at least one notification of kind
+  // OFFER_SUBMITTED arrived for the canary owner in the last few seconds.
+  const list = (res.body && res.body.content) || [];
+  const offerNotifs = list.filter(n => n && n.kind === "OFFER_SUBMITTED");
+  if (offerNotifs.length === 0) {
+    // Fail loudly so the test runner exits red.
+    throw new Error(
+      "Kafka canary FAILED: no OFFER_SUBMITTED notification found after 5s. " +
+      "The offer was created (step 07 returned 201) but the Kafka producer→consumer " +
+      "pipeline did NOT deliver. Check Railway logs for 'Connection to node ... could " +
+      "not be established' or Confluent Cloud → Topics for the 4 expected topics."
+    );
+  }
+  console.log("Kafka canary GREEN — found " + offerNotifs.length + " OFFER_SUBMITTED notification(s).");
+}
+
+docs {
+  Green check: at least one `OFFER_SUBMITTED` notification was delivered to
+  the canary owner. That proves the full pipeline:
+    outbox row → relay → Kafka producer → Confluent broker → Kafka consumer
+                                                          → notification table row.
+
+  Red: throws an assertion error with the exact next-step pointer.
+}

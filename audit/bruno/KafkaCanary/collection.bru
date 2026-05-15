@@ -1,0 +1,51 @@
+meta {
+  name: DreamHomes Haven — Kafka canary
+  type: collection
+}
+
+docs {
+  # Kafka canary — proves the outbox → producer → broker → consumer pipeline
+
+  Run this **before** the full seed to confirm Kafka is working end-to-end
+  in prod. If the final notification check is green, you can seed with
+  confidence. If it's red, fix Kafka first (otherwise the seeded inspections
+  and offers will silently fail to deliver notifications).
+
+  ## What it exercises
+
+  1. Registers two throwaway users (owner + applicant).
+  2. Owner creates a property + listing.
+  3. Applicant submits an offer on the listing — **this is the
+     `offer.submitted.v1` Kafka event**. The outbox row is written in the
+     same transaction as the offer insert.
+  4. Brief wait (5s) so the `OutboxRelay` background poll picks the row up,
+     ships it to Kafka, and the `OfferSubmittedListener` consumer writes a
+     notification row for the owner.
+  5. Owner hits `GET /api/notifications/mine` — asserts an OFFER_SUBMITTED
+     notification exists.
+
+  ## How to run
+
+  GUI:
+    File → Open Collection → audit/bruno/KafkaCanary
+    Pick environment: `Local` or `Prod`
+    Right-click the folder → Run Folder
+    Watch all 8 requests pass; the last one is the green-light signal.
+
+  CLI:
+    cd audit/bruno
+    bru run KafkaCanary --env Prod
+
+  ## What it doesn't cover
+
+  - Inspection-requested topic (same pipeline; if offers work, inspections
+    almost certainly do — the only difference is which `@KafkaListener` fires).
+  - DLT routing on failure.
+  - SSE notification stream.
+
+  ## Cleanup
+
+  Two throwaway users + one listing land in prod after this run. They use
+  `kafka-canary-*@demo.dreamhomes.local` emails so they're easy to spot.
+  Drop them manually (or via an admin DELETE flow) when convenient.
+}
