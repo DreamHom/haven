@@ -2,6 +2,7 @@ package com.dreamhomes.haven.listing;
 
 import com.dreamhomes.haven.agentlisting.AgentListingRepository;
 import com.dreamhomes.haven.agentlisting.model.AgentListingStatus;
+import com.dreamhomes.haven.listing.embedding.ListingSearchEmbeddingService;
 import com.dreamhomes.haven.listing.exception.AgentCannotEditListingFieldsException;
 import com.dreamhomes.haven.listingreport.ListingReportRepository;
 import com.dreamhomes.haven.listingreport.model.ListingReportStatus;
@@ -15,7 +16,12 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.data.domain.PageImpl;
+
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -49,6 +55,7 @@ public class ListingService {
     private final AgentListingRepository agentListingRepository;
     private final ListingReportRepository listingReportRepository;
     private final com.dreamhomes.haven.user.repository.UserRepository userRepository;
+    private final ListingSearchEmbeddingService listingSearchEmbeddingService;
 
     @Transactional
     public Listing create(Long callerId, CreateListingCommand cmd) {
@@ -80,6 +87,7 @@ public class ListingService {
                 .build());
         log.info("Created listingId={} propertyId={} ownerId={} type={}",
                 saved.getId(), saved.getPropertyId(), callerId, saved.getListingType());
+        listingSearchEmbeddingService.scheduleRefreshListing(saved.getId());
         return saved;
     }
 
@@ -126,9 +134,36 @@ public class ListingService {
         return withSummaries(listingRepository.findByOwnerIdOrderByCreatedAtDesc(ownerId, pageable));
     }
 
+    /**
+     * LIVE listings with property summaries, preserving the caller's id order (for Dream AI vector hits).
+     */
+    @Transactional(readOnly = true)
+    public List<ListingWithProperty> findLiveWithSummariesInOrder(List<Long> orderedIds) {
+        if (orderedIds == null || orderedIds.isEmpty()) {
+            return List.of();
+        }
+        List<Listing> found = listingRepository.findAllById(new HashSet<>(orderedIds));
+        Map<Long, Listing> byId = found.stream().collect(Collectors.toMap(Listing::getId, l -> l));
+        List<Listing> orderedLive = new ArrayList<>();
+        for (Long id : orderedIds) {
+            Listing l = byId.get(id);
+            if (l != null && l.getStatus() == ListingStatus.LIVE) {
+                orderedLive.add(l);
+            }
+        }
+        return withSummariesList(orderedLive);
+    }
+
     private Page<ListingWithProperty> withSummaries(Page<Listing> listings) {
         if (listings.isEmpty()) {
             return listings.map(l -> new ListingWithProperty(l, null, null));
+        }
+        return new PageImpl<>(withSummariesList(listings.getContent()), listings.getPageable(), listings.getTotalElements());
+    }
+
+    private List<ListingWithProperty> withSummariesList(List<Listing> listings) {
+        if (listings.isEmpty()) {
+            return List.of();
         }
         Set<Long> propertyIds = listings.stream()
                 .map(Listing::getPropertyId)
@@ -136,8 +171,11 @@ public class ListingService {
         Map<Long, PropertySummary> summaries = propertyService.findSummariesByIds(propertyIds);
         Set<Long> ownerIds = listings.stream().map(Listing::getOwnerId).collect(Collectors.toSet());
         Map<Long, String> bios = loadOwnerBios(ownerIds);
-        return listings.map(l -> new ListingWithProperty(l, summaries.get(l.getPropertyId()),
-                bios.get(l.getOwnerId())));
+        List<ListingWithProperty> out = new ArrayList<>(listings.size());
+        for (Listing l : listings) {
+            out.add(new ListingWithProperty(l, summaries.get(l.getPropertyId()), bios.get(l.getOwnerId())));
+        }
+        return out;
     }
 
     private Map<Long, String> loadOwnerBios(Set<Long> ownerIds) {
@@ -225,6 +263,7 @@ public class ListingService {
         Listing saved = listingRepository.save(listing);
         log.info("Updated listingId={} callerId={} role={} status={} price={}",
                 saved.getId(), callerId, role, saved.getStatus(), saved.getAskingPrice());
+        listingSearchEmbeddingService.scheduleRefreshListing(saved.getId());
         return saved;
     }
 
@@ -311,6 +350,18 @@ public class ListingService {
     @Transactional(readOnly = true)
     public boolean exists(Long listingId) {
         return listingRepository.existsById(listingId);
+    }
+
+    /**
+     * Subset of {@code ids} that still reference a {@link ListingStatus#LIVE} row — used to
+     * rehydrate Dream AI history without surfacing stale catalogue ids to the client.
+     */
+    @Transactional(readOnly = true)
+    public List<Long> liveListingIdsAmong(java.util.Collection<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return List.of();
+        }
+        return listingRepository.findLiveIdsAmongIds(new java.util.ArrayList<>(ids));
     }
 
     @Transactional

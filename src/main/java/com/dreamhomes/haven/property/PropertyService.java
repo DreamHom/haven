@@ -1,5 +1,8 @@
 package com.dreamhomes.haven.property;
 
+import com.dreamhomes.haven.listing.ListingRepository;
+import com.dreamhomes.haven.listing.embedding.ListingSearchEmbeddingService;
+import com.dreamhomes.haven.listing.model.ListingStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -33,6 +36,8 @@ public class PropertyService {
 
     private final PropertyRepository propertyRepository;
     private final PropertyMapper propertyMapper;
+    private final ListingRepository listingRepository;
+    private final ListingSearchEmbeddingService listingSearchEmbeddingService;
 
     @Transactional
     public Property create(Long ownerId, CreatePropertyCommand cmd) {
@@ -87,6 +92,11 @@ public class PropertyService {
         requireRoomCountsIfNeeded(p.getType(), p.getBedrooms(), p.getBathrooms());
         Property saved = propertyRepository.save(p);
         log.info("Updated propertyId={} by userId={} admin={}", propertyId, callerUserId, admin);
+        for (var li : listingRepository.findByPropertyId(propertyId)) {
+            if (li.getStatus() == ListingStatus.LIVE) {
+                listingSearchEmbeddingService.scheduleRefreshListing(li.getId());
+            }
+        }
         return propertyMapper.toResponse(saved);
     }
 

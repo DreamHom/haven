@@ -32,7 +32,9 @@ class PropertyServiceUpdateTest {
 
     @BeforeEach
     void setUp() {
-        propertyService = new PropertyService(propertyRepository, new PropertyMapperImpl());
+        propertyService = new PropertyService(propertyRepository, new PropertyMapperImpl(),
+                org.mockito.Mockito.mock(com.dreamhomes.haven.listing.ListingRepository.class),
+                org.mockito.Mockito.mock(com.dreamhomes.haven.listing.embedding.ListingSearchEmbeddingService.class));
     }
 
     @Test

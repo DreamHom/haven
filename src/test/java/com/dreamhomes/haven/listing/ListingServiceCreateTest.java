@@ -37,7 +37,7 @@ class ListingServiceCreateTest {
 
     @BeforeEach
     void setUp() {
-        listingService = new ListingService(listingRepository, propertyService, new com.dreamhomes.haven.listing.ListingMapperImpl(), org.mockito.Mockito.mock(com.dreamhomes.haven.agentlisting.AgentListingRepository.class), org.mockito.Mockito.mock(com.dreamhomes.haven.listingreport.ListingReportRepository.class), org.mockito.Mockito.mock(com.dreamhomes.haven.user.repository.UserRepository.class));
+        listingService = new ListingService(listingRepository, propertyService, new com.dreamhomes.haven.listing.ListingMapperImpl(), org.mockito.Mockito.mock(com.dreamhomes.haven.agentlisting.AgentListingRepository.class), org.mockito.Mockito.mock(com.dreamhomes.haven.listingreport.ListingReportRepository.class), org.mockito.Mockito.mock(com.dreamhomes.haven.user.repository.UserRepository.class), org.mockito.Mockito.mock(com.dreamhomes.haven.listing.embedding.ListingSearchEmbeddingService.class));
     }
 
     @Test

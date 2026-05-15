@@ -1,13 +1,14 @@
 package com.dreamhomes.haven.common.web;
 
-import com.dreamhomes.haven.common.DomainException;
+import com.dreamhomes.haven.dreamai.moderation.DreamAiModerationBlockedException;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import com.dreamhomes.haven.listing.model.Listing;
+
+import com.dreamhomes.haven.common.DomainException;
 
 /**
  * Direct unit tests of the mappings we own. The Spring-driven exception-resolution path
@@ -37,6 +38,14 @@ class GlobalExceptionHandlerTest {
         assertThat(result.getStatus()).isEqualTo(HttpStatus.CONFLICT.value());
         assertThat(result.getDetail()).contains("modified by someone else");
         assertThat(result.getType().toString()).isEqualTo(TYPE_BASE + "conflict");
+    }
+
+    @Test
+    void domainException422MapsToModerationBlockedType() {
+        ProblemDetail result = handler.handleDomain(new DreamAiModerationBlockedException("no"));
+
+        assertThat(result.getStatus()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY.value());
+        assertThat(result.getType().toString()).isEqualTo(TYPE_BASE + "moderation-blocked");
     }
 
     private static final class SampleException extends DomainException {

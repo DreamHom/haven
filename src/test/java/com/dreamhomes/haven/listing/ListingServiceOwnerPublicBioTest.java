@@ -36,7 +36,8 @@ class ListingServiceOwnerPublicBioTest {
     void setUp() {
         listingService = new ListingService(listingRepository, propertyService,
                 new com.dreamhomes.haven.listing.ListingMapperImpl(),
-                agentListingRepository, listingReportRepository, userRepository);
+                agentListingRepository, listingReportRepository, userRepository,
+                org.mockito.Mockito.mock(com.dreamhomes.haven.listing.embedding.ListingSearchEmbeddingService.class));
     }
 
     @Test

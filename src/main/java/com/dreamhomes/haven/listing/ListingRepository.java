@@ -10,7 +10,12 @@ import org.springframework.transaction.annotation.Transactional;
 import com.dreamhomes.haven.listing.model.Listing;
 import com.dreamhomes.haven.listing.model.ListingStatus;
 
+import java.util.List;
+
 public interface ListingRepository extends JpaRepository<Listing, Long> {
+
+    /** All listings tied to a property (any status) — used to refresh Dream AI embeddings after address/geo changes. */
+    List<Listing> findByPropertyId(Long propertyId);
 
     /** Backs the public browse endpoint — only LIVE listings are visible to anonymous callers. */
     Page<Listing> findByStatus(ListingStatus status, Pageable pageable);
@@ -83,4 +88,7 @@ public interface ListingRepository extends JpaRepository<Listing, Long> {
     @Query(value = "SELECT l FROM Listing l WHERE (:status IS NULL OR l.status = :status) ORDER BY l.createdAt DESC",
             countQuery = "SELECT COUNT(l) FROM Listing l WHERE (:status IS NULL OR l.status = :status)")
     Page<Listing> adminCatalog(@Param("status") ListingStatus status, Pageable pageable);
+
+    @Query("SELECT l.id FROM Listing l WHERE l.id IN :ids AND l.status = com.dreamhomes.haven.listing.model.ListingStatus.LIVE")
+    List<Long> findLiveIdsAmongIds(@Param("ids") List<Long> ids);
 }

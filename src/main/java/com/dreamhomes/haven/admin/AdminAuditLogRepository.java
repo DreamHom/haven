@@ -18,6 +18,10 @@ public interface AdminAuditLogRepository extends JpaRepository<AdminAuditLog, Lo
      * null treats it as a wildcard. Persona audit (Dayo) flagged the missing
      * read-side as the platform's most critical T&S gap: "every other moderation
      * guarantee on this platform is unfalsifiable without this."
+     *
+     * <p>Optional {@code from} / {@code to} use {@code COALESCE} so each bound instant has a
+     * single, typed comparison path — PostgreSQL rejects {@code (? IS NULL OR col >= ?)}
+     * for nullable instants ("could not determine data type of parameter").</p>
      */
     @Query("""
             SELECT a FROM AdminAuditLog a
@@ -25,8 +29,8 @@ public interface AdminAuditLogRepository extends JpaRepository<AdminAuditLog, Lo
                AND (:action IS NULL OR a.action = :action)
                AND (:targetType IS NULL OR a.targetType = :targetType)
                AND (:targetId IS NULL OR a.targetId = :targetId)
-               AND (:from IS NULL OR a.createdAt >= :from)
-               AND (:to IS NULL OR a.createdAt <= :to)
+               AND a.createdAt >= COALESCE(:from, a.createdAt)
+               AND a.createdAt <= COALESCE(:to, a.createdAt)
              ORDER BY a.createdAt DESC
             """)
     Page<AdminAuditLog> search(@Param("actorId") Long actorId,

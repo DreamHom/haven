@@ -46,10 +46,13 @@ public class DatabaseCleanupTestExecutionListener extends AbstractTestExecutionL
                 admin_audit_log,
                 verifications,
                 agent_listings,
+                listing_search_embeddings,
                 listings,
                 properties,
                 agent_profiles,
                 agent_marketing_media,
+                dream_ai_chat_messages,
+                dream_ai_chats,
                 users
             RESTART IDENTITY CASCADE
             """;

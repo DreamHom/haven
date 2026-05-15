@@ -35,9 +35,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     /**
      * Backs {@code GET /api/admin/users}. All filters optional; null = wildcard.
-     * {@code emailFragment} is a case-insensitive LIKE — tickets arrive with full
-     * emails OR partial substrings, both work.
-     * Persona audit (Dayo): "tickets arrive with emails, not IDs — probing 2-10 is not a workflow."
+     * {@code emailLikePattern} is a case-insensitive LIKE pattern (callers pass
+     * {@code null} to skip, or a value already wrapped with {@code %} and lower-cased).
+     * Building the pattern in Java avoids PostgreSQL inferring {@code bytea} for
+     * {@code '%'||?||'%'} inside {@code LOWER(...)}.
      */
     @Query("""
             SELECT u FROM User u
@@ -46,12 +47,12 @@ public interface UserRepository extends JpaRepository<User, Long> {
                AND (:suspended IS NULL
                     OR (:suspended = TRUE AND u.suspendedAt IS NOT NULL)
                     OR (:suspended = FALSE AND u.suspendedAt IS NULL))
-               AND (:emailFragment IS NULL OR LOWER(u.email) LIKE LOWER(CONCAT('%', :emailFragment, '%')))
+               AND (:emailLikePattern IS NULL OR LOWER(u.email) LIKE :emailLikePattern ESCAPE '\\')
              ORDER BY u.createdAt DESC
             """)
     Page<User> adminSearch(@Param("role") Role role,
                            @Param("suspended") Boolean suspended,
-                           @Param("emailFragment") String emailFragment,
+                           @Param("emailLikePattern") String emailLikePattern,
                            Pageable pageable);
 
     /**

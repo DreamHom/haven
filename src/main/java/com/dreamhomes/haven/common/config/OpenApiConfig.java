@@ -105,7 +105,22 @@ public class OpenApiConfig {
                         new Tag().name("Verifications").description("Identity / credential / property document submissions that admins approve or reject; approvals stamp badges on the user / property."),
                         new Tag().name("Notifications").description("Per-user inbox: inspection requests, offers received, verification decisions, and other event-driven nudges."),
                         new Tag().name("Admin").description("Moderation surface: user suspension, listing takedown, verification decisions, audit log."),
-                        new Tag().name("Observability").description("Health, info, metrics — actuator endpoints exposed to platform tooling.")
+                        new Tag().name("Observability").description("Health, info, metrics — actuator endpoints exposed to platform tooling."),
+                        new Tag().name("Dream AI").description("""
+                                Natural-language listing discovery, compare, and clarify flows with **persisted threads**.
+
+                                **MVP (wire-stable)**
+
+                                - `POST /dream-ai/suggestions` — JSON turn; response is **DreamAiRunTurnResponse** (`traceId`, `AssistantTurnV1` in `turn`, legacy `listingIds`).
+                                - `POST /dream-ai/turns/stream` — same body; **SSE** events `trace`, optional `delta` (markdown chunks), terminal `final` (same JSON as JSON POST) or `problem` (ProblemDetail) on domain errors.
+                                - **Idempotency**: optional `clientMessageId` — replays return the same assistant envelope without duplicating rows (per `chatId` or last matching user message).
+                                - **Rate limit**: 429 Problem+JSON with `Retry-After` and `type` …/dream-ai-rate-limited on Dream AI POSTs.
+                                - **Moderation**: 422 Problem+JSON, `type` …/moderation-blocked — **non-retryable** for the same text.
+
+                                **Phase 2**
+
+                                Token streaming from the provider, explicit TOOL rows, cancel/partial persist, external moderation — subject to contract revision.
+                                """)
                 ))
                 .components(new Components()
                         .addSecuritySchemes(BEARER_SCHEME, new SecurityScheme()
@@ -162,7 +177,22 @@ public class OpenApiConfig {
                                 "{\"type\":\"" + errorTypeBase + "rate-limited\"," +
                                         "\"title\":\"Too Many Requests\",\"status\":429," +
                                         "\"detail\":\"rate limit exceeded\"," +
-                                        "\"instance\":\"/api/auth/login\"}")))
+                                        "\"instance\":\"/api/auth/login\"}"))
+                        .addResponses("DreamAiRateLimited", problemResponse(
+                                "Per-user Dream AI token bucket exhausted (`POST /dream-ai/suggestions`, `POST /dream-ai/turns/stream`).",
+                                "DreamAiRateLimited",
+                                "{\"type\":\"" + errorTypeBase + "dream-ai-rate-limited\"," +
+                                        "\"title\":\"Too Many Requests\",\"status\":429," +
+                                        "\"detail\":\"Dream AI rate limit exceeded — try again in 60 seconds\"," +
+                                        "\"instance\":\"/api/dream-ai/suggestions\"," +
+                                        "\"retryAfterSeconds\":60}"))
+                        .addResponses("DreamAiModerationBlocked", problemResponse(
+                                "Dream AI moderation hook blocked the prompt — do not retry the same text.",
+                                "DreamAiModerationBlocked",
+                                "{\"type\":\"" + errorTypeBase + "moderation-blocked\"," +
+                                        "\"title\":\"Unprocessable Entity\",\"status\":422," +
+                                        "\"detail\":\"That message cannot be processed here.\"," +
+                                        "\"instance\":\"/api/dream-ai/suggestions\"}")))
                 .addSecurityItem(new SecurityRequirement().addList(BEARER_SCHEME));
     }
 

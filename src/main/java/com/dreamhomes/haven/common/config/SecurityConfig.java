@@ -1,10 +1,12 @@
 package com.dreamhomes.haven.common.config;
 
 import com.dreamhomes.haven.auth.JwtAuthenticationFilter;
+import com.dreamhomes.haven.dreamai.config.DreamAiRateLimitProperties;
 import com.dreamhomes.haven.common.web.ProblemDetailAuthenticationEntryPoint;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -32,17 +34,21 @@ import java.util.List;
  */
 @Configuration
 @EnableMethodSecurity
+@EnableConfigurationProperties(DreamAiRateLimitProperties.class)
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final com.dreamhomes.haven.dreamai.ratelimit.DreamAiRateLimitFilter dreamAiRateLimitFilter;
     private final List<String> allowedOrigins;
     private final String errorTypeBase;
 
     public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
+                          com.dreamhomes.haven.dreamai.ratelimit.DreamAiRateLimitFilter dreamAiRateLimitFilter,
                           @Value("${cors.allowed-origins}") List<String> allowedOrigins,
                           @Value("${haven.errors.type-base:https://github.com/DreamHom/haven/blob/main/docs/errors/}")
                           String errorTypeBase) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.dreamAiRateLimitFilter = dreamAiRateLimitFilter;
         this.allowedOrigins = allowedOrigins;
         this.errorTypeBase = errorTypeBase;
     }
@@ -64,7 +70,7 @@ public class SecurityConfig {
         cfg.setAllowedOriginPatterns(allowedOrigins);
         cfg.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         cfg.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "Cookie"));
-        cfg.setExposedHeaders(List.of("Location"));
+        cfg.setExposedHeaders(List.of("Location", "Retry-After"));
         cfg.setAllowCredentials(true);
         cfg.setMaxAge(3600L);
         UrlBasedCorsConfigurationSource src = new UrlBasedCorsConfigurationSource();
@@ -125,6 +131,7 @@ public class SecurityConfig {
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(dreamAiRateLimitFilter, JwtAuthenticationFilter.class)
                 .build();
     }
 }
