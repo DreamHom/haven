@@ -96,6 +96,17 @@ public class DreamAiService {
      * same compact catalogue shape used by the rank flow, and asks Claude for structured
      * pros/cons + a recommendation.
      *
+     * <p><b>Deliberately NOT {@code @Transactional}.</b> The orchestrator's
+     * {@code compareTurn} wraps this call in {@code try/catch} so it can degrade to a
+     * stub-markdown turn when Anthropic 4xx/5xxs. If we ran inside a transaction (whether
+     * our own or one we joined from {@code runTurn}), the upstream exception would mark
+     * the surrounding transaction as rollback-only — even though the orchestrator caught
+     * the exception, the eventual commit would fail with {@code UnexpectedRollbackException}
+     * and the user would see a hard 500 instead of the graceful "compare cards below"
+     * fallback. Standing outside the transaction keeps the rollback flag clean.
+     * The internal {@code listingService.findLiveWithSummariesInOrder} call has its own
+     * read-only transaction, so the DB-side concerns are still correctly bounded.</p>
+     *
      * @param userIntent natural-language prompt — usually the user's prior search query
      *                   plus their comparison question (orchestrator builds this from chat history)
      * @param listingIds ids to compare; expected size 2–5 (caller responsible for the bound)
@@ -104,7 +115,6 @@ public class DreamAiService {
      *         requested ids are still LIVE, OR when the Anthropic key is not configured
      *         (the orchestrator falls back to the legacy stub markdown in that case).
      */
-    @Transactional(readOnly = true)
     public CompareReasoning compareListings(String userIntent, List<Long> listingIds) {
         if (!anthropicProperties.hasApiKey()) {
             return new CompareReasoning(null, null, List.of());
