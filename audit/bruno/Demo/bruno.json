@@ -1,0 +1,10 @@
+{
+  "version": "1",
+  "name": "DreamHomes Haven — demo flow polish",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git",
+    "photos"
+  ]
+}
