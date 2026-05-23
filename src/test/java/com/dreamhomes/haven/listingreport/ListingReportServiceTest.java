@@ -155,7 +155,8 @@ class ListingReportServiceTest {
                 new BigDecimal("1000000"), "NGN",
                 null, null, null,
                 null, null, null, null,
+                null, false,
                 ListingStatus.LIVE, null, 0L,
-                Instant.now(), Instant.now(), null, null, null);
+                Instant.now(), Instant.now(), null, null, null, null, null, null, null);
     }
 }

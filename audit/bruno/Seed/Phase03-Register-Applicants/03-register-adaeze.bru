@@ -1,0 +1,30 @@
+meta {
+  name: 03 Register Adaeze (APPLICANT)
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{host}}/api/auth/register
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "adaeze.nwosu@demo.dreamhomes.local",
+    "password": "{{password}}",
+    "fullName": "Adaeze Nwosu",
+    "displayName": "Adaeze",
+    "phone": "+2348033000003",
+    "role": "APPLICANT"
+  }
+}
+
+assert {
+  res.status: eq 202
+}
+
+docs {
+  Relocating professional — needs a 2-bed in Lekki/Ikate within 2 weeks.
+}

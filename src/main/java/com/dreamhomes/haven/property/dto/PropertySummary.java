@@ -3,6 +3,7 @@ package com.dreamhomes.haven.property.dto;
 import java.math.BigDecimal;
 import java.time.Instant;
 import com.dreamhomes.haven.property.model.PropertyType;
+
 /**
  * Lightweight projection of a property for embedding in other resources (most importantly,
  * listing browse responses) so a frontend can render a card without a follow-up GET.
@@ -11,8 +12,8 @@ import com.dreamhomes.haven.property.model.PropertyType;
  * approved this property's docs (PRD §4.1, §4.8). Carrying it on the summary lets browse
  * cards show the verified-documents badge without a separate request.
  *
- * <p>Construction lives in {@code feature-property-impl}; this record is a pure data
- * shape with no entity coupling.
+ * <p>{@code latitude} / {@code longitude} are WGS-84 when the owner supplied coordinates
+ * at property registration; both null for legacy rows or when not captured.
  */
 public record PropertySummary(
         Long id,
@@ -21,6 +22,8 @@ public record PropertySummary(
         Integer bedrooms,
         Integer bathrooms,
         BigDecimal sizeSqm,
-        Instant documentsVerifiedAt
+        Instant documentsVerifiedAt,
+        Double latitude,
+        Double longitude
 ) {
 }

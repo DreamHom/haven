@@ -1,11 +1,15 @@
 package com.dreamhomes.haven.auth.controller;
 
 import com.dreamhomes.haven.auth.JwtPrincipal;
+import com.dreamhomes.haven.auth.cookie.JwtCookieService;
+import com.dreamhomes.haven.auth.dto.ForgotPasswordRequest;
+import com.dreamhomes.haven.auth.dto.ForgotPasswordResponse;
 import com.dreamhomes.haven.auth.dto.LoginCommand;
 import com.dreamhomes.haven.auth.dto.LoginRequest;
 import com.dreamhomes.haven.auth.dto.LoginResponse;
 import com.dreamhomes.haven.auth.dto.RegisterCommand;
 import com.dreamhomes.haven.auth.dto.RegisterRequest;
+import com.dreamhomes.haven.auth.dto.ResetPasswordRequest;
 import com.dreamhomes.haven.auth.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -33,6 +37,8 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final AuthService authService;
+    private final com.dreamhomes.haven.auth.passwordreset.PasswordResetService passwordResetService;
+    private final JwtCookieService jwtCookieService;
 
     @Operation(
             summary = "Register a new account",
@@ -87,6 +93,9 @@ public class AuthController {
                     server-side (default 1h). Subsequent authenticated calls send the JWT \
                     as `Authorization: Bearer <token>`.
 
+                    When `haven.auth.jwt-cookie.enabled` is true, the same JWT is also set in an \
+                    httpOnly `SameSite=Lax` cookie so first-party browser apps can omit localStorage.
+
                     A suspended account (where `users.suspended_at` is set by an admin) \
                     cannot log in — the request returns 403 with a clear reason. Same \
                     for an account whose `tokenVersion` was bumped out from under any \
@@ -114,11 +123,113 @@ public class AuthController {
     })
     @SecurityRequirements // public
     @PostMapping("/login")
-    public LoginResponse login(@Valid @RequestBody LoginRequest request) {
+    public LoginResponse login(@Valid @RequestBody LoginRequest request,
+                               jakarta.servlet.http.HttpServletRequest httpRequest,
+                               jakarta.servlet.http.HttpServletResponse httpResponse) {
         com.dreamhomes.haven.auth.dto.LoginResult result =
-                authService.login(new LoginCommand(request.email(), request.password()));
-        return new LoginResponse(result.token(), "Bearer", result.expiresInSeconds(),
-                result.userId(), result.role(), result.fullName());
+                authService.login(new LoginCommand(request.email(), request.password()),
+                        httpRequest.getHeader("User-Agent"), httpRequest.getRemoteAddr());
+        jwtCookieService.addTokenCookie(httpResponse, result.token());
+        return toLoginResponse(result);
+    }
+
+    @Operation(
+            summary = "Exchange a refresh token for a new access JWT",
+            description = """
+                    Trades a long-lived **refresh token** (issued by `POST /auth/login` or a \
+                    prior `POST /auth/refresh`) for a fresh access JWT and a freshly rotated \
+                    refresh token. The previous refresh token is revoked and forward-linked \
+                    to its successor in one transaction.
+
+                    **Rotation is mandatory** — every successful refresh issues a new refresh \
+                    string and invalidates the old one. If the same revoked-and-replaced \
+                    token is ever presented again (replay), the entire forward chain is \
+                    revoked and 401 is returned, on the assumption a copy of the token has \
+                    leaked.
+
+                    Failures (unknown / expired / revoked / replayed token, or a suspended \
+                    account) all surface as 401 with a uniform problem shape — no enumeration.
+                    """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200",
+                    description = "New access + refresh token issued.",
+                    content = @Content(
+                            schema = @Schema(implementation = LoginResponse.class),
+                            examples = @ExampleObject(name = "Refreshed", value = """
+                                    { "token": "eyJhbGciOiJSUzI1NiJ9...<truncated>",
+                                      "tokenType": "Bearer", "expiresInSeconds": 3600,
+                                      "refreshToken": "uIK0J9...<43 chars>",
+                                      "refreshExpiresInSeconds": 2592000,
+                                      "userId": 7, "role": "OWNER", "fullName": "Amaka Okafor" }
+                                    """))),
+            @ApiResponse(responseCode = "400", ref = "#/components/responses/ValidationFailed"),
+            @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthenticated")
+    })
+    @SecurityRequirements // public — the refresh token IS the credential
+    @PostMapping("/refresh")
+    public LoginResponse refresh(
+            @Valid @RequestBody com.dreamhomes.haven.auth.dto.RefreshTokenRequest request,
+            jakarta.servlet.http.HttpServletRequest httpRequest,
+            jakarta.servlet.http.HttpServletResponse httpResponse) {
+        com.dreamhomes.haven.auth.dto.LoginResult result = authService.refresh(
+                request.refreshToken(),
+                httpRequest.getHeader("User-Agent"),
+                httpRequest.getRemoteAddr());
+        jwtCookieService.addTokenCookie(httpResponse, result.token());
+        return toLoginResponse(result);
+    }
+
+    private static LoginResponse toLoginResponse(com.dreamhomes.haven.auth.dto.LoginResult r) {
+        return new LoginResponse(
+                r.token(), "Bearer", r.expiresInSeconds(),
+                r.refreshToken(), r.refreshExpiresInSeconds(),
+                r.userId(), r.role(), r.fullName());
+    }
+
+    @Operation(
+            summary = "Request a password reset",
+            description = """
+                    Always returns 202 with `accepted: true` — the response does not reveal \
+                    whether the email exists. When a matching active account exists, a \
+                    single-use reset token is stored (hashed). Email delivery is not wired \
+                    yet; in non-production test profiles `debugResetToken` may echo the raw \
+                    token when `haven.auth.debug-return-reset-token` is true (same value is \
+                    also logged at WARN on the server).
+                    """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "202", description = "Anti-enumeration ack."),
+            @ApiResponse(responseCode = "400", ref = "#/components/responses/ValidationFailed"),
+            @ApiResponse(responseCode = "429", ref = "#/components/responses/RateLimited")
+    })
+    @SecurityRequirements
+    @PostMapping("/forgot-password")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public ForgotPasswordResponse forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        return new ForgotPasswordResponse(true,
+                passwordResetService.requestReset(request.email()).orElse(null));
+    }
+
+    @Operation(
+            summary = "Complete password reset with token",
+            description = """
+                    Consumes a reset token from the forgot-password flow, sets a new password, \
+                    and bumps `tokenVersion` so outstanding JWTs are revoked.
+                    """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Password updated."),
+            @ApiResponse(responseCode = "400", ref = "#/components/responses/ValidationFailed"),
+            @ApiResponse(responseCode = "429", ref = "#/components/responses/RateLimited")
+    })
+    @SecurityRequirements
+    @PostMapping("/reset-password")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void resetPassword(@Valid @RequestBody ResetPasswordRequest request,
+                              jakarta.servlet.http.HttpServletResponse httpResponse) {
+        passwordResetService.resetWithToken(request.token(), request.newPassword());
+        jwtCookieService.clearTokenCookie(httpResponse);
     }
 
     @Operation(
@@ -135,6 +246,8 @@ public class AuthController {
                       this account on the next request. The right choice for "lost device"
                       or "ended a session on a shared computer".
 
+                    When JWT cookies are enabled, the httpOnly session cookie is cleared as well.
+
                     Returns 204 No Content on success.
                     """
     )
@@ -148,13 +261,25 @@ public class AuthController {
     public void logout(@AuthenticationPrincipal JwtPrincipal principal,
                        @org.springframework.web.bind.annotation.RequestParam(name = "scope", defaultValue = "device")
                        String scope,
-                       jakarta.servlet.http.HttpServletRequest request) {
+                       @org.springframework.web.bind.annotation.RequestHeader(name = "X-Refresh-Token", required = false)
+                       String refreshTokenHeader,
+                       jakarta.servlet.http.HttpServletRequest request,
+                       jakarta.servlet.http.HttpServletResponse response) {
+        String authorization = request.getHeader("Authorization");
+        if ((authorization == null || authorization.isBlank()) && jwtCookieService.isEnabled()) {
+            authorization = jwtCookieService.readToken(request)
+                    .map(t -> "Bearer " + t)
+                    .orElse(null);
+        }
         switch (scope.toLowerCase(java.util.Locale.ROOT)) {
             case "all" -> authService.logout(principal.userId());
-            case "device" -> authService.logoutDevice(principal.userId(),
-                    request.getHeader("Authorization"));
+            // Device logout: clients can pass X-Refresh-Token so the matching refresh row
+            // is revoked alongside the access JWT's jti — otherwise the device's stored
+            // refresh keeps working until its own TTL.
+            case "device" -> authService.logoutDevice(principal.userId(), authorization, refreshTokenHeader);
             default -> throw new IllegalArgumentException(
                     "Unknown logout scope: " + scope + " (expected device or all)");
         }
+        jwtCookieService.clearTokenCookie(response);
     }
 }

@@ -11,6 +11,8 @@ public interface ListingPhotoRepository extends JpaRepository<ListingPhoto, Long
     /** Backs the public detail-page photo gallery. Ordered by (display_order, id). */
     List<ListingPhoto> findByListingIdOrderByDisplayOrderAscIdAsc(Long listingId);
 
+    long countByListingId(Long listingId);
+
     /**
      * Highest existing display_order for this listing. {@code COALESCE} via the JPQL
      * doesn't quite work the same as SQL — return null when there are no photos and

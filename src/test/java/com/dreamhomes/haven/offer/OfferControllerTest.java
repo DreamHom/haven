@@ -39,7 +39,7 @@ import com.dreamhomes.haven.offer.model.Offer;
 import com.dreamhomes.haven.offer.model.OfferStatus;
 
 @WebMvcTest(OfferController.class)
-@Import({SecurityConfig.class, com.dreamhomes.haven.offer.OfferMapperImpl.class})
+@Import({SecurityConfig.class, com.dreamhomes.haven.support.JwtCookieTestStubConfiguration.class, com.dreamhomes.haven.offer.OfferMapperImpl.class})
 @TestPropertySource(properties = {
         "haven.rate-limit.enabled=false",
         "cors.allowed-origins=http://localhost:3000",

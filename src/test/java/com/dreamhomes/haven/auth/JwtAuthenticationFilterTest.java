@@ -39,7 +39,9 @@ class JwtAuthenticationFilterTest {
 
     @BeforeEach
     void setUp() {
-        filter = new JwtAuthenticationFilter(jwtService, userCredentialsService, org.mockito.Mockito.mock(com.dreamhomes.haven.auth.blocklist.JwtBlocklistRepository.class));
+        filter = new JwtAuthenticationFilter(jwtService, userCredentialsService,
+                org.mockito.Mockito.mock(com.dreamhomes.haven.auth.blocklist.JwtBlocklistRepository.class),
+                org.mockito.Mockito.mock(com.dreamhomes.haven.auth.cookie.JwtCookieService.class));
     }
 
     @AfterEach

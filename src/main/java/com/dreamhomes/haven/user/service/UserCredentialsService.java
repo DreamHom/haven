@@ -37,22 +37,26 @@ public class UserCredentialsService {
 
     @Transactional(readOnly = true)
     public Optional<UserCredentials> loadByEmail(String email) {
-        return userRepository.findByEmail(email).map(userCredentialsMapper::toCredentials);
+        return userRepository.findByEmailAndAccountDeletedAtIsNull(email)
+                .map(userCredentialsMapper::toCredentials);
     }
 
     @Transactional(readOnly = true)
     public Optional<UserCredentials> loadById(Long userId) {
-        return userRepository.findById(userId).map(userCredentialsMapper::toCredentials);
+        return userRepository.findById(userId)
+                .filter(u -> u.getAccountDeletedAt() == null)
+                .map(userCredentialsMapper::toCredentials);
     }
 
     @Transactional(readOnly = true)
     public boolean existsByEmail(String email) {
-        return userRepository.existsByEmail(email);
+        return userRepository.existsByEmailAndAccountDeletedAtIsNull(email);
     }
 
     @Transactional(readOnly = true)
     public OptionalInt tokenVersionOf(Long userId) {
         return userRepository.findById(userId)
+                .filter(u -> u.getAccountDeletedAt() == null)
                 .map(u -> OptionalInt.of(u.getTokenVersion()))
                 .orElseGet(OptionalInt::empty);
     }
@@ -75,7 +79,7 @@ public class UserCredentialsService {
 
     @Transactional
     public RegisteredUser create(NewUser newUser) {
-        if (userRepository.existsByEmail(newUser.email())) {
+        if (userRepository.existsByEmailAndAccountDeletedAtIsNull(newUser.email())) {
             throw new EmailAlreadyTakenException();
         }
         User user = User.builder()

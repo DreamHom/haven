@@ -17,6 +17,12 @@ import com.dreamhomes.haven.user.model.Role;
  * PRD §4.2 ("fees, specializations, locations covered"). For non-agents (or agents who
  * haven't filled them in) the arrays are empty and {@code feeSchedule} is null — the
  * JSON shape stays stable across roles so the FE renderer doesn't have to branch.
+ *
+ * <p>{@code publicBio} is an optional public narrative (owners, agents, applicants);
+ * null when unset.
+ *
+ * <p>{@code agentMarketingGallery} lists public marketing images for agents only; empty for
+ * non-agents.
  */
 public record PublicUserProfile(
         Long id,
@@ -34,6 +40,9 @@ public record PublicUserProfile(
         List<String> serviceAreas,
         List<String> languages,
         List<String> specializationTags,
-        String feeSchedule
+        String feeSchedule,
+        String publicBio,
+        String profileImageUrl,
+        List<PublicAgentMarketingItem> agentMarketingGallery
 ) {
 }

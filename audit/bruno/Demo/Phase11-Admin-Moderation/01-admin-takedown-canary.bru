@@ -1,0 +1,25 @@
+meta {
+  name: 01 Admin takes down the Kafka canary listing (reason required)
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{host}}/api/admin/listings/{{list_canary}}/takedown
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{admin_token}}
+}
+
+body:json {
+  {
+    "reason": "Test listing left over from the Kafka canary collection. Taking down to keep public browse clean."
+  }
+}
+
+assert {
+  res.status: eq 200
+}

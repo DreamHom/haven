@@ -1,0 +1,19 @@
+meta {
+  name: 04 Ngozi saves Tunde's Awolowo serviced
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{host}}/api/listings/{{list_tunde_awolowo}}/save
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{ngozi_token}}
+}
+
+assert {
+  res.status: in [200, 201, 204]
+}

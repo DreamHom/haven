@@ -47,10 +47,8 @@ public class InspectionSlotController {
                     Records an `InspectionSlot` window during which applicants can claim an \
                     inspection. Slots are publicly visible to anyone browsing the listing.
 
-                    **Authorisation**: only the listing's owner can open slots today. \
-                    Assigned-agent slot creation is a roadmap item — the service layer has \
-                    the hook, but the controller still rejects non-owner callers with 403. \
-                    Any extension here will be additive.
+                    **Authorisation**: the listing's **owner** or an **assigned agent** in \
+                    `ACCEPTED` status on the listing may open slots. Other callers receive 403.
 
                     **Overlap constraint**: enforced by a Postgres `EXCLUDE USING GIST` \
                     constraint on `(listing_id, time_range)`. Trying to open a slot that \
@@ -76,12 +74,12 @@ public class InspectionSlotController {
     @SecurityRequirement(name = "bearerAuth")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasRole('OWNER')")
+    @PreAuthorize("hasAnyRole('OWNER', 'AGENT')")
     public SlotResponse create(@AuthenticationPrincipal JwtPrincipal principal,
                                @Parameter(description = "Listing ID.", example = "17")
                                @PathVariable Long listingId,
                                @Valid @RequestBody CreateSlotRequest request) {
-        InspectionSlot saved = slotService.create(principal.userId(), listingId,
+        InspectionSlot saved = slotService.create(principal.userId(), principal.role(), listingId,
                 new CreateSlotCommand(request.startsAt(), request.endsAt()));
         return inspectionSlotMapper.toResponse(saved);
     }

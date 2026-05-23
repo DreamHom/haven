@@ -24,7 +24,7 @@ For the design rationale + every "we chose X over Y" decision, see
 ## Tech stack
 
 - **Java 21** (LTS) · **Spring Boot 3.3.5** (Web, Security, Data JPA, Validation, Actuator)
-- **PostgreSQL 16** + **Flyway** (V1..V18 migrations)
+- **PostgreSQL 16** + **Flyway** (V1..V37 migrations)
 - **Spring Kafka** + **Apache Kafka 3.7 (KRaft)** — transactional outbox, dead-letter topic, partition-pinned `NewTopic` beans
 - **JJWT 0.12.x** — JWT issuance + verification
 - **Bucket4j** — in-process auth rate limiting
@@ -69,7 +69,7 @@ haven/
     │   └── resources/
     │       ├── application.yml
     │       ├── logback-spring.xml
-    │       ├── db/migration/V1..V18.sql
+    │       ├── db/migration/V1..V37.sql
     │       └── static/scalar.html
     └── test/
         ├── java/com/dreamhomes/haven/
@@ -103,33 +103,62 @@ with a `why → cost → revisit` triplet.
 
 ## Getting started
 
-Requires Java 21 and Docker (Docker Desktop on macOS).
+Two paths: the **one-command Docker stack** (no Java/Maven on your machine —
+fastest way for an evaluator to kick the tyres) or the **dev loop**
+(`mvn spring-boot:run` against compose infra, hot reload via DevTools).
+
+### Prerequisites — required by both paths
 
 ```bash
-# 1. Start local infra (Postgres + Kafka, persistent volumes)
-docker compose up -d
-
-# 2. Configure environment.
-#    (a) JWT now uses RS256 — generate a 2048-bit RSA keypair and export the PEMs.
-#        The app refuses to start if either is missing or not a valid RSA key (>= 2048 bits).
+# (a) JWT — RS256 keypair. The app refuses to start if either is missing or
+#     not a valid RSA key (>= 2048 bits).
 openssl genpkey -algorithm RSA -out jwt-private.pem -pkeyopt rsa_keygen_bits:2048
 openssl rsa     -in jwt-private.pem -pubout -out jwt-public.pem
 export HAVEN_JWT_PRIVATE_KEY="$(cat jwt-private.pem)"
 export HAVEN_JWT_PUBLIC_KEY="$(cat jwt-public.pem)"
 
-#    (b) Seeded platform admin — also required at startup, no defaults.
-#        Generate a bcrypt-10 hash for your chosen admin password.
+# (b) Seeded platform admin — also required at startup, no defaults.
 export ADMIN_EMAIL="admin@dreamhomes.local"
 export ADMIN_PASSWORD_HASH="$(htpasswd -nbBC 10 '' 'ChangeMeNow!' | tail -c +2)"
-
-# 3. Run the app
-mvn spring-boot:run
 ```
 
-Stop infra with `docker compose down`. Wipe data with `docker compose down -v`.
+### Path A: full stack via Docker Compose (one command)
 
-The app boots on `http://localhost:8080`. Postgres runs on host port `5433` (the
-container still listens on `5432` internally).
+Requires Docker (Docker Desktop on macOS). No local Java/Maven needed.
+
+```bash
+docker compose up --build
+```
+
+Brings up Postgres + Kafka + the app. App ready on `http://localhost:8080`
+once the healthchecks pass. Stop with `Ctrl+C` (or `docker compose down`).
+Wipe data with `docker compose down -v`.
+
+### Path B: dev loop (hot reload)
+
+Requires Java 21 + Maven on your machine. Faster iteration loop.
+
+```bash
+docker compose up -d postgres kafka     # infra only
+mvn spring-boot:run                      # app on host
+```
+
+Postgres is on host port `5433` (container still listens on `5432` internally).
+Kafka on host port `9092`.
+
+### Deploying on Railway
+
+Railway picks up the `Dockerfile` automatically and injects a dynamic `PORT` —
+the app honors it via `server.port=${PORT:8080}` in `application.yml`. To deploy:
+
+1. Add a **PostgreSQL** plugin to your Railway project. Set the app's `DB_HOST`,
+   `DB_PORT`, `DB_NAME`, `DB_USERNAME`, `DB_PASSWORD` from Railway's plugin variables.
+2. Provision **Kafka** (Railway has no native Kafka; use Upstash, Aiven, or a
+   self-hosted bitnami/kafka container template) and set `KAFKA_BOOTSTRAP_SERVERS`.
+3. Set the JWT keypair + admin seed env vars (see prerequisites above) in the
+   Railway service's Variables tab. PEMs are multi-line — paste with real newlines.
+4. Set `CORS_ALLOWED_ORIGINS` to your frontend's deployed origin.
+5. Configure Railway's healthcheck to hit `/actuator/health`.
 
 ## API documentation
 
@@ -152,7 +181,7 @@ mvn verify   # surefire + failsafe — adds ITs (Testcontainers needs Docker run
 - Unit tests follow the `*Test` / `*Tests` naming convention and run via Surefire.
 - Integration tests follow the `*IT` convention, extend `AbstractPostgresIT`
   (Testcontainers Postgres + Embedded Kafka, started once per JVM), and run via Failsafe.
-- **Total today: 398 tests, 0 failures, 0 errors.** ~3 minutes wall-clock.
+- **Total today: 402 tests, 0 failures, 0 errors.** ~3 minutes wall-clock.
 
 To run a single test:
 

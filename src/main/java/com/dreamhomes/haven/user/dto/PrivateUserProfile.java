@@ -21,6 +21,9 @@ import java.util.List;
  * {@code AgentProfile} so the settings form can preload them with one GET, then
  * round-trip the same shape on PATCH. For non-agents the arrays are empty and
  * {@code feeSchedule} is null — JSON shape is stable across roles.
+ *
+ * <p>{@code publicBio} mirrors {@link PublicUserProfile#publicBio()}; editable via
+ * {@code PATCH /api/me}.
  */
 public record PrivateUserProfile(
         Long userId,
@@ -38,6 +41,9 @@ public record PrivateUserProfile(
         List<String> serviceAreas,
         List<String> languages,
         List<String> specializationTags,
-        String feeSchedule
+        String feeSchedule,
+        String publicBio,
+        String profileImageUrl,
+        String notificationPreferences
 ) {
 }

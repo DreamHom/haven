@@ -1,0 +1,61 @@
+meta {
+  name: DreamHomes Haven — demo flow polish
+  type: collection
+}
+
+docs {
+  # Demo polish — turns the seeded prod into a believable, lived-in system
+
+  Layered ON TOP of the existing seed (do NOT re-run Seed/ first — that would
+  duplicate listings). Adds:
+
+  ## What lands
+
+  - **Photos** — every listing gets exactly one unique high-quality real-estate
+    photo (8 multipart uploads → R2). Run `photos/download-photos.sh` first
+    to populate the local image files.
+  - **Verifications** — 4 submitted (Amaka, Biodun, Emeka, Chika); admin
+    approves 2, rejects 1, leaves 1 pending. Audit log fills.
+  - **Agent assignments** — Emeka assigned to 4 listings (Lekki, Ikate,
+    Bourdillon, Ikeja) and accepts each — visible in his dashboard as
+    "active listings I'm managing."
+  - **Past inspections with notes** — Adaeze + Babatunde request inspections,
+    owners approve, Emeka marks COMPLETED with `agentExtras` notes.
+  - **Closed deals** — 2 listings transition to CLOSED via a real
+    offer→accept→close arc:
+      - Ikate (Amaka's): Adaeze offers ₦2.0M → Amaka accepts → CLOSED
+      - Bourdillon (Biodun's): Babatunde offers ₦420M → Biodun accepts → CLOSED
+  - **Reviews** — Adaeze + Babatunde post 5-star + 4-star reviews on Emeka.
+  - **Pending offer** — Ngozi submits an offer on Amaka's Lekki listing.
+    **Amaka does NOT respond** (intentional — visible in her dashboard).
+  - **Admin audit** — admin takes down + reactivates the leftover Kafka-canary
+    listing for varied audit-log entries.
+
+  ## What is DELIBERATELY NOT done
+
+  - **Temi is not logged in or touched.** Her inspection + notification state
+    stays exactly as the seed left it.
+  - **No new listings or properties created.** The existing 8 seeded listings
+    are the only canvas.
+  - **No comments added.** The seeded comments are enough.
+
+  ## How to run
+
+  1. Generate the photos locally first (one-time, ~5 MB):
+        bash audit/bruno/Demo/photos/download-photos.sh
+  2. Set the admin password in `environments/Prod.bru` (or via Bruno GUI's
+     "Variables" tab) — this collection logs admin in for verification + moderation
+     work, so it needs the plaintext that matches your `ADMIN_PASSWORD_HASH`.
+  3. CLI:    cd audit/bruno  &&  bru run Demo -r --env Prod
+     GUI:    open the collection, pick env Prod, run each phase folder in order.
+
+  ## Re-running
+
+  - Phase00 (discover) and Phase01 (login) are always safe.
+  - Photo uploads append a NEW photo each time — don't re-run Phase02 unless
+    you want duplicates.
+  - Verifications, assignments, inspections, offers, reviews are mostly NOT
+    idempotent — re-running phases 03–10 will create dupes or 409.
+  - Per-request retry is fine (Bruno's strength) — if e.g. one photo fails,
+    just click that one and retry.
+}

@@ -1,0 +1,25 @@
+meta {
+  name: 07 Temi comments on Amaka's Lekki listing
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{host}}/api/listings/{{list_amaka_lekki}}/comments
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{temi_token}}
+}
+
+body:json {
+  {
+    "body": "Hi Amaka — is the rent inclusive of service charge or separate? And is parking included?"
+  }
+}
+
+assert {
+  res.status: eq 201
+}

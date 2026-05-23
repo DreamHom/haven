@@ -1,0 +1,38 @@
+meta {
+  name: 05 Biodun — Property Bourdillon (5-bed duplex)
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{host}}/api/properties
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{biodun_token}}
+}
+
+body:json {
+  {
+    "type": "HOUSE",
+    "address": "4 Bourdillon Road, Old Ikoyi, Lagos",
+    "bedrooms": 5,
+    "bathrooms": 5,
+    "sizeSqm": 420,
+    "description": "Detached 5-bed duplex on a 1,200sqm corner plot. Two-storey, BQ, swimming pool, gardener's shed.",
+    "latitude": 6.45330,
+    "longitude": 3.44040
+  }
+}
+
+assert {
+  res.status: eq 201
+}
+
+script:post-response {
+  if (res.status === 201 && res.body && res.body.id) {
+    bru.setVar("prop_biodun_bourdillon", res.body.id);
+  }
+}

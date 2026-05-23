@@ -1,0 +1,73 @@
+meta {
+  name: 01 Compare by URLs (Lekki vs Ikeja)
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{host}}/api/dream-ai/suggestions
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "prompt": "I'm a single mum with two kids in primary school. My budget is around 4M/year. Compare /listings/1 and /listings/5 and tell me which would suit me better and why."
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.turn.kind: eq compare
+}
+
+script:post-response {
+  // The new compare path should attach `compareReasoning` with a
+  // `recommendedListingId` (or null) and one `perListing` entry per id.
+  if (res.status === 200 && res.body && res.body.turn && Array.isArray(res.body.turn.blocks)) {
+    const compareBlock = res.body.turn.blocks.find(b => b.type === "compare");
+    if (!compareBlock) {
+      throw new Error("No compare block on the response");
+    }
+    if (!compareBlock.compareListingIds || compareBlock.compareListingIds.length < 2) {
+      throw new Error("compareListingIds missing or under 2");
+    }
+    const reasoning = compareBlock.compareReasoning;
+    if (!reasoning) {
+      console.log("⚠️  No compareReasoning — backend may be on the old code OR Anthropic key unset");
+    } else {
+      console.log("✅ recommendedListingId=" + reasoning.recommendedListingId);
+      console.log("   summary: " + (reasoning.summary || "").substring(0, 80) + "…");
+      for (const note of reasoning.perListing) {
+        console.log(`   #${note.id} bestFor: ${(note.bestFor || "").substring(0, 60)}…`);
+        console.log(`     pros: ${(note.pros || []).slice(0, 2).join(" | ")}`);
+        console.log(`     cons: ${(note.cons || []).slice(0, 2).join(" | ")}`);
+      }
+    }
+  }
+}
+
+docs {
+  Triggers the URL-detection branch in DreamAiTurnOrchestrator. The two
+  `/listings/N` paths in the prompt route through the new
+  AI-backed compareTurn → AnthropicListingCompareClient.
+
+  Expected response shape (when HAVEN_ANTHROPIC_API_KEY is set):
+    turn.kind = "compare"
+    turn.markdown = "<2-4 sentence recommendation summary>"
+    turn.blocks[0] = {
+      type: "compare",
+      compareListingIds: [1, 5],
+      compareReasoning: {
+        recommendedListingId: 1 | 5 | null,
+        summary: "<markdown>",
+        perListing: [
+          { id, headline, pros: [...], cons: [...], bestFor: "..." },
+          { id, headline, pros: [...], cons: [...], bestFor: "..." }
+        ]
+      }
+    }
+
+  Without the key, `compareReasoning` is null and `markdown` falls back
+  to the legacy "compare cards below" string.
+}

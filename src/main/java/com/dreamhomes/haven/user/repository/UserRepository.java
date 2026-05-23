@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import com.dreamhomes.haven.user.model.Role;
@@ -16,6 +17,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByEmail(String email);
 
     boolean existsByEmail(String email);
+
+    Optional<User> findByEmailAndAccountDeletedAtIsNull(String email);
+
+    boolean existsByEmailAndAccountDeletedAtIsNull(String email);
 
     /** Backs the admin analytics summary — count of currently-suspended user accounts. */
     long countBySuspendedAtIsNotNull();
@@ -30,22 +35,24 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     /**
      * Backs {@code GET /api/admin/users}. All filters optional; null = wildcard.
-     * {@code emailFragment} is a case-insensitive LIKE — tickets arrive with full
-     * emails OR partial substrings, both work.
-     * Persona audit (Dayo): "tickets arrive with emails, not IDs — probing 2-10 is not a workflow."
+     * {@code emailLikePattern} is a case-insensitive LIKE pattern (callers pass
+     * {@code null} to skip, or a value already wrapped with {@code %} and lower-cased).
+     * Building the pattern in Java avoids PostgreSQL inferring {@code bytea} for
+     * {@code '%'||?||'%'} inside {@code LOWER(...)}.
      */
     @Query("""
             SELECT u FROM User u
-             WHERE (:role IS NULL OR u.role = :role)
+             WHERE u.accountDeletedAt IS NULL
+               AND (:role IS NULL OR u.role = :role)
                AND (:suspended IS NULL
                     OR (:suspended = TRUE AND u.suspendedAt IS NOT NULL)
                     OR (:suspended = FALSE AND u.suspendedAt IS NULL))
-               AND (:emailFragment IS NULL OR LOWER(u.email) LIKE LOWER(CONCAT('%', :emailFragment, '%')))
+               AND (:emailLikePattern IS NULL OR LOWER(u.email) LIKE :emailLikePattern ESCAPE '\\')
              ORDER BY u.createdAt DESC
             """)
     Page<User> adminSearch(@Param("role") Role role,
                            @Param("suspended") Boolean suspended,
-                           @Param("emailFragment") String emailFragment,
+                           @Param("emailLikePattern") String emailLikePattern,
                            Pageable pageable);
 
     /**
@@ -57,6 +64,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("""
             SELECT u FROM User u
              WHERE u.role = com.dreamhomes.haven.user.model.Role.AGENT
+               AND u.accountDeletedAt IS NULL
                AND u.suspendedAt IS NULL
                AND (:verified = FALSE OR u.identityVerifiedAt IS NOT NULL)
                AND (:q IS NULL
@@ -67,4 +75,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Page<User> searchAgents(@Param("q") String q,
                             @Param("verified") boolean verified,
                             Pageable pageable);
+
+    @Query("select u.publicBio from User u where u.id = :id and u.accountDeletedAt is null")
+    Optional<String> findPublicBioByUserId(@Param("id") Long id);
+
+    @Query("select u.id as ownerId, u.publicBio as publicBio from User u where u.id in :ids and u.accountDeletedAt is null")
+    List<OwnerPublicBioRow> findPublicBiosByUserIds(@Param("ids") Collection<Long> ids);
 }

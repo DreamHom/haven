@@ -1,11 +1,20 @@
+# Keep the build context lean — anything not needed by `mvn package` (or the
+# all-in-one runtime image) should be excluded.
 .git
 .github
+.idea
+.vscode
 target
 docs
-README.md
-PR.md
+audit
+*.md
 .env
 .env.example
-docker-compose.yml
+docker-compose*.yml
+# Note: keep `docker/` and `Dockerfile*` IN the context — the all-in-one
+# Dockerfile copies docker/start-allinone.sh into the runtime image.
+.dockerignore
 *.pem
 *.log
+*.tmp
+.DS_Store

@@ -47,8 +47,18 @@ public class AuthService {
     private final JwtService jwtService;
     private final NotificationApi notificationApi;
     private final com.dreamhomes.haven.auth.blocklist.JwtBlocklistRepository jwtBlocklistRepository;
+    private final com.dreamhomes.haven.auth.refresh.RefreshTokenService refreshTokenService;
 
     public LoginResult login(LoginCommand cmd) {
+        return login(cmd, null, null);
+    }
+
+    /**
+     * Login overload that captures the caller's User-Agent and IP address on the issued
+     * refresh-token row. Used by the controller; the no-arg variant above is kept for
+     * unit-test ergonomics.
+     */
+    public LoginResult login(LoginCommand cmd, String userAgent, String ipAddress) {
         String email = normalize(cmd.email());
         Optional<UserCredentials> maybe = userCredentialsService.loadByEmail(email);
         String hashToCheck = maybe.map(UserCredentials::passwordHash).orElse(DUMMY_HASH);
@@ -66,8 +76,21 @@ public class AuthService {
         }
         log.info("Login succeeded for userId={} role={}", creds.id(), creds.role());
         String token = jwtService.issue(creds.id(), creds.email(), creds.role(), creds.tokenVersion());
+        com.dreamhomes.haven.auth.refresh.IssuedRefreshToken refresh =
+                refreshTokenService.issue(creds.id(), userAgent, ipAddress);
         return new LoginResult(token, creds.id(), creds.role(), creds.fullName(),
-                jwtService.expirationSeconds());
+                jwtService.expirationSeconds(),
+                refresh.token(),
+                refreshTokenService.expirationSeconds());
+    }
+
+    /**
+     * Exchange a refresh token for a new access JWT + a new refresh token. Thin
+     * delegate to {@link com.dreamhomes.haven.auth.refresh.RefreshTokenService#rotate}
+     * so the controller has a single seam for both auth-flow exits (login + refresh).
+     */
+    public LoginResult refresh(String rawRefreshToken, String userAgent, String ipAddress) {
+        return refreshTokenService.rotate(rawRefreshToken, userAgent, ipAddress);
     }
 
     /**
@@ -77,7 +100,11 @@ public class AuthService {
      */
     public void logout(Long userId) {
         userCredentialsService.bumpTokenVersion(userId);
-        log.info("Logged out userId={} scope=all (tokenVersion bumped)", userId);
+        // Full-account logout: every outstanding refresh token for this user dies too.
+        // Otherwise a forgotten browser tab could trade its refresh for a fresh access
+        // token after the tokenVersion bump and ride right back in.
+        refreshTokenService.revokeAllForUser(userId);
+        log.info("Logged out userId={} scope=all (tokenVersion bumped + refresh tokens revoked)", userId);
     }
 
     /**
@@ -87,7 +114,7 @@ public class AuthService {
      * parse here will succeed (or surface as a 500-able failure, which never happens in
      * the happy path that exercises this code).
      */
-    public void logoutDevice(Long userId, String authorizationHeader) {
+    public void logoutDevice(Long userId, String authorizationHeader, String refreshTokenIfKnown) {
         if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
             // Filter would already have rejected an unauthenticated request — this is
             // defence in depth, fold to all-device logout rather than do nothing.
@@ -107,7 +134,18 @@ public class AuthService {
                 .expiresAt(jwtService.parseExpiry(token))
                 .revokedAt(java.time.Instant.now())
                 .build());
+        // If the client sent the refresh token alongside the device-logout call,
+        // revoke that one row too so the device can't trade it for a new access JWT
+        // ten seconds later. No-op when the client didn't send one.
+        if (refreshTokenIfKnown != null && !refreshTokenIfKnown.isBlank()) {
+            refreshTokenService.revokeByRawToken(refreshTokenIfKnown);
+        }
         log.info("Logged out userId={} scope=device (jti={} blocklisted)", userId, jti);
+    }
+
+    /** Backwards-compatible 2-arg form for callers that don't supply a refresh token. */
+    public void logoutDevice(Long userId, String authorizationHeader) {
+        logoutDevice(userId, authorizationHeader, null);
     }
 
     /**

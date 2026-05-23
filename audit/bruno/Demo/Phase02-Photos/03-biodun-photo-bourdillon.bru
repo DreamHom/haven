@@ -1,0 +1,24 @@
+meta {
+  name: 03 Biodun uploads photo for Bourdillon duplex
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{host}}/api/listings/{{list_biodun_bourdillon}}/photos
+  body: multipartForm
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{biodun_token}}
+}
+
+body:multipart-form {
+  file: @file(photos/bourdillon-duplex.jpg)
+  caption: Front elevation
+}
+
+assert {
+  res.status: eq 201
+}

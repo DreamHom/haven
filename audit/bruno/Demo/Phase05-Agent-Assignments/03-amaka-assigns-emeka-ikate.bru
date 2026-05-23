@@ -1,0 +1,32 @@
+meta {
+  name: 03 Amaka requests Emeka on Ikate
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{host}}/api/listings/{{list_amaka_ikate}}/agent-assignment
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{amaka_token}}
+}
+
+body:json {
+  {
+    "agentId": {{emeka_id}}
+  }
+}
+
+assert {
+  res.status: eq 201
+  res.body.id: isDefined
+}
+
+script:post-response {
+  if (res.status === 201 && res.body && res.body.id) {
+    bru.setVar("assignment_ikate_id", res.body.id);
+  }
+}

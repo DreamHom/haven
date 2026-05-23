@@ -1,0 +1,24 @@
+meta {
+  name: 02 Admin approves Emeka's AGENT_CREDENTIALS
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{host}}/api/admin/verifications/{{verification_emeka_id}}/approve
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{admin_token}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  After this, Emeka has the verified-agent badge — important for the
+  "credible busy professional agent" demo narrative.
+}

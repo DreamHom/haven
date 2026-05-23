@@ -26,6 +26,19 @@ spring:
       admin_password_hash: ${ADMIN_PASSWORD_HASH}
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    # Top-level properties apply to ALL Kafka clients (admin, producer, consumer).
+    # Defaults below are PLAINTEXT — fine for local docker-compose. For Confluent
+    # Cloud (or any SASL_SSL broker), set:
+    #   KAFKA_SECURITY_PROTOCOL=SASL_SSL
+    #   KAFKA_SASL_MECHANISM=PLAIN
+    #   KAFKA_API_KEY=<your-api-key>
+    #   KAFKA_API_SECRET=<your-api-secret>
+    properties:
+      security.protocol: ${KAFKA_SECURITY_PROTOCOL:PLAINTEXT}
+      sasl.mechanism: ${KAFKA_SASL_MECHANISM:PLAIN}
+      sasl.jaas.config: org.apache.kafka.common.security.plain.PlainLoginModule required username="${KAFKA_API_KEY:}" password="${KAFKA_API_SECRET:}";
+      # Confluent Cloud recommends 45s — survives normal rebalance windows.
+      session.timeout.ms: 45000
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
@@ -58,7 +71,9 @@ spring:
       ack-mode: MANUAL_IMMEDIATE
 
 server:
-  port: 8080
+  # Railway (and most PaaS) inject a dynamic PORT env var at runtime. Default
+  # 8080 keeps local + docker-compose unchanged.
+  port: ${PORT:8080}
 
 cors:
   # Comma-separated list of origins allowed to call the API. Vista's dev server runs
@@ -71,6 +86,23 @@ cors:
 # clickable explainer for each error family. Override per environment via
 # HAVEN_ERRORS_TYPE_BASE once a hosted docs site exists (e.g. `https://docs.dreamhomes.com/errors/`).
 haven:
+  auth:
+    jwt-cookie:
+      # When true, login sets an httpOnly SameSite=Lax JWT cookie (name below) and the
+      # auth filter accepts the token from that cookie if Authorization is absent.
+      # Use with a first-party or same-site SPA; pair with CORS allowed-origins (not "*").
+      enabled: ${HAVEN_AUTH_JWT_COOKIE_ENABLED:false}
+      name: ${HAVEN_AUTH_JWT_COOKIE_NAME:haven_access}
+      secure: ${HAVEN_AUTH_JWT_COOKIE_SECURE:true}
+      path: ${HAVEN_AUTH_JWT_COOKIE_PATH:/}
+      # Optional cookie Domain attribute (e.g. .dreamhomes.com). Leave empty for host-only cookies.
+      domain: ${HAVEN_AUTH_JWT_COOKIE_DOMAIN:}
+      # Strict | Lax | None — None requires secure=true in browsers.
+      same-site: ${HAVEN_AUTH_JWT_COOKIE_SAME_SITE:Lax}
+    # When true, forgot-password responses include `debugResetToken` and the same raw token
+    # is logged at WARN (console / appender) for local debugging — never enable in production.
+    # Must stay false outside controlled environments.
+    debug-return-reset-token: ${HAVEN_AUTH_DEBUG_RESET_TOKEN:false}
   jwt:
     # RS256 keypair — production MUST set HAVEN_JWT_PRIVATE_KEY + HAVEN_JWT_PUBLIC_KEY
     # to PEM-encoded RSA keys (PKCS#8 private, X.509 SubjectPublicKeyInfo public).
@@ -82,6 +114,10 @@ haven:
     private-key: ${HAVEN_JWT_PRIVATE_KEY}
     public-key: ${HAVEN_JWT_PUBLIC_KEY}
     expiration-ms: 3600000
+    # Refresh token TTL — long-lived credential the client trades at /auth/refresh
+    # for a new access JWT. Default 30 days (30 * 24 * 60 * 60 * 1000). Override
+    # via HAVEN_JWT_REFRESH_EXPIRATION_MS for tighter session policy.
+    refresh-expiration-ms: ${HAVEN_JWT_REFRESH_EXPIRATION_MS:2592000000}
     issuer: dreamhomes-haven
     audience: dreamhomes
   errors:
@@ -111,6 +147,34 @@ haven:
       # or a CDN in front). Combined with the object key to produce the URL recorded
       # on the ListingPhoto row.
       public-base-url: ${HAVEN_PHOTOS_R2_PUBLIC_BASE_URL:}
+    agent-marketing:
+      # Max multipart size per agent gallery image (bytes). Default 8 MiB.
+      max-bytes: ${HAVEN_PHOTOS_AGENT_MARKETING_MAX_BYTES:8388608}
+  demo:
+    # When true, an ApplicationRunner checks the listings table at boot. If empty,
+    # it self-seeds the demo dataset (10 users + 8 properties/listings + photos +
+    # agent assignments + verifications + 1 pending offer + audit log entries).
+    # If listings exist, the seeder is a no-op. NEVER enable in real production —
+    # demo accounts share a known password (Demo2026!).
+    auto-seed: ${HAVEN_DEMO_AUTO_SEED:false}
+  dream-ai:
+    anthropic:
+      # When set, POST /api/dream-ai/suggestions ranks LIVE listings with Claude Haiku over the Messages API.
+      # Leave empty to use the legacy location= substring stub (no outbound LLM call).
+      api-key: ${HAVEN_ANTHROPIC_API_KEY:}
+      model: ${HAVEN_ANTHROPIC_MODEL:claude-haiku-4-5}
+      base-url: ${HAVEN_ANTHROPIC_BASE_URL:https://api.anthropic.com}
+      max-candidates: ${HAVEN_ANTHROPIC_MAX_CANDIDATES:80}
+      max-output-tokens: ${HAVEN_ANTHROPIC_MAX_OUTPUT_TOKENS:512}
+      connect-timeout-ms: ${HAVEN_ANTHROPIC_CONNECT_TIMEOUT_MS:10000}
+      read-timeout-ms: ${HAVEN_ANTHROPIC_READ_TIMEOUT_MS:60000}
+    moderation:
+      # Case-insensitive substring block list (empty = no-op). Phase 2: external classifier.
+      banned-substrings: []
+    rate-limit:
+      enabled: true
+      capacity: ${HAVEN_DREAM_AI_RATE_CAPACITY:30}
+      window-seconds: ${HAVEN_DREAM_AI_RATE_WINDOW_SECONDS:60}
 
 # Actuator: expose only the endpoints we want to publicly probe.
 # health = liveness/readiness for k8s/load-balancer probes (PUBLIC — see SecurityConfig).

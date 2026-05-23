@@ -1,0 +1,33 @@
+meta {
+  name: 05 Babatunde requests inspection on Bourdillon
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{host}}/api/inspections
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{babatunde_token}}
+}
+
+body:json {
+  {
+    "slotId": {{slot_bourdillon_id}},
+    "notes": "Bringing my structural engineer to the viewing — she'll go through the BQ and the pool plant room."
+  }
+}
+
+assert {
+  res.status: eq 201
+  res.body.id: isDefined
+}
+
+script:post-response {
+  if (res.status === 201 && res.body && res.body.id) {
+    bru.setVar("inspection_bourdillon_id", res.body.id);
+  }
+}

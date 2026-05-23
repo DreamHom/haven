@@ -11,6 +11,7 @@ import com.dreamhomes.haven.user.exception.UserNotFoundException;
 import com.dreamhomes.haven.user.model.AgentProfile;
 import com.dreamhomes.haven.user.model.Role;
 import com.dreamhomes.haven.user.model.User;
+import com.dreamhomes.haven.photo.storage.AvatarPhotoStorage;
 import com.dreamhomes.haven.user.repository.AgentProfileRepository;
 import com.dreamhomes.haven.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +20,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -50,6 +52,7 @@ public class UserAccountService {
     private final UserRepository userRepository;
     private final AgentProfileRepository agentProfileRepository;
     private final PasswordEncoder passwordEncoder;
+    private final AvatarPhotoStorage avatarPhotoStorage;
 
     @Transactional(readOnly = true)
     public PrivateUserProfile findMyProfile(Long userId) {
@@ -58,11 +61,38 @@ public class UserAccountService {
     }
 
     @Transactional
+    public PrivateUserProfile uploadMyAvatar(Long userId, MultipartFile file) {
+        User user = requireUser(userId);
+        String url = avatarPhotoStorage.upload(file, userId);
+        user.setProfileImageUrl(url);
+        userRepository.save(user);
+        log.info("Updated profileImageUrl for userId={} from avatar upload", userId);
+        return toPrivateUserProfile(user, loadAgentProfileIfPresent(user));
+    }
+
+    @Transactional
+    public void softDeleteAccount(Long userId) {
+        User user = requireUser(userId);
+        if (user.getAccountDeletedAt() != null) {
+            return;
+        }
+        user.setAccountDeletedAt(java.time.Instant.now());
+        user.setTokenVersion(user.getTokenVersion() + 1);
+        user.setPasswordHash(passwordEncoder.encode(java.util.UUID.randomUUID().toString()));
+        user.setEmail("deleted-" + user.getId() + "-" + java.util.UUID.randomUUID() + "@haven.invalid");
+        userRepository.save(user);
+        log.info("Soft-deleted userId={}", userId);
+    }
+
+    @Transactional
     public PrivateUserProfile updateMyProfile(Long userId,
                                             String email,
                                             String fullName,
                                             String displayName,
-                                            String phone) {
+                                            String phone,
+                                            String publicBio,
+                                            String profileImageUrl,
+                                            String notificationPreferences) {
         User user = requireUser(userId);
 
         // Track whether email actually changes so we know to revoke sessions.
@@ -74,7 +104,7 @@ public class UserAccountService {
         if (email != null) {
             String normalized = normalize(email);
             if (!normalized.equals(user.getEmail())) {
-                if (userRepository.existsByEmail(normalized)) {
+                if (userRepository.existsByEmailAndAccountDeletedAtIsNull(normalized)) {
                     throw new EmailAlreadyTakenException();
                 }
                 user.setEmail(normalized);
@@ -89,6 +119,16 @@ public class UserAccountService {
         }
         if (phone != null) {
             user.setPhone(trimToNull(phone));
+        }
+        if (publicBio != null) {
+            user.setPublicBio(trimToNull(publicBio));
+        }
+        if (profileImageUrl != null) {
+            user.setProfileImageUrl(trimToNull(profileImageUrl));
+        }
+        if (notificationPreferences != null) {
+            String trimmed = notificationPreferences.trim();
+            user.setNotificationPreferences(trimmed.isEmpty() ? "{}" : trimmed);
         }
         if (emailChanged) {
             user.setTokenVersion(user.getTokenVersion() + 1);
@@ -185,8 +225,12 @@ public class UserAccountService {
     }
 
     private User requireUser(Long userId) {
-        return userRepository.findById(userId)
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException(userId));
+        if (user.getAccountDeletedAt() != null) {
+            throw new UserNotFoundException(userId);
+        }
+        return user;
     }
 
     private AgentProfile loadAgentProfileIfPresent(User user) {
@@ -214,7 +258,10 @@ public class UserAccountService {
                 safeList(agentProfile == null ? null : agentProfile.getServiceAreas()),
                 safeList(agentProfile == null ? null : agentProfile.getLanguages()),
                 safeList(agentProfile == null ? null : agentProfile.getSpecializationTags()),
-                agentProfile == null ? null : agentProfile.getFeeSchedule());
+                agentProfile == null ? null : agentProfile.getFeeSchedule(),
+                user.getPublicBio(),
+                user.getProfileImageUrl(),
+                user.getNotificationPreferences());
     }
 
     private static List<String> safeList(List<String> raw) {

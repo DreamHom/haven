@@ -1,0 +1,50 @@
+meta {
+  name: 91 Recover Amaka's Ikate listing if missing
+  type: http
+  seq: 91
+}
+
+post {
+  url: {{host}}/api/listings
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{amaka_token}}
+}
+
+body:json {
+  {
+    "propertyId": 2,
+    "listingType": "RENT",
+    "askingPrice": 2200000,
+    "currency": "NGN",
+    "cautionFee": 500000,
+    "serviceCharge": 180000,
+    "title": "Renovated 2-bed off the Lekki-Epe expressway",
+    "headline": "Renovated 2-bed off Lekki-Epe expressway",
+    "description": "Quiet street, two-minute walk to Sandfill bus stop. New wiring, fresh tiling. Cats welcome with deposit.",
+    "priceNegotiable": true,
+    "petsAllowed": "CATS_OK"
+  }
+}
+
+script:post-response {
+  // Recovery only matters if discovery didn't already find an Ikate listing.
+  // Either way we capture the id — newer LIVE listing wins.
+  if (res.status === 201 && res.body && res.body.id) {
+    bru.setVar("list_amaka_ikate", res.body.id);
+    console.log("Recovered Ikate listing as id=" + res.body.id);
+  }
+}
+
+docs {
+  Property #2 (Amaka's Ikate) is hardcoded — it's the second property created
+  in the seed and is stable across re-seeds (the seed always creates Lekki
+  first, then Ikate). If a prior Demo run closed Ikate's listing, this
+  re-creates it as a fresh LIVE row on the same property.
+
+  201 = recovered; any other status = OK to ignore (the discovery captured
+  an existing one, OR property #2 doesn't exist).
+}

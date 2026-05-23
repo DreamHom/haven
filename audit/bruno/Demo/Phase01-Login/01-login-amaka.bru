@@ -1,0 +1,30 @@
+meta {
+  name: 01 Login Amaka (OWNER)
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{host}}/api/auth/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "amaka.okafor@demo.dreamhomes.local",
+    "password": "{{password}}"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.role: eq OWNER
+}
+
+script:post-response {
+  if (res.status === 200 && res.body && res.body.token) {
+    bru.setVar("amaka_token", res.body.token);
+    bru.setVar("amaka_id", res.body.userId);
+  }
+}

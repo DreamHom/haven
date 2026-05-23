@@ -22,6 +22,7 @@ import java.util.List;
 
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -29,6 +30,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -39,7 +41,7 @@ import com.dreamhomes.haven.inspection.controller.InspectionController;
 import com.dreamhomes.haven.inspection.service.InspectionService;
 
 @WebMvcTest(InspectionController.class)
-@Import(SecurityConfig.class)
+@Import({SecurityConfig.class, com.dreamhomes.haven.support.JwtCookieTestStubConfiguration.class})
 @TestPropertySource(properties = {
         "haven.rate-limit.enabled=false",
         "cors.allowed-origins=http://localhost:3000",
@@ -134,6 +136,58 @@ class InspectionControllerTest {
                 .andExpect(status().isForbidden());
 
         verify(inspectionService, never()).cancel(any(), any());
+    }
+
+    @Test
+    void agentRescheduleReturns200WithUpdatedSlot() throws Exception {
+        when(inspectionService.rescheduleApprovedByAgent(eq(50L), eq(10L), eq(60L)))
+                .thenReturn(InspectionRequest.builder()
+                        .id(10L).slotId(60L).applicantId(2L)
+                        .status(InspectionRequestStatus.APPROVED)
+                        .notes("n").agentExtras(null)
+                        .createdAt(Instant.now()).updatedAt(Instant.now())
+                        .build());
+
+        mockMvc.perform(post("/api/inspections/10/agent/reschedule")
+                        .with(asPrincipal(50L, Role.AGENT))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{ \"slotId\": 60 }"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.slotId", is(60)))
+                .andExpect(jsonPath("$.status", is("APPROVED")));
+
+        verify(inspectionService).rescheduleApprovedByAgent(50L, 10L, 60L);
+    }
+
+    @Test
+    void ownerCannotCallAgentReschedule() throws Exception {
+        mockMvc.perform(post("/api/inspections/10/agent/reschedule")
+                        .with(asPrincipal(99L, Role.OWNER))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{ \"slotId\": 60 }"))
+                .andExpect(status().isForbidden());
+
+        verify(inspectionService, never()).rescheduleApprovedByAgent(anyLong(), anyLong(), anyLong());
+    }
+
+    @Test
+    void agentPatchExtrasReturns200() throws Exception {
+        when(inspectionService.patchAgentExtras(eq(50L), eq(10L), eq("Meet at side gate")))
+                .thenReturn(InspectionRequest.builder()
+                        .id(10L).slotId(1L).applicantId(2L)
+                        .status(InspectionRequestStatus.APPROVED)
+                        .agentExtras("Meet at side gate")
+                        .createdAt(Instant.now()).updatedAt(Instant.now())
+                        .build());
+
+        mockMvc.perform(patch("/api/inspections/10/agent/extras")
+                        .with(asPrincipal(50L, Role.AGENT))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{ \"extras\": \"Meet at side gate\" }"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.agentExtras", is("Meet at side gate")));
+
+        verify(inspectionService).patchAgentExtras(50L, 10L, "Meet at side gate");
     }
 
     private static RequestPostProcessor asPrincipal(Long userId, Role role) {

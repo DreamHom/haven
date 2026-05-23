@@ -1,0 +1,11 @@
+meta {
+  name: Phase03-Verifications-Submit
+  seq: 3
+}
+
+docs {
+  4 verification submissions across 2 owner-identity tracks + 2 agent-credentials.
+  These create rows for the admin queue.
+
+  ⚠️ NOT idempotent — duplicate same-type submission = 409 from the service.
+}

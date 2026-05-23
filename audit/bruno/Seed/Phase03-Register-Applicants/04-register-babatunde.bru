@@ -1,0 +1,30 @@
+meta {
+  name: 04 Register Babatunde (APPLICANT)
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{host}}/api/auth/register
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "babatunde.dada@demo.dreamhomes.local",
+    "password": "{{password}}",
+    "fullName": "Babatunde Dada",
+    "displayName": "Babatunde",
+    "phone": "+2348033000004",
+    "role": "APPLICANT"
+  }
+}
+
+assert {
+  res.status: eq 202
+}
+
+docs {
+  Upgrade-seeker — outgrowing a 2-bed, hunting for a 4-bed semi-detached.
+}

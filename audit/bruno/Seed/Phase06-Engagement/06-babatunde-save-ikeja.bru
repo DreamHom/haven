@@ -1,0 +1,19 @@
+meta {
+  name: 06 Babatunde saves Biodun's Ikeja semi
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{host}}/api/listings/{{list_biodun_ikeja}}/save
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{babatunde_token}}
+}
+
+assert {
+  res.status: in [200, 201, 204]
+}

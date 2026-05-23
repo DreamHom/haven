@@ -1,0 +1,40 @@
+meta {
+  name: 16 Tunde — Listing Awolowo serviced (RENT, ₦5.5M/yr)
+  type: http
+  seq: 16
+}
+
+post {
+  url: {{host}}/api/listings
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{tunde_token}}
+}
+
+body:json {
+  {
+    "propertyId": {{prop_tunde_awolowo}},
+    "listingType": "RENT",
+    "askingPrice": 5500000,
+    "currency": "NGN",
+    "cautionFee": 1100000,
+    "serviceCharge": 800000,
+    "title": "Serviced 2-bed with gym + daily cleaning",
+    "headline": "Serviced 2-bed with gym + daily cleaning",
+    "description": "Building service: daily cleaning, 24/7 power, on-site gym, two parking bays. All bills included in service charge — tenant only adds DStv.",
+    "priceNegotiable": false
+  }
+}
+
+assert {
+  res.status: eq 201
+}
+
+script:post-response {
+  if (res.status === 201 && res.body && res.body.id) {
+    bru.setVar("list_tunde_awolowo", res.body.id);
+  }
+}

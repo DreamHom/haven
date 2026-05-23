@@ -1,0 +1,30 @@
+meta {
+  name: 09 Login Babatunde (APPLICANT)
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{host}}/api/auth/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "babatunde.dada@demo.dreamhomes.local",
+    "password": "{{password}}"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.role: eq APPLICANT
+}
+
+script:post-response {
+  if (res.status === 200 && res.body && res.body.token) {
+    bru.setVar("babatunde_token", res.body.token);
+    bru.setVar("babatunde_id", res.body.userId);
+  }
+}

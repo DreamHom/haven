@@ -1,8 +1,11 @@
 package com.dreamhomes.haven.inspection.service;
 
+import com.dreamhomes.haven.agentlisting.AgentListingRepository;
+import com.dreamhomes.haven.agentlisting.model.AgentListingStatus;
 import com.dreamhomes.haven.listing.ListingService;
 import com.dreamhomes.haven.listing.exception.ListingNotFoundException;
 import com.dreamhomes.haven.listing.exception.NotPropertyOwnerException;
+import com.dreamhomes.haven.user.model.Role;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -23,15 +26,19 @@ public class InspectionSlotService {
 
     private final InspectionSlotRepository slotRepository;
     private final ListingService listingService;
+    private final AgentListingRepository agentListingRepository;
 
     @Transactional
-    public InspectionSlot create(Long callerId, Long listingId, CreateSlotCommand cmd) {
+    public InspectionSlot create(Long callerId, Role role, Long listingId, CreateSlotCommand cmd) {
         if (!cmd.endsAt().isAfter(cmd.startsAt())) {
             throw new InvalidSlotWindowException();
         }
         Long ownerId = listingService.ownerOf(listingId)
                 .orElseThrow(() -> new ListingNotFoundException(listingId));
-        if (!ownerId.equals(callerId)) {
+        boolean allowed = callerId.equals(ownerId)
+                || (role == Role.AGENT && agentListingRepository.existsByListingIdAndAgentUserIdAndStatus(
+                        listingId, callerId, AgentListingStatus.ACCEPTED));
+        if (!allowed) {
             throw new NotPropertyOwnerException();
         }
 

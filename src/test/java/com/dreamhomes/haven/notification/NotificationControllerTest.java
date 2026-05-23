@@ -38,7 +38,7 @@ import com.dreamhomes.haven.notification.model.NotificationKind;
 import com.dreamhomes.haven.notification.model.NotificationSource;
 
 @WebMvcTest(NotificationController.class)
-@Import(SecurityConfig.class)
+@Import({SecurityConfig.class, com.dreamhomes.haven.support.JwtCookieTestStubConfiguration.class})
 @TestPropertySource(properties = {
         "haven.rate-limit.enabled=false",
         "cors.allowed-origins=http://localhost:3000",

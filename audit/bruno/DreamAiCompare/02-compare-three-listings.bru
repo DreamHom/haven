@@ -1,0 +1,38 @@
+meta {
+  name: 02 Compare three listings (max-bound check)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{host}}/api/dream-ai/suggestions
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "prompt": "Which of /listings/1, /listings/4 and /listings/5 is the best fit for a young couple commuting to Victoria Island? Compare them on price, distance, and family-friendliness."
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.turn.kind: eq compare
+}
+
+script:post-response {
+  const compareBlock = (res.body.turn.blocks || []).find(b => b.type === "compare");
+  if (!compareBlock) throw new Error("No compare block");
+  console.log("compareListingIds=" + JSON.stringify(compareBlock.compareListingIds));
+  if (compareBlock.compareReasoning) {
+    console.log("recommendedListingId=" + compareBlock.compareReasoning.recommendedListingId);
+    console.log("perListing count=" + compareBlock.compareReasoning.perListing.length);
+  }
+}
+
+docs {
+  Three URLs in one prompt — the orchestrator caps at MAX_COMPARE_LISTINGS
+  (5), so all three should come through. Verifies the model's per-listing
+  array has exactly 3 entries (one per LIVE id).
+}

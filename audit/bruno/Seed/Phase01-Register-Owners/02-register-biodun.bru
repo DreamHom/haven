@@ -1,0 +1,31 @@
+meta {
+  name: 02 Register Biodun (OWNER)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{host}}/api/auth/register
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "biodun.adekunle@demo.dreamhomes.local",
+    "password": "{{password}}",
+    "fullName": "Biodun Adekunle",
+    "displayName": "Biodun",
+    "phone": "+2348031000002",
+    "role": "OWNER"
+  }
+}
+
+assert {
+  res.status: eq 202
+}
+
+docs {
+  Developer with multiple Lagos units — Old Ikoyi duplex + Ikeja GRA semi-detached.
+  Prefers agents on the ground; will assign Chika later.
+}

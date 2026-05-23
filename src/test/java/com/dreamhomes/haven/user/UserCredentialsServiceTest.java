@@ -59,7 +59,7 @@ class UserCredentialsServiceTest {
                 .role(Role.OWNER).fullName("Ada")
                 .displayName("Ada").phone("+234")
                 .tokenVersion(3).createdAt(Instant.now()).build();
-        when(userRepository.findByEmail("ada@example.com")).thenReturn(Optional.of(stored));
+        when(userRepository.findByEmailAndAccountDeletedAtIsNull("ada@example.com")).thenReturn(Optional.of(stored));
 
         UserCredentials result = service.loadByEmail("ada@example.com").orElseThrow();
 
@@ -79,14 +79,14 @@ class UserCredentialsServiceTest {
                 .displayName("Ada")
                 .tokenVersion(1).createdAt(Instant.now())
                 .suspendedAt(Instant.now()).build();
-        when(userRepository.findByEmail("ada@example.com")).thenReturn(Optional.of(stored));
+        when(userRepository.findByEmailAndAccountDeletedAtIsNull("ada@example.com")).thenReturn(Optional.of(stored));
 
         assertThat(service.loadByEmail("ada@example.com").orElseThrow().suspended()).isTrue();
     }
 
     @Test
     void loadByEmailReturnsEmptyForUnknownEmail() {
-        when(userRepository.findByEmail("ghost@example.com")).thenReturn(Optional.empty());
+        when(userRepository.findByEmailAndAccountDeletedAtIsNull("ghost@example.com")).thenReturn(Optional.empty());
         assertThat(service.loadByEmail("ghost@example.com")).isEmpty();
     }
 
@@ -132,14 +132,14 @@ class UserCredentialsServiceTest {
 
     @Test
     void existsByEmailDelegatesToRepository() {
-        when(userRepository.existsByEmail("dup@example.com")).thenReturn(true);
+        when(userRepository.existsByEmailAndAccountDeletedAtIsNull("dup@example.com")).thenReturn(true);
         assertThat(service.existsByEmail("dup@example.com")).isTrue();
     }
 
     @Test
     void createPersistsUserAndReturnsIdAndCreatedAtFromRepository() {
         Instant persisted = Instant.parse("2026-05-10T08:30:00Z");
-        when(userRepository.existsByEmail("ada@example.com")).thenReturn(false);
+        when(userRepository.existsByEmailAndAccountDeletedAtIsNull("ada@example.com")).thenReturn(false);
         when(userRepository.save(any(User.class))).thenAnswer(inv -> {
             // Mimic JPA auditing — repository returns the entity with createdAt populated.
             User u = inv.getArgument(0);
@@ -165,7 +165,7 @@ class UserCredentialsServiceTest {
 
     @Test
     void createWritesAgentProfileWhenRoleIsAgent() {
-        when(userRepository.existsByEmail("agent@example.com")).thenReturn(false);
+        when(userRepository.existsByEmailAndAccountDeletedAtIsNull("agent@example.com")).thenReturn(false);
         when(userRepository.save(any(User.class))).thenAnswer(inv -> {
             User u = inv.getArgument(0);
             u.setId(123L);
@@ -183,7 +183,7 @@ class UserCredentialsServiceTest {
 
     @Test
     void createPreCheckRejectsDuplicateEmailWithoutSaving() {
-        when(userRepository.existsByEmail("dup@example.com")).thenReturn(true);
+        when(userRepository.existsByEmailAndAccountDeletedAtIsNull("dup@example.com")).thenReturn(true);
 
         assertThatThrownBy(() -> service.create(new NewUser(
                 "dup@example.com", "h", Role.OWNER, "Dup", "Display Name", null, null)))
@@ -197,7 +197,7 @@ class UserCredentialsServiceTest {
         // existsByEmail returned false because the colliding insert hadn't landed yet;
         // the DB UNIQUE constraint now trips. We translate to the same wire-stable
         // exception so the caller can't tell pre-check failure from race failure.
-        when(userRepository.existsByEmail("race@example.com")).thenReturn(false);
+        when(userRepository.existsByEmailAndAccountDeletedAtIsNull("race@example.com")).thenReturn(false);
         when(userRepository.save(any(User.class)))
                 .thenThrow(new DataIntegrityViolationException("dup"));
 

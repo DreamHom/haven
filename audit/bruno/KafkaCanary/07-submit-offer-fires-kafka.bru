@@ -1,0 +1,41 @@
+meta {
+  name: 07 ⚡ Applicant submits offer (FIRES KAFKA)
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{host}}/api/offers
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{applicant_token}}
+}
+
+body:json {
+  {
+    "listingId": {{canary_listing_id}},
+    "amount": 900000,
+    "currency": "NGN",
+    "message": "Kafka canary offer — ignore. If you see this, the canary worked."
+  }
+}
+
+assert {
+  res.status: eq 201
+}
+
+docs {
+  **This is the trigger.** Submitting the offer:
+    1. Writes the offer row.
+    2. Writes an `outbox_events` row in the SAME transaction (atomic).
+    3. The `OutboxRelay` background poll picks it up and publishes to the
+       `offer.submitted.v1` Kafka topic.
+    4. The `OfferSubmittedListener` consumer in this same app reads the
+       event and writes a notification row for the listing owner.
+
+  A 201 here only proves the synchronous half (offer + outbox row). The
+  notification check in step 09 is what proves Kafka is actually wired.
+}

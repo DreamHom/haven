@@ -1,0 +1,30 @@
+meta {
+  name: 03 Admin rejects Biodun's OWNER_IDENTITY (with reason)
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{host}}/api/admin/verifications/{{verification_biodun_id}}/reject
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{admin_token}}
+}
+
+body:json {
+  {
+    "reason": "Selfie image is blurry and the passport scan is partially obscured. Please re-upload both with better lighting; we'll re-review within 24 hours."
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  Biodun gets a REJECTED row in the queue + a notification with this reason.
+  Demonstrates the admin's ability to give actionable feedback.
+}

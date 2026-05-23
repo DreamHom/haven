@@ -1,0 +1,38 @@
+meta {
+  name: 13 Tunde — Property Ikoyi (4-bed terrace)
+  type: http
+  seq: 13
+}
+
+post {
+  url: {{host}}/api/properties
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{tunde_token}}
+}
+
+body:json {
+  {
+    "type": "HOUSE",
+    "address": "3 Macpherson Avenue, Old Ikoyi, Lagos",
+    "bedrooms": 4,
+    "bathrooms": 4,
+    "sizeSqm": 320,
+    "description": "Terraced 4-bed with private gated parking for two cars. Recently re-roofed and exterior re-painted.",
+    "latitude": 6.45050,
+    "longitude": 3.43890
+  }
+}
+
+assert {
+  res.status: eq 201
+}
+
+script:post-response {
+  if (res.status === 201 && res.body && res.body.id) {
+    bru.setVar("prop_tunde_ikoyi_terrace", res.body.id);
+  }
+}

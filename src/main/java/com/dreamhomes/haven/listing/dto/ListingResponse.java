@@ -26,6 +26,8 @@ public record ListingResponse(
         String description,
         String headline,
         LocalDate handoverDate,
+        String virtualTourUrl,
+        boolean priceNegotiable,
         ListingStatus status,
         Instant approvedAt,
         Long viewCount,
@@ -33,6 +35,10 @@ public record ListingResponse(
         Instant updatedAt,
         PropertySummary property,
         Long assignedAgentId,
-        Long pendingReportCount
+        Long pendingReportCount,
+        String petsAllowed,
+        String utilitiesNote,
+        String floorPlanUrl,
+        String ownerPublicBio
 ) {
 }

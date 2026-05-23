@@ -1,0 +1,39 @@
+meta {
+  name: 08 Biodun — Listing Ikeja GRA (SALE, ₦180M)
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{host}}/api/listings
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{biodun_token}}
+}
+
+body:json {
+  {
+    "propertyId": {{prop_biodun_ikeja}},
+    "listingType": "SALE",
+    "askingPrice": 180000000,
+    "currency": "NGN",
+    "agencyFee": 9000000,
+    "title": "Semi-detached 4-bed in Ikeja GRA gated cluster",
+    "headline": "Semi-detached 4-bed in Ikeja GRA gated cluster",
+    "description": "Quiet road, gated cluster of six units. Walking distance to Ikeja City Mall, ten minutes to the international airport link. Title clean, ready for transfer.",
+    "priceNegotiable": true
+  }
+}
+
+assert {
+  res.status: eq 201
+}
+
+script:post-response {
+  if (res.status === 201 && res.body && res.body.id) {
+    bru.setVar("list_biodun_ikeja", res.body.id);
+  }
+}

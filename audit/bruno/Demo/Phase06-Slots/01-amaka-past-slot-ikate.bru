@@ -1,0 +1,46 @@
+meta {
+  name: 01 Amaka creates past slot on Ikate listing
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{host}}/api/listings/{{list_amaka_ikate}}/slots
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{amaka_token}}
+}
+
+script:pre-request {
+  // Slot 7 days ago, 10:00–11:00 UTC. Past dates are accepted by the service —
+  // they let the demo show "completed inspection on the 5th" rather than
+  // "scheduled for next week".
+  const start = new Date();
+  start.setUTCDate(start.getUTCDate() - 7);
+  start.setUTCHours(10, 0, 0, 0);
+  const end = new Date(start);
+  end.setUTCHours(11, 0, 0, 0);
+  bru.setVar("slot_ikate_start", start.toISOString());
+  bru.setVar("slot_ikate_end", end.toISOString());
+}
+
+body:json {
+  {
+    "startsAt": "{{slot_ikate_start}}",
+    "endsAt": "{{slot_ikate_end}}"
+  }
+}
+
+assert {
+  res.status: eq 201
+  res.body.id: isDefined
+}
+
+script:post-response {
+  if (res.status === 201 && res.body && res.body.id) {
+    bru.setVar("slot_ikate_id", res.body.id);
+  }
+}

@@ -1,10 +1,12 @@
 package com.dreamhomes.haven.common.config;
 
 import com.dreamhomes.haven.auth.JwtAuthenticationFilter;
+import com.dreamhomes.haven.dreamai.config.DreamAiRateLimitProperties;
 import com.dreamhomes.haven.common.web.ProblemDetailAuthenticationEntryPoint;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -32,17 +34,21 @@ import java.util.List;
  */
 @Configuration
 @EnableMethodSecurity
+@EnableConfigurationProperties(DreamAiRateLimitProperties.class)
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final com.dreamhomes.haven.dreamai.ratelimit.DreamAiRateLimitFilter dreamAiRateLimitFilter;
     private final List<String> allowedOrigins;
     private final String errorTypeBase;
 
     public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
+                          com.dreamhomes.haven.dreamai.ratelimit.DreamAiRateLimitFilter dreamAiRateLimitFilter,
                           @Value("${cors.allowed-origins}") List<String> allowedOrigins,
                           @Value("${haven.errors.type-base:https://github.com/DreamHom/haven/blob/main/docs/errors/}")
                           String errorTypeBase) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.dreamAiRateLimitFilter = dreamAiRateLimitFilter;
         this.allowedOrigins = allowedOrigins;
         this.errorTypeBase = errorTypeBase;
     }
@@ -63,8 +69,8 @@ public class SecurityConfig {
         CorsConfiguration cfg = new CorsConfiguration();
         cfg.setAllowedOriginPatterns(allowedOrigins);
         cfg.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        cfg.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept"));
-        cfg.setExposedHeaders(List.of("Location"));
+        cfg.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "Cookie"));
+        cfg.setExposedHeaders(List.of("Location", "Retry-After"));
         cfg.setAllowCredentials(true);
         cfg.setMaxAge(3600L);
         UrlBasedCorsConfigurationSource src = new UrlBasedCorsConfigurationSource();
@@ -87,7 +93,8 @@ public class SecurityConfig {
                         // "unauthenticated" 401. Persona audit (Dayo) caught this on the
                         // RejectWithEmptyReason flow.
                         .requestMatchers("/error").permitAll()
-                        .requestMatchers("/api/auth/register", "/api/auth/login").permitAll()
+                        .requestMatchers("/api/auth/register", "/api/auth/login",
+                                "/api/auth/forgot-password", "/api/auth/reset-password").permitAll()
                         // Liveness/readiness probes for load balancers + k8s. /actuator/prometheus
                         // is deliberately NOT in this list — scraping stays auth-gated.
                         .requestMatchers(org.springframework.http.HttpMethod.GET,
@@ -99,6 +106,13 @@ public class SecurityConfig {
                                 "/v3/api-docs", "/v3/api-docs/**",
                                 "/swagger-ui.html", "/swagger-ui/**",
                                 "/scalar.html").permitAll()
+                        // Favicon family — browsers and Railway's edge probe these without a
+                        // token, and a 401 here turns into noisy 502/401 cycles on every page
+                        // load (Vista deployment surfaced this in production). Bytes served
+                        // from `src/main/resources/static/`, sourced from vista's app icon.
+                        .requestMatchers(org.springframework.http.HttpMethod.GET,
+                                "/favicon.ico", "/favicon.png", "/apple-touch-icon.png",
+                                "/apple-touch-icon-precomposed.png").permitAll()
                         // Public read endpoints — both GET and HEAD (HEAD probes for cache-friendliness
                         // shouldn't require auth where GET doesn't; B-4 from persona audit).
                         .requestMatchers(org.springframework.http.HttpMethod.GET,
@@ -106,6 +120,7 @@ public class SecurityConfig {
                                 "/api/listings/*/comments",
                                 "/api/listings/*/reviews",
                                 "/api/listings/*/photos",
+                                "/api/listings/*/videos",
                                 "/api/users/*/profile",
                                 "/api/users/*/reviews",
                                 "/api/agents").permitAll()
@@ -114,14 +129,22 @@ public class SecurityConfig {
                                 "/api/listings/*/comments",
                                 "/api/listings/*/reviews",
                                 "/api/listings/*/photos",
+                                "/api/listings/*/videos",
                                 "/api/users/*/profile",
                                 "/api/users/*/reviews",
                                 "/api/agents").permitAll()
+                        // Dream AI search-by-prompt is public (consistent with /api/listings being
+                        // public). Vista's /dream-ai page calls these SSR-side without a JWT.
+                        // /api/dream-ai/chats* (history) stays auth-gated — that's per-user data.
+                        .requestMatchers(org.springframework.http.HttpMethod.POST,
+                                "/api/dream-ai/suggestions",
+                                "/api/dream-ai/turns/stream").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(e -> e.authenticationEntryPoint(problemEntryPoint))
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(dreamAiRateLimitFilter, JwtAuthenticationFilter.class)
                 .build();
     }
 }

@@ -1,5 +1,7 @@
 package com.dreamhomes.haven.user.service;
 
+import com.dreamhomes.haven.agentmarketing.AgentMarketingMediaRepository;
+import com.dreamhomes.haven.agentmarketing.model.AgentMarketingMedia;
 import com.dreamhomes.haven.listing.ListingRepository;
 import com.dreamhomes.haven.listing.model.ListingStatus;
 import com.dreamhomes.haven.offer.OfferRepository;
@@ -13,6 +15,7 @@ import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import com.dreamhomes.haven.user.dto.PublicAgentMarketingItem;
 import com.dreamhomes.haven.user.dto.PublicUserProfile;
 import com.dreamhomes.haven.user.exception.UserNotFoundException;
 import com.dreamhomes.haven.user.model.AgentProfile;
@@ -38,11 +41,15 @@ public class UserProfileService {
     private final ReviewService reviewService;
     private final ListingRepository listingRepository;
     private final OfferRepository offerRepository;
+    private final AgentMarketingMediaRepository agentMarketingMediaRepository;
 
     @Transactional(readOnly = true)
     public PublicUserProfile findPublicProfile(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException(userId));
+        if (user.getAccountDeletedAt() != null) {
+            throw new UserNotFoundException(userId);
+        }
 
         AgentProfile agentProfile = user.getRole() == Role.AGENT
                 ? agentProfileRepository.findById(userId).orElse(null)
@@ -50,7 +57,13 @@ public class UserProfileService {
 
         ReviewAggregate reviews = reviewService.aggregateForUser(userId);
 
-        return toPublicProfile(user, agentProfile, reviews);
+        List<PublicAgentMarketingItem> gallery = user.getRole() == Role.AGENT
+                ? agentMarketingMediaRepository.findByUserIdOrderByDisplayOrderAscIdAsc(userId).stream()
+                        .map(UserProfileService::toPublicMarketingItem)
+                        .toList()
+                : Collections.emptyList();
+
+        return toPublicProfile(user, agentProfile, reviews, gallery);
     }
 
     /**
@@ -60,7 +73,8 @@ public class UserProfileService {
      * non-agents (and agents who haven't filled them in) the arrays default to empty and
      * the fee schedule is null so the JSON shape is identical across roles.
      */
-    private PublicUserProfile toPublicProfile(User user, AgentProfile agentProfile, ReviewAggregate reviews) {
+    private PublicUserProfile toPublicProfile(User user, AgentProfile agentProfile, ReviewAggregate reviews,
+            List<PublicAgentMarketingItem> agentMarketingGallery) {
         Instant credentialVerifiedAt = agentProfile == null ? null : agentProfile.getCredentialVerifiedAt();
         return new PublicUserProfile(
                 user.getId(),
@@ -78,7 +92,14 @@ public class UserProfileService {
                 safeList(agentProfile == null ? null : agentProfile.getServiceAreas()),
                 safeList(agentProfile == null ? null : agentProfile.getLanguages()),
                 safeList(agentProfile == null ? null : agentProfile.getSpecializationTags()),
-                agentProfile == null ? null : agentProfile.getFeeSchedule());
+                agentProfile == null ? null : agentProfile.getFeeSchedule(),
+                user.getPublicBio(),
+                user.getProfileImageUrl(),
+                agentMarketingGallery);
+    }
+
+    private static PublicAgentMarketingItem toPublicMarketingItem(AgentMarketingMedia m) {
+        return new PublicAgentMarketingItem(m.getId(), m.getUrl(), m.getCaption(), m.getDisplayOrder());
     }
 
     private static List<String> safeList(List<String> raw) {
@@ -117,7 +138,12 @@ public class UserProfileService {
                 .map(user -> {
                     AgentProfile agentProfile = agentProfileRepository.findById(user.getId()).orElse(null);
                     ReviewAggregate reviews = reviewService.aggregateForUser(user.getId());
-                    return toPublicProfile(user, agentProfile, reviews);
+                    List<PublicAgentMarketingItem> gallery = user.getRole() == Role.AGENT
+                            ? agentMarketingMediaRepository.findByUserIdOrderByDisplayOrderAscIdAsc(user.getId()).stream()
+                                    .map(UserProfileService::toPublicMarketingItem)
+                                    .toList()
+                            : Collections.emptyList();
+                    return toPublicProfile(user, agentProfile, reviews, gallery);
                 });
     }
 }

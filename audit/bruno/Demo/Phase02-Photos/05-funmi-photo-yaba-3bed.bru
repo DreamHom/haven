@@ -1,0 +1,24 @@
+meta {
+  name: 05 Funmi uploads photo for Yaba 3-bed
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{host}}/api/listings/{{list_funmi_yaba_3bed}}/photos
+  body: multipartForm
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{funmi_token}}
+}
+
+body:multipart-form {
+  file: @file(photos/yaba-3bed.jpg)
+  caption: Fitted kitchen
+}
+
+assert {
+  res.status: eq 201
+}

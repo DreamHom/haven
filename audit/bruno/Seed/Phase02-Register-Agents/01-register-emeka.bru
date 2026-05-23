@@ -1,0 +1,32 @@
+meta {
+  name: 01 Register Emeka (AGENT)
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{host}}/api/auth/register
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "emeka.eze@demo.dreamhomes.local",
+    "password": "{{password}}",
+    "fullName": "Emeka Eze",
+    "displayName": "Emeka",
+    "phone": "+2348032000001",
+    "role": "AGENT",
+    "licenseNumber": "LIC-EM-1029"
+  }
+}
+
+assert {
+  res.status: eq 202
+}
+
+docs {
+  Lekki + Ajah agent. Specialises in apartments and first-time renters.
+  License creates an `agent_profiles` row in the same transaction.
+}

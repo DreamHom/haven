@@ -1,0 +1,38 @@
+meta {
+  name: 09 Funmi — Property Yaba (3-bed flat)
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{host}}/api/properties
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{funmi_token}}
+}
+
+body:json {
+  {
+    "type": "APARTMENT",
+    "address": "17 Hughes Avenue, Yaba, Lagos",
+    "bedrooms": 3,
+    "bathrooms": 2,
+    "sizeSqm": 110,
+    "description": "Walk-up 3-bedroom flat, second floor. Two minutes from the Yaba bus stop and UNILAG main gate.",
+    "latitude": 6.50950,
+    "longitude": 3.37110
+  }
+}
+
+assert {
+  res.status: eq 201
+}
+
+script:post-response {
+  if (res.status === 201 && res.body && res.body.id) {
+    bru.setVar("prop_funmi_yaba_3bed", res.body.id);
+  }
+}

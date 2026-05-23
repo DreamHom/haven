@@ -1,0 +1,32 @@
+meta {
+  name: 02 Babatunde reviews Biodun (mentions Emeka — 4 stars)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{host}}/api/listings/{{list_biodun_bourdillon}}/reviews
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{babatunde_token}}
+}
+
+body:json {
+  {
+    "revieweeUserId": {{biodun_id}},
+    "rating": 4,
+    "body": "Solid deal experience. Biodun's agent Emeka walked us through the property thoroughly and was honest about the BQ wall issue rather than glossing over it. Negotiation took a couple of rounds longer than ideal but the team kept everyone calm. Star off because the structural callout came late in the process."
+  }
+}
+
+assert {
+  res.status: eq 201
+}
+
+docs {
+  Same pattern as Adaeze's review — reviewee is the OWNER (Biodun) per the
+  backend's applicant→owner-only rule, with Emeka credited in body text.
+}

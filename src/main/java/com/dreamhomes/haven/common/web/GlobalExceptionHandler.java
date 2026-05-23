@@ -60,7 +60,9 @@ public class GlobalExceptionHandler {
             case 403 -> "forbidden";
             case 404 -> "not-found";
             case 409 -> "conflict";
+            case 422 -> "moderation-blocked";
             case 429 -> "rate-limited";
+            case 502 -> "upstream-error";
             default -> "domain-error";
         });
     }

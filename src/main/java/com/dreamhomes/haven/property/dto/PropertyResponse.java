@@ -3,6 +3,7 @@ package com.dreamhomes.haven.property.dto;
 import java.math.BigDecimal;
 import java.time.Instant;
 import com.dreamhomes.haven.property.model.PropertyType;
+
 public record PropertyResponse(
         Long id,
         Long ownerId,
@@ -12,6 +13,8 @@ public record PropertyResponse(
         Integer bathrooms,
         BigDecimal sizeSqm,
         String description,
+        Double latitude,
+        Double longitude,
         Instant createdAt
 ) {
 }

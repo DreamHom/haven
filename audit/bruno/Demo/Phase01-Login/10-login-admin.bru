@@ -1,0 +1,36 @@
+meta {
+  name: 10 Login admin
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{host}}/api/auth/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "{{admin_email}}",
+    "password": "{{admin_password}}"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.role: eq ADMIN
+}
+
+script:post-response {
+  if (res.status === 200 && res.body && res.body.token) {
+    bru.setVar("admin_token", res.body.token);
+    bru.setVar("admin_id", res.body.userId);
+  }
+}
+
+docs {
+  Set `admin_password` in the environment file (or via Bruno GUI Variables tab)
+  to the plaintext that matches your `ADMIN_PASSWORD_HASH` env var on Railway.
+  This token powers Phase04 (verification decisions) + Phase11 (moderation).
+}

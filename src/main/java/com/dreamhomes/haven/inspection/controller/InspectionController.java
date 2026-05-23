@@ -2,6 +2,8 @@ package com.dreamhomes.haven.inspection.controller;
 
 import com.dreamhomes.haven.auth.JwtPrincipal;
 import com.dreamhomes.haven.inspection.dto.InspectionResponse;
+import com.dreamhomes.haven.inspection.dto.AgentExtrasUpdateRequest;
+import com.dreamhomes.haven.inspection.dto.AgentRescheduleSlotRequest;
 import com.dreamhomes.haven.inspection.dto.RequestInspectionCommand;
 import com.dreamhomes.haven.inspection.dto.RequestInspectionRequest;
 import com.dreamhomes.haven.inspection.model.InspectionRequest;
@@ -23,6 +25,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -143,8 +146,114 @@ public class InspectionController {
         inspectionService.cancel(principal.userId(), id);
     }
 
+    @Operation(summary = "Approve a pending inspection request (owner)")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Request approved.",
+                    content = @Content(schema = @Schema(implementation = InspectionResponse.class))),
+            @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthenticated"),
+            @ApiResponse(responseCode = "403", ref = "#/components/responses/Forbidden"),
+            @ApiResponse(responseCode = "404", ref = "#/components/responses/NotFound"),
+            @ApiResponse(responseCode = "409", ref = "#/components/responses/Conflict")
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @PostMapping("/{id}/owner/approve")
+    @PreAuthorize("hasRole('OWNER')")
+    public InspectionResponse ownerApprove(@AuthenticationPrincipal JwtPrincipal principal,
+                                         @PathVariable Long id) {
+        return toResponse(inspectionService.approveByOwner(principal.userId(), id));
+    }
+
+    @Operation(summary = "Decline a pending inspection request (owner)")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Request declined; slot freed.",
+                    content = @Content(schema = @Schema(implementation = InspectionResponse.class))),
+            @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthenticated"),
+            @ApiResponse(responseCode = "403", ref = "#/components/responses/Forbidden"),
+            @ApiResponse(responseCode = "404", ref = "#/components/responses/NotFound"),
+            @ApiResponse(responseCode = "409", ref = "#/components/responses/Conflict")
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @PostMapping("/{id}/owner/decline")
+    @PreAuthorize("hasRole('OWNER')")
+    public InspectionResponse ownerDecline(@AuthenticationPrincipal JwtPrincipal principal,
+                                           @PathVariable Long id) {
+        return toResponse(inspectionService.declineByOwner(principal.userId(), id));
+    }
+
+    @Operation(summary = "Reschedule an approved inspection to another slot (assigned agent)")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Slot updated; still APPROVED.",
+                    content = @Content(schema = @Schema(implementation = InspectionResponse.class))),
+            @ApiResponse(responseCode = "400", ref = "#/components/responses/ValidationFailed"),
+            @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthenticated"),
+            @ApiResponse(responseCode = "403", ref = "#/components/responses/Forbidden"),
+            @ApiResponse(responseCode = "404", ref = "#/components/responses/NotFound"),
+            @ApiResponse(responseCode = "409", ref = "#/components/responses/Conflict")
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @PostMapping("/{id}/agent/reschedule")
+    @PreAuthorize("hasRole('AGENT')")
+    public InspectionResponse agentReschedule(@AuthenticationPrincipal JwtPrincipal principal,
+                                              @PathVariable Long id,
+                                              @Valid @RequestBody AgentRescheduleSlotRequest body) {
+        return toResponse(inspectionService.rescheduleApprovedByAgent(principal.userId(), id, body.slotId()));
+    }
+
+    @Operation(summary = "Set logistics notes on an approved inspection (assigned agent)")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Extras updated.",
+                    content = @Content(schema = @Schema(implementation = InspectionResponse.class))),
+            @ApiResponse(responseCode = "400", ref = "#/components/responses/ValidationFailed"),
+            @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthenticated"),
+            @ApiResponse(responseCode = "403", ref = "#/components/responses/Forbidden"),
+            @ApiResponse(responseCode = "404", ref = "#/components/responses/NotFound"),
+            @ApiResponse(responseCode = "409", ref = "#/components/responses/Conflict")
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @PatchMapping("/{id}/agent/extras")
+    @PreAuthorize("hasRole('AGENT')")
+    public InspectionResponse agentExtras(@AuthenticationPrincipal JwtPrincipal principal,
+                                          @PathVariable Long id,
+                                          @Valid @RequestBody AgentExtrasUpdateRequest body) {
+        return toResponse(inspectionService.patchAgentExtras(principal.userId(), id, body.extras()));
+    }
+
+    @Operation(summary = "Mark an approved inspection as completed (assigned agent)")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Marked completed.",
+                    content = @Content(schema = @Schema(implementation = InspectionResponse.class))),
+            @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthenticated"),
+            @ApiResponse(responseCode = "403", ref = "#/components/responses/Forbidden"),
+            @ApiResponse(responseCode = "404", ref = "#/components/responses/NotFound"),
+            @ApiResponse(responseCode = "409", ref = "#/components/responses/Conflict")
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @PostMapping("/{id}/agent/complete")
+    @PreAuthorize("hasRole('AGENT')")
+    public InspectionResponse agentComplete(@AuthenticationPrincipal JwtPrincipal principal,
+                                            @PathVariable Long id) {
+        return toResponse(inspectionService.markCompletedByAgent(principal.userId(), id));
+    }
+
+    @Operation(summary = "Mark an approved inspection as no-show (owner or assigned agent)")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Marked no-show.",
+                    content = @Content(schema = @Schema(implementation = InspectionResponse.class))),
+            @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthenticated"),
+            @ApiResponse(responseCode = "403", ref = "#/components/responses/Forbidden"),
+            @ApiResponse(responseCode = "404", ref = "#/components/responses/NotFound"),
+            @ApiResponse(responseCode = "409", ref = "#/components/responses/Conflict")
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @PostMapping("/{id}/mark-no-show")
+    @PreAuthorize("hasAnyRole('OWNER', 'AGENT')")
+    public InspectionResponse markNoShow(@AuthenticationPrincipal JwtPrincipal principal,
+                                         @PathVariable Long id) {
+        return toResponse(inspectionService.markNoShow(principal.userId(), id));
+    }
+
     private InspectionResponse toResponse(InspectionRequest r) {
         return new InspectionResponse(r.getId(), r.getSlotId(), r.getApplicantId(),
-                r.getStatus(), r.getNotes(), r.getCreatedAt(), r.getUpdatedAt());
+                r.getStatus(), r.getNotes(), r.getAgentExtras(), r.getCreatedAt(), r.getUpdatedAt());
     }
 }

@@ -1,0 +1,12 @@
+meta {
+  name: Phase06-Engagement
+  seq: 6
+}
+
+docs {
+  Light engagement so empty UIs (saved-listings, comments panels) have
+  something to render.
+
+  - Saves are idempotent (composite PK), safe to re-run.
+  - Comments are NOT idempotent — re-running adds duplicate rows.
+}

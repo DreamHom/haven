@@ -11,6 +11,7 @@ import com.dreamhomes.haven.user.model.User;
 import com.dreamhomes.haven.user.repository.AgentProfileRepository;
 import com.dreamhomes.haven.user.repository.UserRepository;
 import com.dreamhomes.haven.user.service.UserAccountService;
+import com.dreamhomes.haven.photo.storage.AvatarPhotoStorage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,20 +41,23 @@ class UserAccountServiceTest {
     @Mock
     PasswordEncoder passwordEncoder;
 
+    @Mock
+    AvatarPhotoStorage avatarPhotoStorage;
+
     UserAccountService service;
 
     @BeforeEach
     void setUp() {
-        service = new UserAccountService(userRepository, agentProfileRepository, passwordEncoder);
+        service = new UserAccountService(userRepository, agentProfileRepository, passwordEncoder, avatarPhotoStorage);
     }
 
     @Test
     void updateMyProfileNormalizesEmailAndClearsBlankPhone() {
         User user = ownerUser();
         when(userRepository.findById(7L)).thenReturn(Optional.of(user));
-        when(userRepository.existsByEmail("ada@example.com")).thenReturn(false);
+        when(userRepository.existsByEmailAndAccountDeletedAtIsNull("ada@example.com")).thenReturn(false);
 
-        PrivateUserProfile updated = service.updateMyProfile(7L, " Ada@Example.com ", null, null, "   ");
+        PrivateUserProfile updated = service.updateMyProfile(7L, " Ada@Example.com ", null, null, "   ", null, null, null);
 
         assertThat(updated.email()).isEqualTo("ada@example.com");
         assertThat(updated.phone()).isNull();
@@ -63,9 +67,9 @@ class UserAccountServiceTest {
     @Test
     void updateMyProfileRejectsDuplicateEmail() {
         when(userRepository.findById(7L)).thenReturn(Optional.of(ownerUser()));
-        when(userRepository.existsByEmail("taken@example.com")).thenReturn(true);
+        when(userRepository.existsByEmailAndAccountDeletedAtIsNull("taken@example.com")).thenReturn(true);
 
-        assertThatThrownBy(() -> service.updateMyProfile(7L, "taken@example.com", null, null, null))
+        assertThatThrownBy(() -> service.updateMyProfile(7L, "taken@example.com", null, null, null, null, null, null))
                 .isInstanceOf(EmailAlreadyTakenException.class);
     }
 
@@ -96,6 +100,22 @@ class UserAccountServiceTest {
                 .isInstanceOf(CurrentPasswordIncorrectException.class);
 
         verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void updateMyProfileTrimsAndClearsPublicBio() {
+        User user = ownerUser();
+        when(userRepository.findById(7L)).thenReturn(Optional.of(user));
+
+        PrivateUserProfile first = service.updateMyProfile(7L, null, null, null, null, "  About me  ", null, null);
+        assertThat(first.publicBio()).isEqualTo("About me");
+        assertThat(user.getPublicBio()).isEqualTo("About me");
+
+        PrivateUserProfile cleared = service.updateMyProfile(7L, null, null, null, null, "   ", null, null);
+        assertThat(cleared.publicBio()).isNull();
+        assertThat(user.getPublicBio()).isNull();
+
+        verify(userRepository, org.mockito.Mockito.times(2)).save(user);
     }
 
     @Test
@@ -144,9 +164,9 @@ class UserAccountServiceTest {
         User user = ownerUser();
         user.setTokenVersion(3);
         when(userRepository.findById(7L)).thenReturn(Optional.of(user));
-        when(userRepository.existsByEmail("new@example.com")).thenReturn(false);
+        when(userRepository.existsByEmailAndAccountDeletedAtIsNull("new@example.com")).thenReturn(false);
 
-        service.updateMyProfile(7L, "new@example.com", null, null, null);
+        service.updateMyProfile(7L, "new@example.com", null, null, null, null, null, null);
 
         assertThat(user.getEmail()).isEqualTo("new@example.com");
         assertThat(user.getTokenVersion()).isEqualTo(4);
@@ -160,7 +180,7 @@ class UserAccountServiceTest {
         user.setTokenVersion(3);
         when(userRepository.findById(7L)).thenReturn(Optional.of(user));
 
-        service.updateMyProfile(7L, null, "New Name", null, "+2348111111111");
+        service.updateMyProfile(7L, null, "New Name", null, "+2348111111111", null, null, null);
 
         assertThat(user.getTokenVersion()).isEqualTo(3);
     }
@@ -173,11 +193,11 @@ class UserAccountServiceTest {
         // DataIntegrityViolationException to the documented 409.
         User user = ownerUser();
         when(userRepository.findById(7L)).thenReturn(Optional.of(user));
-        when(userRepository.existsByEmail("race@example.com")).thenReturn(false);
+        when(userRepository.existsByEmailAndAccountDeletedAtIsNull("race@example.com")).thenReturn(false);
         when(userRepository.save(any(User.class)))
                 .thenThrow(new org.springframework.dao.DataIntegrityViolationException("uniq"));
 
-        assertThatThrownBy(() -> service.updateMyProfile(7L, "race@example.com", null, null, null))
+        assertThatThrownBy(() -> service.updateMyProfile(7L, "race@example.com", null, null, null, null, null, null))
                 .isInstanceOf(EmailAlreadyTakenException.class);
     }
 

@@ -1,0 +1,25 @@
+meta {
+  name: 03 Emeka adds notes (agentExtras) on Ikate inspection
+  type: http
+  seq: 3
+}
+
+patch {
+  url: {{host}}/api/inspections/{{inspection_ikate_id}}/agent/extras
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{emeka_token}}
+}
+
+body:json {
+  {
+    "extras": "Showed Adaeze + her partner around. They liked the cross-ventilation and the renovated kitchen. Asked about parking — confirmed one covered bay per unit. They want to think it over for 48 hours and then make an offer."
+  }
+}
+
+assert {
+  res.status: eq 200
+}

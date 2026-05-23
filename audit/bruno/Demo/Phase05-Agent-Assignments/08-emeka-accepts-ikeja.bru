@@ -1,0 +1,19 @@
+meta {
+  name: 08 Emeka accepts Ikeja assignment
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{host}}/api/agent-listings/{{assignment_ikeja_id}}/accept
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{emeka_token}}
+}
+
+assert {
+  res.status: eq 200
+}

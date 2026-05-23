@@ -1,0 +1,25 @@
+meta {
+  name: 09 Ngozi asks about title docs on Biodun's Bourdillon duplex
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{host}}/api/listings/{{list_biodun_bourdillon}}/comments
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{ngozi_token}}
+}
+
+body:json {
+  {
+    "body": "How recent is the C of O on this property? And is a survey plan available? I'd want to do a thorough due-diligence pass before viewing."
+  }
+}
+
+assert {
+  res.status: eq 201
+}

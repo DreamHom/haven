@@ -1,0 +1,43 @@
+meta {
+  name: 02 Biodun creates past slot on Bourdillon listing
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{host}}/api/listings/{{list_biodun_bourdillon}}/slots
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{biodun_token}}
+}
+
+script:pre-request {
+  const start = new Date();
+  start.setUTCDate(start.getUTCDate() - 5);
+  start.setUTCHours(14, 0, 0, 0);
+  const end = new Date(start);
+  end.setUTCHours(15, 30, 0, 0);
+  bru.setVar("slot_bourdillon_start", start.toISOString());
+  bru.setVar("slot_bourdillon_end", end.toISOString());
+}
+
+body:json {
+  {
+    "startsAt": "{{slot_bourdillon_start}}",
+    "endsAt": "{{slot_bourdillon_end}}"
+  }
+}
+
+assert {
+  res.status: eq 201
+  res.body.id: isDefined
+}
+
+script:post-response {
+  if (res.status === 201 && res.body && res.body.id) {
+    bru.setVar("slot_bourdillon_id", res.body.id);
+  }
+}

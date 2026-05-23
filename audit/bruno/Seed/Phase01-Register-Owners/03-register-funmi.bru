@@ -1,0 +1,30 @@
+meta {
+  name: 03 Register Funmi (OWNER)
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{host}}/api/auth/register
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "funmi.adebayo@demo.dreamhomes.local",
+    "password": "{{password}}",
+    "fullName": "Funmi Adebayo",
+    "displayName": "Funmi",
+    "phone": "+2348031000003",
+    "role": "OWNER"
+  }
+}
+
+assert {
+  res.status: eq 202
+}
+
+docs {
+  Yaba landlord — walk-up 3-bed plus a postgrad-student studio. Long-term tenants.
+}

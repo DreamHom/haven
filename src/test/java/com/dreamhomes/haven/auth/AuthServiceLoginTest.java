@@ -44,7 +44,16 @@ class AuthServiceLoginTest {
 
     @BeforeEach
     void setUp() {
-        authService = new AuthService(userCredentialsService, passwordEncoder, jwtService, notificationApi, org.mockito.Mockito.mock(com.dreamhomes.haven.auth.blocklist.JwtBlocklistRepository.class));
+        com.dreamhomes.haven.auth.refresh.RefreshTokenService refreshTokenService =
+                org.mockito.Mockito.mock(com.dreamhomes.haven.auth.refresh.RefreshTokenService.class);
+        org.mockito.Mockito.when(refreshTokenService.issue(org.mockito.ArgumentMatchers.anyLong(),
+                        org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any()))
+                .thenReturn(new com.dreamhomes.haven.auth.refresh.IssuedRefreshToken(
+                        "test-refresh-token", java.time.Instant.now().plusSeconds(2_592_000)));
+        org.mockito.Mockito.when(refreshTokenService.expirationSeconds()).thenReturn(2_592_000L);
+        authService = new AuthService(userCredentialsService, passwordEncoder, jwtService, notificationApi,
+                org.mockito.Mockito.mock(com.dreamhomes.haven.auth.blocklist.JwtBlocklistRepository.class),
+                refreshTokenService);
         existing = new UserCredentials(
                 7L, "ada@example.com", "Ada Lovelace", "$2a$10$hashed", Role.OWNER, 1, false);
     }

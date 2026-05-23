@@ -1,0 +1,30 @@
+meta {
+  name: 08 Login Ngozi
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{host}}/api/auth/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "ngozi.eze@demo.dreamhomes.local",
+    "password": "{{password}}"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.role: eq APPLICANT
+}
+
+script:post-response {
+  if (res.status === 200 && res.body && res.body.token) {
+    bru.setVar("ngozi_token", res.body.token);
+    bru.setVar("ngozi_id", res.body.userId);
+  }
+}

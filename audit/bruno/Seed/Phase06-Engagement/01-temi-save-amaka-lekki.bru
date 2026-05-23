@@ -1,0 +1,19 @@
+meta {
+  name: 01 Temi saves Amaka's Lekki listing
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{host}}/api/listings/{{list_amaka_lekki}}/save
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{temi_token}}
+}
+
+assert {
+  res.status: in [200, 201, 204]
+}

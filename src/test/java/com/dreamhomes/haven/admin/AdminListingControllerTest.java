@@ -3,6 +3,7 @@ package com.dreamhomes.haven.admin;
 import com.dreamhomes.haven.auth.JwtPrincipal;
 import com.dreamhomes.haven.auth.service.JwtService;
 import com.dreamhomes.haven.common.config.SecurityConfig;
+import com.dreamhomes.haven.admin.dto.AdminListingLeadResponse;
 import com.dreamhomes.haven.listing.dto.ListingResponse;
 import com.dreamhomes.haven.listing.model.ListingStatus;
 import com.dreamhomes.haven.listing.model.ListingType;
@@ -13,6 +14,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -32,6 +35,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -39,7 +43,7 @@ import com.dreamhomes.haven.admin.controller.AdminListingController;
 import com.dreamhomes.haven.admin.service.AdminListingService;
 
 @WebMvcTest(AdminListingController.class)
-@Import(SecurityConfig.class)
+@Import({SecurityConfig.class, com.dreamhomes.haven.support.JwtCookieTestStubConfiguration.class})
 @TestPropertySource(properties = {
         "haven.rate-limit.enabled=false",
         "cors.allowed-origins=http://localhost:3000",
@@ -54,6 +58,19 @@ class AdminListingControllerTest {
     @MockBean JwtService jwtService;
     @MockBean com.dreamhomes.haven.auth.blocklist.JwtBlocklistRepository jwtBlocklistRepository;
     @MockBean UserCredentialsService userCredentialsService;
+
+    @Test
+    void adminListsLeadsForListingReturnsPagedPayload() throws Exception {
+        var page = new PageImpl<>(List.of(new AdminListingLeadResponse(
+                9L, 11L, 3L, "hello", Instant.parse("2026-05-01T12:00:00Z"),
+                null, "+234800", "a@b.com")), PageRequest.of(0, 20), 1);
+        when(adminListingService.listingLeads(eq(11L), any())).thenReturn(page);
+
+        mockMvc.perform(get("/api/admin/listings/11/leads").with(asPrincipal(7L, Role.ADMIN)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].id", is(9)))
+                .andExpect(jsonPath("$.content[0].contactEmail", is("a@b.com")));
+    }
 
     @Test
     void adminApprovesListingReturns200WithApprovedAt() throws Exception {
@@ -73,7 +90,7 @@ class AdminListingControllerTest {
                         .with(asPrincipal(50L, Role.OWNER)))
                 .andExpect(status().isForbidden());
 
-        verify(adminListingService, never()).approve(any(), any());
+        verify(adminListingService, never()).approve(any(), any(), any());
     }
 
     @Test
@@ -109,7 +126,8 @@ class AdminListingControllerTest {
         return new ListingResponse(id, 1L, 50L, ListingType.SALE,
                 new BigDecimal("80000000.00"), "NGN", null, null, null,
                 null, null, null, null,
-                status, approvedAt, 0L, now, now, null, null, null);
+                null, false,
+                status, approvedAt, 0L, now, now, null, null, null, null, null, null, null);
     }
 
     private static RequestPostProcessor asPrincipal(Long userId, Role role) {

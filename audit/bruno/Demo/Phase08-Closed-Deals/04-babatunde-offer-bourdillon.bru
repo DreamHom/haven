@@ -1,0 +1,35 @@
+meta {
+  name: 04 Babatunde offers ₦420M on Bourdillon
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{host}}/api/offers
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{babatunde_token}}
+}
+
+body:json {
+  {
+    "listingId": {{list_biodun_bourdillon}},
+    "amount": 420000000,
+    "currency": "NGN",
+    "message": "Final structural review came back clean (BQ wall caveat noted and acknowledged). Offering ₦30M below ask given the BQ remediation work I'll inherit. Ready to sign once you confirm."
+  }
+}
+
+assert {
+  res.status: eq 201
+  res.body.id: isDefined
+}
+
+script:post-response {
+  if (res.status === 201 && res.body && res.body.id) {
+    bru.setVar("offer_bourdillon_id", res.body.id);
+  }
+}

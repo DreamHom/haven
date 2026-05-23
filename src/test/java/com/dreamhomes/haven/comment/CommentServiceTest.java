@@ -178,6 +178,7 @@ class CommentServiceTest {
         return new ListingResponse(id, 1L, ownerId, ListingType.SALE,
                 new BigDecimal("80000000.00"), "NGN", null, null, null,
                 null, null, null, null,
-                ListingStatus.LIVE, null, 0L, now, now, null, null, null);
+                null, false,
+                ListingStatus.LIVE, null, 0L, now, now, null, null, null, null, null, null, null);
     }
 }

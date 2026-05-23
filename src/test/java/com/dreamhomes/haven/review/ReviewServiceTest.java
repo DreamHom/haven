@@ -324,6 +324,7 @@ class ReviewServiceTest {
         return new ListingResponse(id, 1L, ownerId, ListingType.SALE,
                 new BigDecimal("80000000.00"), "NGN", null, null, null,
                 null, null, null, null,
-                status, null, 0L, now, now, null, null, null);
+                null, false,
+                status, null, 0L, now, now, null, null, null, null, null, null, null);
     }
 }

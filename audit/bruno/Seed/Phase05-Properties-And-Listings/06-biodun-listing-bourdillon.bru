@@ -1,0 +1,39 @@
+meta {
+  name: 06 Biodun — Listing Bourdillon (SALE, ₦450M)
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{host}}/api/listings
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{biodun_token}}
+}
+
+body:json {
+  {
+    "propertyId": {{prop_biodun_bourdillon}},
+    "listingType": "SALE",
+    "askingPrice": 450000000,
+    "currency": "NGN",
+    "agencyFee": 22500000,
+    "title": "5-bed duplex on 1,200sqm corner plot, Old Ikoyi",
+    "headline": "5-bed Old Ikoyi duplex with pool",
+    "description": "Detached 5-bed duplex with swimming pool, BQ, gardener's shed. Original owner; full title docs available. Suitable for a family or a serviced-residence conversion.",
+    "priceNegotiable": true
+  }
+}
+
+assert {
+  res.status: eq 201
+}
+
+script:post-response {
+  if (res.status === 201 && res.body && res.body.id) {
+    bru.setVar("list_biodun_bourdillon", res.body.id);
+  }
+}

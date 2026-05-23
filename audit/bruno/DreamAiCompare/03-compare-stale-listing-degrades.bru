@@ -1,0 +1,40 @@
+meta {
+  name: 03 Compare with one stale id → friendly error
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{host}}/api/dream-ai/suggestions
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "prompt": "Compare /listings/1 and /listings/9999"
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+script:post-response {
+  // /listings/9999 doesn't exist → only 1 LIVE id → orchestrator returns
+  // kind=error with an "open each listing to confirm availability" markdown.
+  if (res.body.turn.kind === "error") {
+    console.log("✅ stale-id degraded path: " + (res.body.turn.markdown || "").substring(0, 80));
+  } else if (res.body.turn.kind === "compare") {
+    console.log("⚠️  compare ran with the single live id — unexpected, check liveListingIdsAmong");
+  } else {
+    throw new Error("Unexpected kind: " + res.body.turn.kind);
+  }
+}
+
+docs {
+  Only one of the two ids is LIVE on prod (#1 = Lekki, #9999 = doesn't exist).
+  The compare path checks `liveListingIdsAmong(ids).size() < 2` and returns
+  the friendly "open each listing to confirm availability" error message —
+  no LLM call wasted on an impossible compare.
+}

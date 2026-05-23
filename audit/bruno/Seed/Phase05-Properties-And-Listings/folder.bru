@@ -1,0 +1,12 @@
+meta {
+  name: Phase05-Properties-And-Listings
+  seq: 5
+}
+
+docs {
+  8 Lagos properties + 8 listings (2 per owner). Each property file captures
+  `prop_<owner>_<short>` into the env; the matching listing file references it
+  and captures `list_<owner>_<short>`.
+
+  ⚠️ NOT IDEMPOTENT — re-running creates dupes. Fire once per fresh DB.
+}

@@ -1,0 +1,14 @@
+meta {
+  name: Phase04-Admin-Decides
+  seq: 4
+}
+
+docs {
+  Admin works the verification queue: approves Amaka + Emeka, rejects Biodun,
+  leaves Chika pending. Result on the dashboard:
+    - 2 APPROVED rows (Amaka, Emeka)
+    - 1 REJECTED row (Biodun, with reason)
+    - 1 PENDING row (Chika)
+
+  Plus 3 audit-log entries (one per decision).
+}

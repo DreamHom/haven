@@ -153,7 +153,7 @@ public class OfferController {
     })
     @SecurityRequirement(name = "bearerAuth")
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('OWNER', 'APPLICANT')")
+    @PreAuthorize("hasAnyRole('OWNER', 'APPLICANT', 'AGENT')")
     public OfferResponse respond(@AuthenticationPrincipal JwtPrincipal principal,
                                  @Parameter(description = "Offer ID to respond to.", example = "42")
                                  @PathVariable Long id,
@@ -223,7 +223,7 @@ public class OfferController {
     })
     @SecurityRequirement(name = "bearerAuth")
     @PostMapping("/{id}/counter")
-    @PreAuthorize("hasAnyRole('OWNER', 'APPLICANT')")
+    @PreAuthorize("hasAnyRole('OWNER', 'APPLICANT', 'AGENT')")
     public OfferResponse counter(@AuthenticationPrincipal JwtPrincipal principal,
                                  @Parameter(description = "Parent offer ID being countered.", example = "42")
                                  @PathVariable Long id,

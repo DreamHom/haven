@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.Locale;
 import com.dreamhomes.haven.user.dto.UserAdminView;
 import com.dreamhomes.haven.user.exception.UserAlreadySuspendedException;
 import com.dreamhomes.haven.user.exception.UserNotFoundException;
@@ -100,8 +101,17 @@ public class UserAdminService {
             Boolean suspended,
             com.dreamhomes.haven.user.model.Role role,
             org.springframework.data.domain.Pageable pageable) {
-        return userRepository.adminSearch(role, suspended, email, pageable)
+        String emailLikePattern = null;
+        if (email != null && !email.isBlank()) {
+            String escaped = escapeLikePattern(email.strip());
+            emailLikePattern = "%" + escaped.toLowerCase(Locale.ROOT) + "%";
+        }
+        return userRepository.adminSearch(role, suspended, emailLikePattern, pageable)
                 .map(userAdminMapper::toView);
+    }
+
+    private static String escapeLikePattern(String raw) {
+        return raw.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
     }
 
 }

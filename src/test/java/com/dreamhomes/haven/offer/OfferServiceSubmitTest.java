@@ -38,6 +38,7 @@ class OfferServiceSubmitTest {
 
     @Mock OfferRepository offerRepository;
     @Mock ListingService listingService;
+    @Mock com.dreamhomes.haven.agentlisting.AgentListingRepository agentListingRepository;
     @Mock OutboxEventRepository outboxRepository;
     @Mock com.dreamhomes.haven.notification.NotificationApi notificationApi;
     @Mock ApplicationEventPublisher applicationEventPublisher;
@@ -46,7 +47,7 @@ class OfferServiceSubmitTest {
 
     @BeforeEach
     void setUp() {
-        service = new OfferService(offerRepository, listingService,
+        service = new OfferService(offerRepository, listingService, agentListingRepository,
                 outboxRepository, notificationApi,
                 new ObjectMapper().findAndRegisterModules(),
                 applicationEventPublisher);
@@ -172,6 +173,7 @@ class OfferServiceSubmitTest {
         return new ListingResponse(listingId, 1L, ownerId, ListingType.SALE,
                 new BigDecimal("80000000.00"), "NGN", null, null, null,
                 null, null, null, null,
-                status, null, 0L, now, now, null, null, null);
+                null, false,
+                status, null, 0L, now, now, null, null, null, null, null, null, null);
     }
 }

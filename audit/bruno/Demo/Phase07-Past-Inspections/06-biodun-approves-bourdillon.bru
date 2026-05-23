@@ -1,0 +1,19 @@
+meta {
+  name: 06 Biodun approves Babatunde's Bourdillon inspection
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{host}}/api/inspections/{{inspection_bourdillon_id}}/owner/approve
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{biodun_token}}
+}
+
+assert {
+  res.status: eq 200
+}
