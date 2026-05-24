@@ -67,5 +67,11 @@ public enum NotificationKind {
     INSPECTION_BOOKED,
 
     /** Sync — fired to the applicant on offer submission so they have a confirmation in-platform. */
-    OFFER_RECEIVED_BY_PLATFORM
+    OFFER_RECEIVED_BY_PLATFORM,
+
+    PROMOTION_APPROVED,
+    PROMOTION_REJECTED,
+    PROMOTION_PAUSED,
+    PROMOTION_RESUMED,
+    PROMOTION_REVOKED
 }

@@ -11,7 +11,7 @@ with a Postgres + Flyway data layer and a transactional outbox writing to Kafka 
 the two events that matter (`inspection.requested.v1`, `offer.submitted.v1`).
 
 The codebase is organised **package-by-feature** in a single Maven module:
-`com.dreamhomes.haven.<feature>` for each of the 14 features, plus
+`com.dreamhomes.haven.<feature>` for each feature package, plus
 `com.dreamhomes.haven.common.*` for cross-cutting infra (errors, validation,
 rate limiting, the outbox pattern). Cross-feature reads happen through normal
 service-to-service autowires, with two narrow `*Api` interfaces preserved where
@@ -21,10 +21,15 @@ For the design rationale + every "we chose X over Y" decision, see
 [`docs/TRADEOFFS.md`](docs/TRADEOFFS.md). For the system overview at a snapshot, see
 [`docs/STATE-OF-THE-SYSTEM.md`](docs/STATE-OF-THE-SYSTEM.md).
 
+Promotions are modeled as a trust-preserving visibility layer: owners and agents can
+request featured placement, admins approve or revoke it, public clients read dedicated
+promotion feeds, and impression/click metrics track performance. A promoted listing or
+agent still has to pass the normal safety checks before it appears publicly.
+
 ## Tech stack
 
 - **Java 21** (LTS) · **Spring Boot 3.3.5** (Web, Security, Data JPA, Validation, Actuator)
-- **PostgreSQL 16** + **Flyway** (V1..V37 migrations)
+- **PostgreSQL 16** + **Flyway** (V1..V42 migrations)
 - **Spring Kafka** + **Apache Kafka 3.7 (KRaft)** — transactional outbox, dead-letter topic, partition-pinned `NewTopic` beans
 - **JJWT 0.12.x** — JWT issuance + verification
 - **Bucket4j** — in-process auth rate limiting
@@ -57,6 +62,7 @@ haven/
     │   │   ├── property/
     │   │   ├── listing/
     │   │   ├── photo/                        ListingPhoto
+    │   │   ├── promotion/                    featured listings/agents, approval, metrics
     │   │   ├── engagement/                   ListingSave (saved listings)
     │   │   ├── agentlisting/                 owner ↔ agent handshake
     │   │   ├── comment/                      Q&A on listings
@@ -69,7 +75,7 @@ haven/
     │   └── resources/
     │       ├── application.yml
     │       ├── logback-spring.xml
-    │       ├── db/migration/V1..V37.sql
+    │       ├── db/migration/V1..V42.sql
     │       └── static/scalar.html
     └── test/
         ├── java/com/dreamhomes/haven/
@@ -94,6 +100,12 @@ is the discipline. This is a deliberate scale-down from an earlier modular-monol
 experiment (33 Maven modules with `BannedDependencies`), reverted once it became
 clear the build-time enforcement wasn't pulling its weight at our scale; see
 [`docs/TRADEOFFS.md`](docs/TRADEOFFS.md).
+
+Public promotion reads intentionally use dedicated placement endpoints rather than
+flags on the broad listing/agent browse APIs. That keeps organic discovery and paid
+visibility separate in the contract, makes "Featured" / "Sponsored" labeling explicit,
+and gives admins a clean place to pause, revoke, and measure campaigns without changing
+the core listing search semantics.
 
 ## Development philosophy
 
@@ -181,7 +193,9 @@ mvn verify   # surefire + failsafe — adds ITs (Testcontainers needs Docker run
 - Unit tests follow the `*Test` / `*Tests` naming convention and run via Surefire.
 - Integration tests follow the `*IT` convention, extend `AbstractPostgresIT`
   (Testcontainers Postgres + Embedded Kafka, started once per JVM), and run via Failsafe.
-- **Total today: 402 tests, 0 failures, 0 errors.** ~3 minutes wall-clock.
+- **Last saved reports:** 431 tests, 1 failure, 0 errors. The existing failure is
+  `ListingPhotoIT`, where the expected local media URL prefix no longer matches the
+  current R2-backed URL.
 
 To run a single test:
 

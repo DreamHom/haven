@@ -59,7 +59,7 @@ See **Appendix A** for the authoritative route-level mapping.
 | `admin-settings-page.tsx` | No platform config API | **`GET` / `PATCH /api/admin/platform-settings`**. |
 | `admin-listings-page.tsx` | No admin catalogue | **`GET /api/admin/listings?status=&page=&size`**. |
 | `admin-comments-page.tsx` | No flag queue | **`GET/POST …/admin/comment-flags`** (resolve/dismiss). |
-| `admin-ads-page.tsx` | Ads local only | **Campaign CRUD** + admin review **`/api/admin/ad-campaigns/{id}`** — **billing/delivery/reporting** still out of scope / `partial`. |
+| `admin-ads-page.tsx` | Ads local only | **Campaign CRUD** + admin review **`/api/admin/ad-campaigns/{id}`**. Featured listing/agent delivery now lives under **`/api/promotions`** with admin approval and metrics. **Billing** remains out of scope / `partial`. |
 | `agent-listing-management-page.tsx` | Agent cannot PATCH / slots | **Assigned ACCEPTED agent** may **`PATCH /api/listings/{id}`** (marketing only) and **`POST …/slots`**. |
 | `agent-inspections-page.tsx` | No agent decisions | **`POST …/inspections/{id}/agent/complete`**; broader **reschedule/decline** paths still **`partial`** if product requires them. |
 | `agent-offers-page.tsx` | Agent cannot counter | **Agent** may **`PATCH /api/offers/{id}`** and **`POST …/counter`** when assigned. |
@@ -210,7 +210,8 @@ Haven **already** exposes server-side replacements for most buckets below. The t
 | --- | --- | --- |
 | **Comment flag queue** | User flag + admin queue APIs | — |
 | **Verification request-more-info** | — | **Structured admin → submitter loop** (not built) |
-| **Ads lifecycle** | Draft → review + admin patch | **Billing, delivery, reporting** |
+| **Ads lifecycle** | Draft → review + admin patch | **Billing** |
+| **Featured listings/agents** | **`/api/promotions`** request/read/metrics; public placement feeds; admin approve/reject/pause/resume/revoke; impression/click tracking | Billing-grade attribution and payment integration |
 | **Platform configuration** | **`/admin/platform-settings`** JSON | Vista migrate |
 | **Admin listing catalog** | **`GET /api/admin/listings`** | — |
 
@@ -256,7 +257,7 @@ Unchanged: Vista **ErrorPanel** retry flows depend on Haven returning consistent
 1. Dream AI: full-catalog search + provider streaming + TOOL traces (beyond current JSON + SSE MVP + `haven.dream-ai.rate-limit`).
 2. Listing **media** extras (e.g. multipart video upload to storage, if product outgrows URL rows + `floor_plan_url`).  
 3. **Verification request-more-info** workflow.  
-4. **Ads** billing / delivery / reporting.  
+4. **Promotions / ads** billing-grade attribution and payment integration. Delivery/reporting now exist for featured listings/agents; payment does not.
 5. **Agent lead handoff** without raw PII (if product commits).
 
 ### Vista (frontend) — unblock UX
@@ -318,6 +319,7 @@ Paths use the **`/api`** prefix as in OpenAPI. **Status:** `done` = shipped; `pa
 | 12 | Soft delete | `DELETE /api/me` | `done` |
 | 12 | Public bio | `publicBio` on `GET /api/users/{id}/profile`; `ownerPublicBio` on `ListingResponse` (browse, detail, mine, admin catalog, **`POST /api/listings`**, **`POST /api/listings/bulk`**, **`PATCH /api/listings/{id}`**) | `done` (API); `partial` only if Vista wants richer owner “story” modules |
 | 13 | Verification RMI loop | — | `todo` |
+| 13 | Promotion delivery/reporting | `GET /api/promotions/homepage-featured`, `/listing-search-top`, `/agent-directory-top`; `POST /api/promotions/{id}/impression`, `/click`; owner/agent metrics; admin metrics summary | `done` for visibility analytics; `partial` for billing-grade attribution |
 | 13 | Ads billing | — | `todo` |
 
 ---

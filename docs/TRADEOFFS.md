@@ -2,7 +2,7 @@
 
 Every "we chose X over Y" decision worth remembering. Append as new ones land; revise when a defer becomes a do. **Format: choice → why → cost → revisit signal.**
 
-Last updated after Phase 15 (consolidation back to single Maven module after the modular monolith experiment of Phase 14 proved heavier than the codebase warranted).
+Last updated after V42 promotions work on top of the Phase 15 single-module consolidation.
 
 ---
 
@@ -652,7 +652,7 @@ longer manifest as Maven modules — the codebase consolidated back in Phase 15.
 - **Revisit**: never.
 
 ### `legacy-features` retired; tests live with the code they test
-- **Why**: `legacy-features` was a transitional catchall during P1–P3 that held everything not yet split (resources, `HavenTestApplication`, every test). With every feature now split, the module had no reason to exist — and "legacy" is a smell, since a new feature would never ship its tests there. So the migration that the original Phase 14 plan deferred actually got done: every test moved to where it belongs (see the "Tests layout" table in STATE-OF-THE-SYSTEM.md), `app-shared` was created as a pure-resources leaf to break the cycle, `HavenTestApplication` moved to `test-support`, and `legacy-features` was deleted from the reactor. All tests pass in their new homes (389 total at the time of this writing — count grows as new features land).
+- **Why**: `legacy-features` was a transitional catchall during P1–P3 that held everything not yet split (resources, `HavenTestApplication`, every test). With every feature now split, the module had no reason to exist — and "legacy" is a smell, since a new feature would never ship its tests there. So the migration that the original Phase 14 plan deferred actually got done: every test moved to where it belongs (see the "Tests layout" table in STATE-OF-THE-SYSTEM.md), `app-shared` was created as a pure-resources leaf to break the cycle, `HavenTestApplication` moved to `test-support`, and `legacy-features` was deleted from the reactor. Historical note: this was written during the reverted multi-module experiment; current tests live back under the single `src/test/java` tree.
 - **Cost**: ~80 test files relocated; one test-support pom hadn't been re-installed in `~/.m2` so a stale POM masked a missing JDBC driver dep until reinstalled. The `BannedDependencies` rule pushed many controller `@WebMvcTest` files into `integration-tests` (they all import `SecurityConfig` + `JwtService`, which they can't legally see from a feature-impl whose only auth touchpoint is `*Api`). Fine — it captures the real architectural fact that those tests aren't single-feature.
 - **Revisit**: never. The split rule is now mechanical: a test stays in its feature-impl iff its imports satisfy the feature-impl's legal compile classpath. New features write `*ServiceTest` against `*Api` mocks locally and `*FlowEndToEndIT` in `integration-tests`.
 
@@ -780,25 +780,45 @@ remain as-is; they were classified as legitimate scoped trade-offs.
 - **Cost**: `/error` itself is now anonymous-reachable. The endpoint returns a generic Spring error page when hit directly — no sensitive data, just `{"status":404,"error":"Not Found","path":"/error"}` or similar.
 - **Revisit**: when we adopt a custom `ErrorController` that returns Problem+JSON on every dispatch (not just controller-thrown exceptions), we can re-evaluate whether anonymous reach to `/error` is still appropriate. Likely still fine, since the content is generic-shape, but worth a re-look.
 
+## V42 — Promotions
+
+### Promotions as a visibility layer, not a trust bypass
+- **Why**: featured listings/agents should increase placement, never override trust and safety. Promotion targets are stored as strict DB relationships (`listing_id` for listing promotions, `agent_user_id` for agent promotions) with a `CHECK` constraint that requires exactly the matching FK for `target_type`. Public promotion reads re-check the target every time: listings must still be `LIVE`, owners must not be suspended/deleted, agents must still be AGENT-role and non-suspended. Admins approve, pause, resume, reject, or revoke promotions; owners/agents can read their own metrics; public cards return a clear `Featured` / `Sponsored` label.
+- **Cost**: public promotion reads do extra cross-aggregate checks instead of trusting the `promotions` row alone. A promotion can be `ACTIVE` but temporarily absent from public placement because the target became unsafe.
+- **Revisit**: when paid billing ships. Payment state can attach to `Promotion`, but payment must not weaken the target-safety checks.
+
+### Dedicated placement endpoints instead of `includeFeatured=true`
+- **Why**: promotions are not just another listing sort. Separate endpoints (`/api/promotions/homepage-featured`, `/listing-search-top`, `/agent-directory-top`) keep organic browse predictable and make it obvious to clients that the response is paid or editorial placement. The response carries the promoted target plus the display label, so the frontend has no excuse to render it as ordinary inventory.
+- **Cost**: clients make one extra request when a page needs both organic results and featured placements. Pagination metadata on the promotion endpoint describes the filtered promotion feed, not the organic search result set.
+- **Revisit**: if the product later needs mixed organic + promoted ranking in one feed. That should be a new feed contract with explicit slots and labels, not a boolean bolted onto existing browse.
+
+### Simple public metrics, with placement validation
+- **Why**: impressions and clicks are intentionally coarse: "was rendered" and "was opened." Both are public-write endpoints because anonymous visitors can see promoted content. If a JWT is present we keep `viewer_user_id`; otherwise it remains null. The request includes `placement`, and the service rejects tracking calls whose placement does not match the promotion row, which prevents accidental cross-placement attribution.
+- **Cost**: this is not fraud detection, billing-grade attribution, or unique-view accounting. Repeated renders from the same browser count repeatedly. That is acceptable for launch analytics and CTR, but not enough for invoicing.
+- **Revisit**: before charging by impression/click. Add idempotency windows, bot filtering, IP/user-agent hashing or event tokens, and reporting exports before metrics become financial records.
+
+### Strict target FKs behind a stable API shape
+- **Why**: clients send and receive `targetType + targetId` because that is the simplest contract. The database does not store a loose polymorphic ID; it stores `listing_id` and `agent_user_id` with real FKs plus a `CHECK` constraint requiring exactly the matching column. That gives application ergonomics without giving up relational integrity.
+- **Cost**: service mapping has to translate `targetId` into the correct entity column and back. Adding a third promotion target type later requires a migration, entity field, index, and constraint update.
+- **Revisit**: only if promotion targets expand beyond a small known set. At that point a separate target table or one table per promotion target may be clearer than widening `promotions` again.
+
+### Admin approval is the control plane
+- **Why**: owners and agents can request promotion, but exposure starts only after admin approval. Admins can reject, pause, resume, or revoke; terminal decisions require reasons where they matter; admin actions are audited and the requester gets a notification. This keeps paid/editorial visibility accountable rather than letting requesters self-promote directly.
+- **Cost**: no automatic self-serve activation yet. That is deliberate until billing, fraud controls, and stronger reporting are in place.
+- **Revisit**: when Moniepoint financing/payment integration exists. Even then, payment should unlock an admin-reviewable request, not bypass moderation.
+
 ---
 
 ## Deferred (not built — explicit Phase 14+ scope)
 
-- `ListingPhoto`, `ListingSave`, `ListingLike`, `ListingReview` (engagement)
+- `ListingLike` (save exists; like remains deferred)
 - `MessageThread`, `Message` (in-app messaging)
-- `Comment` (public Q&A on listings)
-- `AgentListing` (agent assignment + handshake)
-- `Ad` (featured listings/agents)
-- `view_count` on listings (engagement analytics)
-- `DRAFT` / `PENDING` / `CLOSED_RENTED` / `CLOSED_SOLD` / `TAKEN_DOWN` listing states
-- Counter-offer chain (`Offer.parent_offer_id`)
+- `DRAFT` / `PENDING` / `CLOSED_RENTED` / `CLOSED_SOLD` listing states
 - No-show tracking on inspection requests
 - Owner approve/decline of inspection requests
 - Tiered admin roles
-- Admin analytics dashboard
-- Document/file storage (verification docs)
+- Full document review UX for verification docs (file upload exists; richer document schema/reachability checks remain deferred)
 - DLT auto-replay tooling
-- Dream AI conversational discovery
-- Real-time messaging / SSE / WebSockets
+- Real-time messaging / WebSockets (notification SSE exists; chat does not)
 - Multi-factor auth, refresh tokens, account lockout policies
 - Multi-region / read replicas / sharded Postgres

@@ -33,6 +33,9 @@ public class DatabaseCleanupTestExecutionListener extends AbstractTestExecutionL
     private static final String TRUNCATE_SQL = """
             TRUNCATE TABLE
                 listing_reports,
+                promotion_clicks,
+                promotion_impressions,
+                promotions,
                 listing_reviews,
                 listing_saves,
                 listing_photos,

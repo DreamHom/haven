@@ -36,8 +36,12 @@ public class WebConfig implements WebMvcConfigurer {
                         "/api/listings/*/comments",
                         "/api/listings/*/reviews",
                         "/api/listings/*/photos",
+                        "/api/listings/*/videos",
                         "/api/users/*/profile",
-                        "/api/users/*/reviews"
+                        "/api/users/*/reviews",
+                        "/api/promotions/homepage-featured",
+                        "/api/promotions/listing-search-top",
+                        "/api/promotions/agent-directory-top"
                 );
     }
 }
