@@ -56,8 +56,8 @@ The EC2 instance role needs permission to read and decrypt that parameter:
 
 Scope the `Resource` ARN tightly in production.
 
-## GitHub Environment
+## GitHub Deployment
 
-The EC2 deploy workflow uses the `production` GitHub Environment. Configure
-required reviewers in GitHub so pushes to `main` build the release but require
-approval before the deployment job can touch EC2.
+The EC2 deploy workflow runs automatically on pushes to `main`. It builds the
+image, pushes it to ECR, SSHs into EC2, refreshes the runtime `.env` from SSM,
+and restarts the app container.
