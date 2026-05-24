@@ -123,7 +123,10 @@ public class SecurityConfig {
                                 "/api/listings/*/videos",
                                 "/api/users/*/profile",
                                 "/api/users/*/reviews",
-                                "/api/agents").permitAll()
+                                "/api/agents",
+                                "/api/promotions/homepage-featured",
+                                "/api/promotions/listing-search-top",
+                                "/api/promotions/agent-directory-top").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.HEAD,
                                 "/api/listings", "/api/listings/*", "/api/listings/*/slots",
                                 "/api/listings/*/comments",
@@ -132,13 +135,18 @@ public class SecurityConfig {
                                 "/api/listings/*/videos",
                                 "/api/users/*/profile",
                                 "/api/users/*/reviews",
-                                "/api/agents").permitAll()
+                                "/api/agents",
+                                "/api/promotions/homepage-featured",
+                                "/api/promotions/listing-search-top",
+                                "/api/promotions/agent-directory-top").permitAll()
                         // Dream AI search-by-prompt is public (consistent with /api/listings being
                         // public). Vista's /dream-ai page calls these SSR-side without a JWT.
                         // /api/dream-ai/chats* (history) stays auth-gated — that's per-user data.
                         .requestMatchers(org.springframework.http.HttpMethod.POST,
                                 "/api/dream-ai/suggestions",
-                                "/api/dream-ai/turns/stream").permitAll()
+                                "/api/dream-ai/turns/stream",
+                                "/api/promotions/*/impression",
+                                "/api/promotions/*/click").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(e -> e.authenticationEntryPoint(problemEntryPoint))
                 .httpBasic(AbstractHttpConfigurer::disable)

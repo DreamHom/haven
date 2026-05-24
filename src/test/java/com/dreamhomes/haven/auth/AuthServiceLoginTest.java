@@ -38,19 +38,15 @@ class AuthServiceLoginTest {
     @Mock
     com.dreamhomes.haven.notification.NotificationApi notificationApi;
 
+    com.dreamhomes.haven.auth.refresh.RefreshTokenService refreshTokenService;
+
     AuthService authService;
 
     UserCredentials existing;
 
     @BeforeEach
     void setUp() {
-        com.dreamhomes.haven.auth.refresh.RefreshTokenService refreshTokenService =
-                org.mockito.Mockito.mock(com.dreamhomes.haven.auth.refresh.RefreshTokenService.class);
-        org.mockito.Mockito.when(refreshTokenService.issue(org.mockito.ArgumentMatchers.anyLong(),
-                        org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any()))
-                .thenReturn(new com.dreamhomes.haven.auth.refresh.IssuedRefreshToken(
-                        "test-refresh-token", java.time.Instant.now().plusSeconds(2_592_000)));
-        org.mockito.Mockito.when(refreshTokenService.expirationSeconds()).thenReturn(2_592_000L);
+        refreshTokenService = org.mockito.Mockito.mock(com.dreamhomes.haven.auth.refresh.RefreshTokenService.class);
         authService = new AuthService(userCredentialsService, passwordEncoder, jwtService, notificationApi,
                 org.mockito.Mockito.mock(com.dreamhomes.haven.auth.blocklist.JwtBlocklistRepository.class),
                 refreshTokenService);
@@ -64,6 +60,7 @@ class AuthServiceLoginTest {
         when(passwordEncoder.matches("plaintext-pw", "$2a$10$hashed")).thenReturn(true);
         when(jwtService.issue(7L, "ada@example.com", Role.OWNER, 1)).thenReturn("the-jwt-token");
         when(jwtService.expirationSeconds()).thenReturn(3600L);
+        stubRefreshToken();
 
         com.dreamhomes.haven.auth.dto.LoginResult result =
                 authService.login(new LoginCommand("ada@example.com", "plaintext-pw"));
@@ -92,6 +89,7 @@ class AuthServiceLoginTest {
         when(passwordEncoder.matches("plaintext-pw", "$2a$10$hashed")).thenReturn(true);
         when(jwtService.issue(7L, "ada@example.com", Role.OWNER, 1)).thenReturn("the-jwt-token");
         when(jwtService.expirationSeconds()).thenReturn(3600L);
+        stubRefreshToken();
 
         com.dreamhomes.haven.auth.dto.LoginResult result =
                 authService.login(new LoginCommand("ADA@Example.COM", "plaintext-pw"));
@@ -141,5 +139,13 @@ class AuthServiceLoginTest {
 
     private static <T> T any() {
         return org.mockito.ArgumentMatchers.any();
+    }
+
+    private void stubRefreshToken() {
+        org.mockito.Mockito.when(refreshTokenService.issue(org.mockito.ArgumentMatchers.anyLong(),
+                        org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any()))
+                .thenReturn(new com.dreamhomes.haven.auth.refresh.IssuedRefreshToken(
+                        "test-refresh-token", java.time.Instant.now().plusSeconds(2_592_000)));
+        org.mockito.Mockito.when(refreshTokenService.expirationSeconds()).thenReturn(2_592_000L);
     }
 }

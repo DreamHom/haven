@@ -1,0 +1,9 @@
+services:
+  app:
+    image: ${IMAGE_URI}
+    container_name: haven-api
+    restart: unless-stopped
+    env_file:
+      - /opt/haven/.env
+    ports:
+      - "127.0.0.1:8080:8080"

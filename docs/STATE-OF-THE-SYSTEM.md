@@ -1,7 +1,7 @@
 # DreamHomes Haven — State of the System
 
-A one-document summary of what's shipped across phases 0–14 of the capstone, for the
-review writeup. Pairs with `dreamhomes-prd.md` (the brief), `dreamhomes-userflows.md`
+A one-document summary of what's shipped in the current single-module backend. Pairs
+with `dreamhomes-prd.md` (the brief), `dreamhomes-userflows.md`
 (the journeys), `TRADEOFFS.md` (every "we chose X over Y" decision), and the diagrams in
 `docs/diagrams/`.
 
@@ -12,11 +12,11 @@ review writeup. Pairs with `dreamhomes-prd.md` (the brief), `dreamhomes-userflow
 | | |
 |---|---|
 | **Stack** | Java 21 · Spring Boot 3.3.5 · Spring Security · Spring Data JPA · Hibernate 6 · Spring Kafka · JJWT 0.12.6 · Flyway · Lombok · Micrometer · springdoc-openapi · bucket4j · Testcontainers · `@EmbeddedKafka` |
-| **Migrations** | Flyway V1 → V18 (18 numbered SQLs, schema-validated by Hibernate at startup) |
-| **Tests** | **389 total** · **0 failures · 0 errors** at `mvn verify` |
-| **Source files** | ~222 across 14 features in one Maven module (package-by-feature) |
+| **Migrations** | Flyway V1 → V42 (42 numbered SQLs, schema-validated by Hibernate at startup) |
+| **Tests** | Last saved reports: **431 total** · **1 failure · 0 errors** (`ListingPhotoIT` URL-prefix expectation vs current R2 URL) |
+| **Source files** | ~447 Java source files across 22 top-level packages in one Maven module (package-by-feature) |
 | **Maven modules** | **1** (single-module Spring Boot app) |
-| **Phases shipped** | 0 (foundation) → 14 (modular monolith experiment) → 15 (consolidation back to single module) |
+| **Phases shipped** | 0 (foundation) → 15 (single-module consolidation) → post-audit marketplace, Dream AI, account, media, and promotion hardening |
 
 ## What got built (by phase)
 
@@ -36,7 +36,9 @@ review writeup. Pairs with `dreamhomes-prd.md` (the brief), `dreamhomes-userflow
 | 10 | Listing reviews | V15 | Post-deal reviews gated on CLOSED + ACCEPTED offer; profile aggregate |
 | 11–13 | Photos + review takedown + counter-offers | V16–V18 | Server-assigned `display_order`; soft-delete reviews; `parent_offer_id` chain |
 | 14 | Modular monolith experiment | (none) | Tried 33 Maven modules with `BannedDependencies` enforcement. Most `-api` modules were 3–9 files; one was empty. Build-time enforcement was solving a coordination problem that doesn't exist at single-author capstone scale. |
-| 15 | Consolidation back to single module | (none) | Reverted Phase 14: 33 modules → 1, ~430 files relocated under `src/main/java`, 8 trivial `*Api` interfaces inlined back into direct service-to-service autowires (`NotificationApi` + `AdminAuditApi` kept where they earn their keep), `app-shared` cycle-breaker module deleted (no cycle to break anymore). Same 389 tests pass; same wire contract; better-proportioned structure. |
+| 15 | Consolidation back to single module | (none) | Reverted Phase 14: 33 modules → 1, ~430 files relocated under `src/main/java`, 8 trivial `*Api` interfaces inlined back into direct service-to-service autowires (`NotificationApi` + `AdminAuditApi` kept where they earn their keep), `app-shared` cycle-breaker module deleted (no cycle to break anymore). |
+| 16+ | Product hardening | V19–V41 | Display names, reports, marketing fields, media/videos, leads, ads, Dream AI, refresh tokens, password/reset/account settings, listing embeddings. |
+| 17+ | Promotions | V42 | Featured listings/agents with dedicated public placements, admin approval controls, impression/click tracking, DB-enforced target FKs, and safety filtering. |
 
 ## The reliability story (the part most worth defending)
 
@@ -85,6 +87,10 @@ correctness invariant we care about lives in a Flyway migration:
   `notifications.event_id UNIQUE` (V6).
 - **No double review on the same deal** — `UNIQUE (listing_id, reviewer_user_id,
   reviewee_user_id)` (V15).
+- **No orphan promotion metrics or loose promotion targets** — promotion impressions/clicks
+  cascade from `promotions`; listing promotions use `listing_id`, agent promotions use
+  `agent_user_id`, and a DB `CHECK` requires exactly the correct FK for `target_type` (V42).
+  Public reads still re-check listing/agent safety before showing a row.
 - **No half-deletes / half-decisions** — `CHECK` constraints pair `deleted_at` with
   `deleted_by_user_id` (V12, comments), `decided_at` with `decided_by_admin_id`
   (V10, verifications), and `decided_at` with terminal status (V13, agent_listings).
@@ -121,6 +127,32 @@ threads through the codebase:
 8. **Observability** (Phase 8) — every request carries a UUID correlation ID
    (`X-Request-ID` header + MDC); Prometheus scrapes Micrometer counters; OpenAPI
    spec is auto-generated from controller signatures.
+9. **Promotion** (V42) — owners/agents can request featured placement, admins approve
+   or revoke, public reads return clearly-labelled Featured/Sponsored cards, and
+   impressions/clicks feed CTR metrics.
+
+### Promotion surface
+
+Promotions sit beside organic browse instead of inside `GET /api/listings` or
+`GET /api/agents`. The public placement endpoints are:
+
+- `GET /api/promotions/homepage-featured`
+- `GET /api/promotions/listing-search-top`
+- `GET /api/promotions/agent-directory-top`
+
+Owners/agents use `POST /api/promotions`, `GET /api/promotions/mine`,
+`GET /api/promotions/{id}`, and `GET /api/promotions/{id}/metrics`. Admins use
+`GET /api/admin/promotions`, `POST /api/admin/promotions/{id}/approve`,
+`reject`, `pause`, `resume`, `revoke`, plus per-promotion and summary metrics.
+Tracking is intentionally small: `POST /api/promotions/{id}/impression` means the
+placement was rendered, and `POST /api/promotions/{id}/click` means the user opened
+the promoted target. Both accept anonymous viewers while storing `viewer_user_id`
+when a JWT is present.
+
+The important rule: promotion increases visibility, not trust. Public reads re-check
+the target on every request. Listings must still be `LIVE`, listing owners must not be
+suspended/deleted, and agents must still be active AGENT users. Admin state remains the
+final control plane for pausing, resuming, rejecting, or revoking exposure.
 
 ## The code consistency story
 
@@ -145,10 +177,8 @@ Every feature follows the same shape so a reviewer can navigate by pattern:
 
 These are slots in the design ERD with explicit revisit triggers in `TRADEOFFS.md`:
 
-- `ListingPhoto` — frontend cards render without photos for now.
 - `ListingLike` — same shape as `ListingSave`; collapse if both ship.
 - `MessageThread` + `Message` — the "in-app messaging" PRD §4.9 line.
-- `Ad` — featured listings / featured agents.
 - Counter-offer chain (`Offer.parent_offer_id`).
 - Tiered admin roles.
 - Agent-side reviews (need `AgentListing.id` stamped on `Offer` at acceptance).
@@ -224,7 +254,7 @@ haven/
     │   └── resources/
     │       ├── application.yml
     │       ├── logback-spring.xml
-    │       ├── db/migration/V1..V18.sql
+    │       ├── db/migration/V1..V42.sql
     │       └── static/scalar.html
     └── test/
         └── java/com/dreamhomes/haven/
@@ -258,7 +288,8 @@ If you're a reviewer with limited time:
    the data layer, sync notification flow, end-to-end IT.
 4. **Read `TRADEOFFS.md`** — every architectural choice with a "why / cost / revisit"
    triplet. Forty-plus entries; every one has a real consequence.
-5. **`mvn verify`** — 389 tests, 0 failures, ~3 minutes wall-clock.
+5. **`mvn verify`** — run the full suite locally. Last saved reports show 431
+   tests with one `ListingPhotoIT` failure caused by a stale URL-prefix expectation.
 
 ---
 
@@ -281,5 +312,4 @@ is simple: every `*Test.java` and `*IT.java` lives at
 ---
 
 *Living document. Update when phases land or major architectural choices change. Last
-updated after Phase 15 (consolidation back to single Maven module after the modular
-monolith experiment in Phase 14 proved too heavy for capstone scale).*
+updated after the V42 promotions work on top of the single-module consolidation.*

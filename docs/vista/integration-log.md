@@ -20,6 +20,7 @@ Each Haven change that Vista should consume gets a **changelog** row and an upda
 
 | Date | Vista gaps § | Summary | Haven | OpenAPI / bundle |
 | --- | --- | --- | --- | --- |
+| 2026-05-24 | §5–7, §13–15 | **Promotions / featured placement:** Flyway **V42** adds `promotions`, `promotion_impressions`, and `promotion_clicks`. Public placement feeds: `GET /api/promotions/homepage-featured`, `/listing-search-top`, `/agent-directory-top`. Owner/agent request/read/metrics: `POST /api/promotions`, `GET /api/promotions/mine`, `GET /api/promotions/{id}`, `GET /api/promotions/{id}/metrics`. Admin control plane: `GET /api/admin/promotions`, approve/reject/pause/resume/revoke, per-promotion metrics, and metrics summary. Targets are DB-strict (`listing_id` or `agent_user_id` plus a CHECK constraint), public reads re-check listing/agent safety, and tracking stores anonymous or authenticated impressions/clicks. | `promotion/*`, `V42__create_promotions.sql`, `SecurityConfig`, `WebConfig`, admin audit + notification enum updates | springdoc; Vista: re-export `/v3/api-docs` |
 | 2026-05-14 | §6 | **Dream AI contract v1:** Flyway **V40** — messages as **JSONB** + `client_message_id`; roles include **SYSTEM/TOOL**; `POST /api/dream-ai/suggestions` returns **`DreamAiRunTurnResponse`** (`AssistantTurnV1`, `traceId`, legacy `listingIds`). **`POST /api/dream-ai/turns/stream`** — SSE (`trace` / `delta` / `final` / `problem`). Orchestration: **clarify** / **compare** / ranking with **`inventoryEmpty`** vs **`queryTooStrict`** meta; **idempotent** replays; **Dream AI rate limit** (429 Problem+JSON + `Retry-After`); **moderation** hook (422 / SSE `problem`); thread read **rehydrates** listing ids to LIVE. **Tests:** `DreamAiControllerTest`, `DreamAiTurnStreamControllerTest`, `DreamAiChatFlowIT` (+ `DreamAiServiceTest`). **Doc:** [`docs/dream-ai-capabilities.md`](../dream-ai-capabilities.md). | `dreamai/*`, `V40__dream_ai_message_envelope.sql`, `DreamAiRateLimitFilter`, `OpenApiConfig` Dream AI tag + problem examples | springdoc; Vista: re-export `/v3/api-docs` |
 | 2026-05-14 | §6, §8 | **Dream AI (Claude Haiku) + maps/media checks:** `POST /api/dream-ai/suggestions` — set **`HAVEN_ANTHROPIC_API_KEY`** to call Anthropic **Messages** with **Claude 3.5 Haiku** (`haven.dream-ai.anthropic.*`); model returns `listingIds` from a **bounded first-page LIVE catalogue** only (server re-validates ids; **502** on upstream/parse errors). **Without** the key, legacy **stub** (public browse, prompt as `location=`). **`ListingMapsAndMediaIT`** + **`scripts/verify-listings-catalog.sh`** exercise **`GET /api/listings`**, embedded **`property.latitude` / `longitude`**, **`virtualTourUrl`**, **`floorPlanUrl`**, **`GET /api/listings/{id}/videos`**. | `dreamai` Anthropic client, `DreamAiService`, `ListingMapsAndMediaIT` | springdoc on `DreamAiController`; Vista: re-export `/v3/api-docs` |
 | 2026-05-14 | §8, §11, §4.2 | **V36 + moderation / gallery hardening:** Flyway `V36` — unique `(listing_id, applicant_user_id)` on `listing_leads`. **Leads:** owner `GET /api/listings/{id}/leads` returns **paginated** `Page` (default size 20). **Admin:** `GET /api/admin/listings/{id}/leads` — full contact fields for moderation. **`LISTING_LEAD_SUBMITTED`** payload documented on enum (`listingId`, `leadId`). **Agent gallery:** JPEG/PNG/WebP/GIF + max size via **`haven.photos.agent-marketing.max-bytes`** (default 8 MiB); **`PATCH /api/me/agent-marketing/order`** reorders items. | `V36__...sql`, `ListingLead*` paging, `AdminListingService#listingLeads`, `AgentMarketingMediaService` | springdoc on new/changed routes |
@@ -48,7 +49,7 @@ Each Haven change that Vista should consume gets a **changelog** row and an upda
 | 4.2 | Owner avatar upload | `done` | Same as profile photo — **`POST /api/me/avatar`** writes `profile_image_url` via R2 when `haven.photos.storage=r2`. |
 | 4.2 | Agent marketing media | `done` | **`GET/POST/DELETE /api/me/agent-marketing`**, **`PATCH .../order`**, MIME + max-bytes validation; **`agentMarketingGallery`** on public profile. |
 | 4.2 | Virtual tour / extra listing media | `partial` | **`virtualTourUrl`** on listing create/update/response (not separate media upload). |
-| 5–7 | Admin platform / ads / prefs in `localStorage` | `partial` | **REST:** `GET/PATCH /api/admin/platform-settings`; sponsor **`/api/me/ad-campaigns`**; admin **`/api/admin/ad-campaigns`**. **Prefs:** `notification_preferences` + `PATCH /api/me`. |
+| 5–7 | Admin platform / ads / prefs in `localStorage` | `partial` | **REST:** `GET/PATCH /api/admin/platform-settings`; sponsor **`/api/me/ad-campaigns`**; admin **`/api/admin/ad-campaigns`**. **Featured placement:** **`/api/promotions`** public feeds, owner/agent requests, admin approvals, and metrics. **Prefs:** `notification_preferences` + `PATCH /api/me`. |
 | 6 | Dream AI | `partial` | **`POST /api/dream-ai/suggestions`** — typed **`AssistantTurnV1`** + threads + idempotency + clarify/compare + meta flags. **`POST /api/dream-ai/turns/stream`** — SSE MVP (chunked markdown + terminal `final`). **Haven rate limit** + moderation. **Not** full-catalog RAG, token streaming from provider, or TOOL-row traces — see [`docs/dream-ai-capabilities.md`](../dream-ai-capabilities.md). |
 | 7 | Public browse reliability | `partial` | **`GET /api/listings`** public; verify proxy/base URL if empty. |
 | 8 | Real coordinates (lat/lng) | `partial` | **Create** + **`PATCH /api/properties/{id}`** + embedded **`PropertySummary`**; WGS-84 pair rule unchanged. |
@@ -68,7 +69,7 @@ Each Haven change that Vista should consume gets a **changelog** row and an upda
 | 12 | Notification preferences | `done` | **`notificationPreferences`** JSON string on user; read/write via **`GET /api/me/profile`** and **`PATCH /api/me`**. |
 | 12 | Account deletion | `done` | **`DELETE /api/me`** — soft delete, email anonymised, sessions revoked. |
 | 12 | Public owner bio richness | `partial` | **`publicBio`** on user public + private profile; owner (and other roles) edit via **`PATCH /api/me`**. |
-| 13–15 | Admin queues, ads, delete, etc. | `partial` | **Comment flags** admin queue + resolve/dismiss; **platform settings**; **ad campaigns** user + admin; listing catalogue already done. |
+| 13–15 | Admin queues, ads, delete, etc. | `partial` | **Comment flags** admin queue + resolve/dismiss; **platform settings**; **ad campaigns** user + admin; **promotions** delivery/reporting for featured listings/agents; listing catalogue already done. Billing/payment remains open. |
 
 ---
 
@@ -82,7 +83,7 @@ Each Haven change that Vista should consume gets a **changelog** row and an upda
 6. Profiles & uploads (avatar **done**).  
 7. Settings persistence.  
 8. Account deletion.  
-9. Ads / commerce.  
+9. Promotions / ads commerce: delivery and basic reporting exist for featured placements; payment/billing remains.
 10. Dream AI backend.
 
 ---
@@ -101,13 +102,13 @@ The prose inventory lives at **[`docs/haven-backend-gaps-and-integration.md`](..
 | 3 | Cookie/BFF: optional cookie exists; full BFF/session product shape may still differ from Vista. |
 | 3 | “Already signed in” on `/login`: contract is **`GET /api/me`** — no dedicated redirect endpoint. |
 | 4.2 | Extra listing media beyond **`virtualTourUrl`** (no separate listing gallery product). |
-| 5–7 | Platform/ads prefs: REST exists; Vista may still mirror more `localStorage` keys or UX. |
+| 5–7 | Platform/ads prefs: REST exists; promotions expose featured placement feeds and metrics; Vista may still mirror more `localStorage` keys or UX. |
 | 6 | Dream AI: **no API key** → stub only; **with key** → **Haiku** bounded slice; **JSON + SSE** contracts, idempotency, rate limit, moderation, thread rehydrate per [`docs/dream-ai-capabilities.md`](../dream-ai-capabilities.md). Still **not** full-DB semantic search or provider token streaming. |
 | 7 | Public browse “reliability”: API is public; empty responses/env/proxy are operational/Vista concerns. |
 | 8 | Coordinates: supported on create/patch/summary; legacy/null rows and FE validation remain. |
 | 8 | “Marketing description” as a **distinct** fourth text field vs `title` / `description` / `headline`. |
 | 9 | Agent inspection: **`/agent/complete`**; broader agent-driven decline/cancel paths if Vista expects them. |
 | 12 | Public bio: field exists; richer owner “story” modules (if any) are Vista/product. |
-| 13–15 | Admin/ads/delete breadth: comment flags + platform + ad campaigns done; other Vista admin stories may extend beyond Haven. |
+| 13–15 | Admin/ads/delete breadth: comment flags + platform + ad campaigns + promotion delivery/reporting done; billing/payment and other Vista admin stories may extend beyond Haven. |
 
 **`todo` in matrix:** none at last edit — if Vista’s canonical doc adds new rows, mirror them here after re-reading that file.
