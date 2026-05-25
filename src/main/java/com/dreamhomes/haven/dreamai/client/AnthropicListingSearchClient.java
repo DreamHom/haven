@@ -48,7 +48,19 @@ public class AnthropicListingSearchClient {
             - Only use ids that appear in the provided listings array. Never invent ids.
             - "ownerVerified" / "propertyDocumentsVerified" — when the user asks for "verified"
               owners or properties, prefer rows where the relevant field is true.
-            - If nothing in the catalogue plausibly matches, return {"listingIds":[]}.
+            - HARD location constraint: if the user names a specific state, city, or
+              neighbourhood (e.g. "Ogun state", "in Lekki", "Surulere"), ONLY return listings
+              whose address contains that location. If no listing in the catalogue matches
+              the named location, return {"listingIds":[]} — never substitute listings from
+              other locations as a "close enough" fallback. Location is not negotiable.
+            - HARD price ceiling: if the user names an explicit upper price ("under ₦4m",
+              "less than 2 million"), drop listings whose price exceeds it. Return empty
+              before returning over-budget listings.
+            - HARD bedroom count: if the user names a specific bedroom count ("3 bedroom",
+              "2-bed"), drop listings whose bedrooms field doesn't match. Don't return a
+              4-bed when the user asked for 3.
+            - If nothing in the catalogue plausibly matches AFTER applying the hard
+              constraints above, return {"listingIds":[]}.
             - Do not wrap the JSON in markdown fences. Do not add commentary outside the JSON.
             """;
 
