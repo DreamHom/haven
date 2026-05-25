@@ -18,6 +18,8 @@ env:
   AWS_REGION: ${{ vars.AWS_REGION }}
   ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
   EKS_CLUSTER_NAME: ${{ vars.EKS_CLUSTER_NAME }}
+  HAVEN_PHOTOS_R2_ENDPOINT: ${{ vars.HAVEN_PHOTOS_R2_ENDPOINT }}
+  HAVEN_PHOTOS_R2_PUBLIC_BASE_URL: ${{ vars.HAVEN_PHOTOS_R2_PUBLIC_BASE_URL }}
   K8S_NAMESPACE: haven
   K8S_DEPLOYMENT: haven-api
   K8S_CONTAINER: haven-api
@@ -71,6 +73,7 @@ jobs:
           ADMIN_PASSWORD_HASH: ${{ secrets.ADMIN_PASSWORD_HASH }}
           HAVEN_JWT_PRIVATE_KEY: ${{ secrets.HAVEN_JWT_PRIVATE_KEY }}
           HAVEN_JWT_PUBLIC_KEY: ${{ secrets.HAVEN_JWT_PUBLIC_KEY }}
+          HAVEN_PHOTOS_R2_ACCESS_KEY_ID: ${{ secrets.HAVEN_PHOTOS_R2_ACCESS_KEY_ID }}
           HAVEN_PHOTOS_R2_SECRET_ACCESS_KEY: ${{ secrets.HAVEN_PHOTOS_R2_SECRET_ACCESS_KEY }}
         run: |
           kubectl apply -f k8s/namespace.yaml
@@ -81,12 +84,14 @@ jobs:
             --from-literal=ADMIN_PASSWORD_HASH="$ADMIN_PASSWORD_HASH" \
             --from-literal=HAVEN_JWT_PRIVATE_KEY="$HAVEN_JWT_PRIVATE_KEY" \
             --from-literal=HAVEN_JWT_PUBLIC_KEY="$HAVEN_JWT_PUBLIC_KEY" \
+            --from-literal=HAVEN_PHOTOS_R2_ACCESS_KEY_ID="$HAVEN_PHOTOS_R2_ACCESS_KEY_ID" \
             --from-literal=HAVEN_PHOTOS_R2_SECRET_ACCESS_KEY="$HAVEN_PHOTOS_R2_SECRET_ACCESS_KEY" \
             --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Apply Kubernetes manifests
         run: |
           kubectl apply -f k8s/configmap.yaml
+          kubectl -n "$K8S_NAMESPACE" patch configmap haven-config --type merge -p "{\"data\":{\"HAVEN_PHOTOS_R2_ENDPOINT\":\"$HAVEN_PHOTOS_R2_ENDPOINT\",\"HAVEN_PHOTOS_R2_PUBLIC_BASE_URL\":\"$HAVEN_PHOTOS_R2_PUBLIC_BASE_URL\"}}"
           kubectl apply -f k8s/kafka.yaml
           kubectl apply -f k8s/service.yaml
           kubectl apply -f k8s/deployment.yaml
