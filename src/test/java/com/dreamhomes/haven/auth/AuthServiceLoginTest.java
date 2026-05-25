@@ -46,11 +46,15 @@ class AuthServiceLoginTest {
     void setUp() {
         com.dreamhomes.haven.auth.refresh.RefreshTokenService refreshTokenService =
                 org.mockito.Mockito.mock(com.dreamhomes.haven.auth.refresh.RefreshTokenService.class);
-        org.mockito.Mockito.when(refreshTokenService.issue(org.mockito.ArgumentMatchers.anyLong(),
+        // Negative-path tests (unknown email, wrong password, suspended user, timing-attack guard)
+        // all throw InvalidCredentialsException BEFORE refresh-token issuance, so these stubbings
+        // go unused on those paths. Wrap in lenient() to keep them available for the success-path
+        // tests without tripping Mockito's strict-stubbing check on the negative ones.
+        org.mockito.Mockito.lenient().when(refreshTokenService.issue(org.mockito.ArgumentMatchers.anyLong(),
                         org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any()))
                 .thenReturn(new com.dreamhomes.haven.auth.refresh.IssuedRefreshToken(
                         "test-refresh-token", java.time.Instant.now().plusSeconds(2_592_000)));
-        org.mockito.Mockito.when(refreshTokenService.expirationSeconds()).thenReturn(2_592_000L);
+        org.mockito.Mockito.lenient().when(refreshTokenService.expirationSeconds()).thenReturn(2_592_000L);
         authService = new AuthService(userCredentialsService, passwordEncoder, jwtService, notificationApi,
                 org.mockito.Mockito.mock(com.dreamhomes.haven.auth.blocklist.JwtBlocklistRepository.class),
                 refreshTokenService);

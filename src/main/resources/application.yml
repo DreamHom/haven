@@ -73,6 +73,14 @@ spring:
         spring.json.value.default.type: com.dreamhomes.haven.inspection.events.InspectionRequestedEvent
     listener:
       ack-mode: MANUAL_IMMEDIATE
+  servlet:
+    multipart:
+      # Bumped from Spring's 1MB default so the legacy multipart photo upload path
+      # accepts files up to 10MB — matching the pre-signed flow's maxSizeBytes
+      # (Item 2 in docs/demo-prep/post-session-tasks.md). Without this, photos
+      # bigger than 1MB hit 413 Content Too Large before the controller runs.
+      max-file-size: ${HAVEN_MULTIPART_MAX_FILE_SIZE:10MB}
+      max-request-size: ${HAVEN_MULTIPART_MAX_REQUEST_SIZE:12MB}
 
 server:
   # Railway (and most PaaS) inject a dynamic PORT env var at runtime. Default

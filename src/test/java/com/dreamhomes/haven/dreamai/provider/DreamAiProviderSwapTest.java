@@ -1,5 +1,6 @@
 package com.dreamhomes.haven.dreamai.provider;
 
+import com.dreamhomes.haven.dreamai.client.AnthropicIntentClassifierClient;
 import com.dreamhomes.haven.dreamai.client.AnthropicListingCompareClient;
 import com.dreamhomes.haven.dreamai.client.AnthropicListingSearchClient;
 import com.dreamhomes.haven.dreamai.config.DreamAiAnthropicProperties;
@@ -135,6 +136,17 @@ class DreamAiProviderSwapTest {
         @Bean
         AnthropicListingCompareClient anthropicListingCompareClient() {
             return mock(AnthropicListingCompareClient.class);
+        }
+
+        /**
+         * Item 26 sub-task D dependency — {@link AnthropicLlmRankingProvider}'s constructor
+         * gained this collaborator when the intent classifier shipped. The swap test was
+         * authored before that work landed; mocking it here keeps the default-Anthropic
+         * activation path satisfiable in the test context.
+         */
+        @Bean
+        AnthropicIntentClassifierClient anthropicIntentClassifierClient() {
+            return mock(AnthropicIntentClassifierClient.class);
         }
 
         @Bean
