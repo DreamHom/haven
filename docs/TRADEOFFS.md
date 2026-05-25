@@ -782,6 +782,97 @@ remain as-is; they were classified as legitimate scoped trade-offs.
 
 ---
 
+## Server-side caching (Phase 16)
+
+### In-process Caffeine cache over Redis (or no server-side cache at all)
+- **Why**: the Moniepoint DreamDev rubric expects a caching layer alongside DB / messaging / REST. We already had edge caching via `Cache-Control: max-age=60` on public discovery endpoints, but no server-side layer. Caffeine drops in with zero infrastructure — one starter, one bean — and at our scale the alternative (Redis cluster, Elasticache, etc.) would cost more in operational surface area than it saves in cache-miss latency. A 30 ms hit to Postgres is fine; a second network hop to a cache fleet, plus the failure modes of a distributed cache, is not.
+- **Cost**: cache is per-instance — running more than one app pod means each pod warms its own cache and entries can briefly diverge across pods until the 60 s TTL aligns them. For public reads with a 60 s freshness window already advertised via `Cache-Control`, this is invisible. Concurrent writes from different pods can leave stale entries on the non-writing pod for up to 60 s; acceptable for now because writes are owner-scoped and the owner-facing path always re-reads through their own pod on the redirect.
+- **Revisit when**: we deploy more than ~3 instances behind a load balancer AND owners report seeing their own edits take up to 60 s to appear on a different anonymous browser session. At that point swap the cache manager for `RedisCacheManager` (or `HazelcastCacheManager`) without changing any `@Cacheable` annotations — the named-cache abstraction makes the swap mechanical.
+
+### TTL pinned to 60 s to match the `Cache-Control: max-age=60` header
+- **Why**: two cache layers (CDN/browser via headers, in-process via Caffeine) agreeing on staleness means a viewer can never see in-process content that's older than what the CDN would have served anyway. The user-facing freshness contract is unchanged: "edits may take up to 60 s to appear to anonymous viewers." The cache just removes one DB roundtrip per cache hit during that window.
+- **Cost**: zero. If the HTTP TTL ever moves, this should move with it (and the constant lives in `CacheConfig`, one place to change).
+- **Revisit**: never independently — only as a paired change with the HTTP header.
+
+### `view_count` bump split off `findPubliclyVisible` into a separate `recordPublicView`
+- **Why**: `@Cacheable` on the read means the bump would only fire on cache misses — a popular listing would record 1 view per 60 s instead of N. Engagement metrics need to reflect real traffic, so the bump moved to its own method outside the cache. The controller calls `findPubliclyVisible` (cached) then `recordPublicView` (uncached, atomic UPDATE) on every request.
+- **Cost**: a second service call per public detail GET. The increment is a single-row UPDATE with a partial index — negligible. Splits a one-method service contract into two, but the boundary now matches the cache boundary, which is the right shape.
+- **Revisit**: never; this is the correct cache/instrumentation separation.
+
+### Browse cache evicts the whole namespace (`allEntries = true`) on any listing write
+- **Why**: a listing can be in any combination of filter pages (`?location=Yaba&bedrooms=2`, `?priceMin=…`, etc.). Tracking which filter entries a given listing belongs to would require either a reverse index or a tag-based cache. Caffeine doesn't ship either; the rebuild cost (4 evicted browse pages re-populating on the next anonymous browse) is cheap compared to building that machinery.
+- **Cost**: a moderately frequent write to the catalogue (e.g. owner pauses a listing) triggers a cold rebuild of all browse pages. With low write QPS, this is fine. If owner writes became hot, we'd see browse cache hit rates collapse.
+- **Revisit when**: browse cache hit rate falls below ~70% under realistic load. At that point, swap to per-listing tracking or move browse caching to a tag-aware backend (Redis with `RedisTemplate`-driven manual key tracking).
+
+### User profile cache not invalidated on user-account edits
+- **Why**: explicit scope cut for the rubric phase — the three hot reads (listing detail, browse, profile) are cached, but only the listing service got `@CacheEvict` wired through update paths. `UserAccountService` and `UserAdminService` writes (display name change, profile bio update, identity verification approval) currently let cached profiles serve for up to 60 s before refreshing.
+- **Cost**: a freshly verified user sees their identity-verified badge on their own profile lookup (no cache hit on their session — different code path), but anonymous viewers may see the unverified state for up to 60 s. Acceptable; the freshness window matches the public `Cache-Control` already in place.
+- **Revisit when**: the rubric demo or a real product moment calls for instant badge propagation — at that point add `@CacheEvict(USERS_PUBLIC_PROFILE, key = "#userId")` to the three write paths (`UserAccountService.updateProfile`, `UserAdminService.suspend`/`reactivate`, `VerificationAdminService.approve`).
+
+---
+
+## Verification automation + liveness (Items 19 + 20)
+
+### Mocked-but-integration-real liveness + verification providers over real-third-party-from-day-one
+- **Why**: Smile ID / Dojah / Sourcefin all require a contract negotiation + sandbox keys that we wouldn't realistically secure in the demo window. Mocking the providers behind a real Strategy interface (`VerificationProvider`) + a real Spring `@ConditionalOnProperty` swap mechanism gives us the integration boundary (so v2 is "fill in the method body") without the schedule risk of acquiring credentials. The mocked state is explicit everywhere: `provider_name = "MOCK"` in the DB, `providerName: "MOCK"` on the wire, `_mocked: true` on the liveness response, MOCKED v1 framing in every OpenAPI description.
+- **Cost**: judges might see `MOCK` and discount the work. The mitigation is the visible scaffolding — three concrete providers in the package (`MockVerificationProvider`, `SmileIdVerificationProvider`, `DojahVerificationProvider`), the second two with rich TODO comments listing the exact API endpoints each method would call. Anyone picking up v2 has a one-pager of "here's what changes" inside the codebase.
+- **Revisit when**: Smile ID / Dojah sandbox credentials are available. Swap is one env var (`HAVEN_VERIFICATION_PROVIDER=smile-id`) + filling in the four method bodies; no caller-side code changes anywhere downstream.
+
+### Liveness check lives in its own table (`liveness_check_results`) instead of folding into `verification_automation_results`
+- **Why**: the two checks have different lifecycles. Liveness is run *before* a verification exists (the user runs it standalone, then attaches the id on submit); automation runs *after* the verification row exists. Trying to model both in one table would either require nullable `verification_id` (loosens the FK guarantee) or a synthetic placeholder verification (uglier). Two tables, two services, clear boundary.
+- **Cost**: a small amount of duplicated shape (status + score + provider + raw_response columns appear in both). If we add a third provider-call surface in v2 we may want to unify them into a polymorphic `provider_check_results` table.
+- **Revisit when**: more than two provider-call surfaces exist OR the cross-surface analytics queries get painful to write across two tables.
+
+### Auto-approve threshold (`haven.verification.auto-approve-threshold`) is configured but unused in v1
+- **Why**: the demo needs visible rows in Dayo's admin queue. If the mocked provider always passes AND the auto-approve threshold fires, every verification would skip admin entirely and the queue would be empty during the demo. So v1 routes every submission through admin review regardless of automated score. The property still exists so the config surface is stable and v2 can flip the gate on without a redeploy of the YAML.
+- **Cost**: confusing for anyone reading the YAML — "why is this set if it does nothing?" The class-level Javadoc on `AutomatedVerificationService` calls it out explicitly.
+- **Revisit when**: v2 ships real providers. At that point, wire the threshold into a real auto-approve path with audit logging so we can see how many submissions skip admin.
+
+---
+
+## Listings + photos (Items 2 + 12)
+
+### Pre-signed R2 upload alongside the multipart-proxy endpoint instead of swap-and-replace (Item 2)
+- **Why**: the existing multipart endpoint works fine at our scale (~50 uploads/day) and Vista already calls it from several screens. Forcing a flag-day migration would burn UX time we don't have. Shipping the pre-signed path in parallel — with separate URLs (`/photos/upload-url` + `/photos/confirm`) and a separate intent-tracking table — lets Vista move gallery-by-gallery on its own schedule. Both paths converge on the same `listing_photos` table and the same key shape, so the read-side stays consistent.
+- **Cost**: two upload endpoints to maintain instead of one. A new `PhotoPresignedStorage` abstraction (with a local stub for tests) sits next to the existing `PhotoStorage` interface. Acceptable; the abstractions don't leak into the rest of the app.
+- **Revisit when**: every Vista upload surface uses the pre-signed path AND we have telemetry that 0% of multipart traffic remains for ≥30 days. Then delete the multipart endpoint and collapse `PhotoStorage` into `PhotoPresignedStorage`.
+
+### `photo_upload_intent` rows kept for 24h after confirm (rather than deleted on confirm) (Item 2)
+- **Why**: keeping the row gives an audit-grade trail when a confirm-by-id ever needs to be replayed for debugging, and lets the same hourly cleanup job handle both "abandoned mid-upload" and "stale-but-confirmed" rows under one rule. Deleting on confirm would require a second cleanup pass for the unconfirmed ones with its own bookkeeping.
+- **Cost**: a fresh `photo_upload_intent` row sticks around for 24h after the user successfully uploads. ~200 bytes per row; at 100 uploads/day that's ~20 KB/day of overhead.
+- **Revisit when**: the table grows past a million rows OR the cleanup job starts taking > 5s under realistic load.
+
+### Object key includes the original filename slug, not just a UUID (Item 2)
+- **Why**: surfacing "abc-uuid-living-room.jpg" in CDN URLs and admin debug panes is meaningfully more grokkable than "abc-uuid.jpg". The slug is sanitised (lowercase ascii alnum + dash, max 60 chars) so it can't smuggle path traversal or non-ascii surprises into the key.
+- **Cost**: the slug is purely aesthetic — anyone who can read the URL can read the original filename. Acceptable; the bucket is public-read already.
+- **Revisit when**: a customer uploads a filename containing PII that ends up in a CDN URL — then strip slugs and switch to UUID-only.
+
+### "At most one LIVE listing per (property, listing_type)" enforced at BOTH the service AND the DB (Item 12)
+- **Why**: a service-level pre-check gives callers a friendly "this property already has an active rent listing — close that one first" message before any DB round-trip. A Postgres partial unique index (`listings_one_open_per_type_per_property WHERE status = 'LIVE'`) is the race-safety net for two concurrent creates / status-flips that both pass the pre-check. Either alone is wrong: service-only loses the race; DB-only surfaces as a generic `DataIntegrityViolationException` that's a UX cliff.
+- **Cost**: a tiny amount of duplicated logic — the service and the DB UQ encode the same rule. They drift only if someone changes the V47 migration's WHERE clause without updating the service, which the unit tests around `ListingService.create()` catch immediately.
+- **Revisit when**: a third-party integration starts hitting the 409 routinely and needs a recovery API (e.g. "force-close any LIVE listing of the given type for this property" as part of the create flow).
+
+---
+
+## Dream AI provider abstraction (Item 25)
+
+### LLM and embedding integrations live behind `LlmRankingProvider` + `EmbeddingProvider` instead of being baked into `DreamAiService`
+- **Why**: hardcoding Anthropic + OpenAI into the service was fast for v1 but bought four future-pain problems: (1) outage resilience — if Anthropic 5xxs we have no fallback, (2) cost negotiating leverage — switching providers was a multi-day refactor, (3) no A/B testing capability — couldn't compare Claude vs GPT vs Gemini on real traffic, (4) the Anthropic→Voyage embeddings migration story would be a from-scratch rewrite. The provider abstraction makes each of these a one-env-var change. Same shape as the Item 20 verification-automation pattern; reusing the strategy + `@ConditionalOnProperty` recipe keeps the two AI surfaces consistent.
+- **Cost**: two layers of indirection in the `dreamai/` module — `DreamAiService → LlmRankingProvider → AnthropicListing(Search|Compare)Client` and `ListingSearchEmbeddingService → EmbeddingProvider → OpenAiEmbeddingsClient`. Adds one bean per concrete provider plus three scaffolded stubs each side (OpenAI LLM, Gemini LLM, Voyage embeddings, self-hosted embeddings) that throw `UnsupportedOperationException` until v2. The catalog JSON serialisation + the existing system prompts are unchanged — the abstraction is a pure facade, not a re-architecture of the actual Claude call.
+- **Revisit when**: only one provider remains a credible option for a year+ AND the indirection becomes friction during the next refactor — then collapse `LlmRankingProvider` into the active client directly. Or: a third provider category arrives (e.g. reranking-only providers) and the two-interface split needs to grow to three.
+
+### Scaffolded providers throw `UnsupportedOperationException` instead of silently degrading to the stub
+- **Why**: a deploy that sets `HAVEN_DREAM_AI_LLM_PROVIDER=openai` is making an explicit choice. Silently falling back to the stub would hide the misconfiguration; throwing surfaces it loud and fast (the swap-mechanism test asserts this). The stub fallback is only for the case where the *active* provider's credentials are unset (`isAvailable() == false`) — a v1 deployment without an Anthropic key still works, just without LLM ranking.
+- **Cost**: a deploy that picks a scaffolded provider crashes the rank/compare path entirely. Acceptable because (a) the env var is operator-set, not user-set, and (b) the v2 fill-in is a focused PR per provider, not a multi-week project.
+- **Revisit when**: a v2 provider lands. At that point the corresponding stub's `isAvailable()` flips to "true iff its credentials are set" and the method bodies do real work; no behavioural change to the rest of the system.
+
+### `meta.llmProvider` + `meta.embeddingProvider` are purely additive on `TurnMeta`; the existing `meta.provider` keeps its v0 semantics
+- **Why**: Vista already reads `meta.provider` for the mode indicator (VTASK-016). Renaming or repurposing it would force a coupled Vista release. The two new fields ride alongside — null when the corresponding subsystem wasn't consulted on the turn, populated when it was. Debug tooling and any future Vista surface can read them without breaking the contract.
+- **Cost**: two more nullable fields on every `TurnMeta`. Negligible payload size (~30 bytes when populated), and the OpenAPI schema documents the null semantics explicitly.
+- **Revisit when**: never, probably. If a future major-version envelope ships, fold the three fields into a single structured `meta.providers` object — but the additive shape is good enough for v1-v2.
+
+---
+
 ## Deferred (not built — explicit Phase 14+ scope)
 
 - `ListingPhoto`, `ListingSave`, `ListingLike`, `ListingReview` (engagement)
