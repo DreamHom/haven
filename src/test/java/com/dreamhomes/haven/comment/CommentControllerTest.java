@@ -68,7 +68,7 @@ class CommentControllerTest {
 
     @Test
     void postingCommentReturns201AndCallsService() throws Exception {
-        when(commentService.post(eq(100L), eq(7L), eq("hi"))).thenReturn(stub(50L, 7L, 100L, "hi"));
+        when(commentService.post(eq(100L), eq(7L), eq("hi"), eq(null))).thenReturn(stub(50L, 7L, 100L, "hi"));
 
         mockMvc.perform(post("/api/listings/7/comments")
                         .with(asPrincipal(100L, Role.APPLICANT))
@@ -85,7 +85,7 @@ class CommentControllerTest {
                         .content("{\"body\":\"hi\"}"))
                 .andExpect(status().isUnauthorized());
 
-        verify(commentService, never()).post(any(), any(), any());
+        verify(commentService, never()).post(any(), any(), any(), any());
     }
 
     @Test
@@ -96,7 +96,22 @@ class CommentControllerTest {
                         .content("{\"body\":\"\"}"))
                 .andExpect(status().isBadRequest());
 
-        verify(commentService, never()).post(any(), any(), any());
+        verify(commentService, never()).post(any(), any(), any(), any());
+    }
+
+    @Test
+    void postingReplyForwardsParentCommentIdToService() throws Exception {
+        when(commentService.post(eq(100L), eq(7L), eq("reply"), eq(5L)))
+                .thenReturn(stub(60L, 7L, 100L, "reply"));
+
+        mockMvc.perform(post("/api/listings/7/comments")
+                        .with(asPrincipal(100L, Role.APPLICANT))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"body\":\"reply\",\"parentCommentId\":5}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id", is(60)));
+
+        verify(commentService).post(100L, 7L, "reply", 5L);
     }
 
     @Test

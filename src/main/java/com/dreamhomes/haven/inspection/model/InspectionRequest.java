@@ -52,6 +52,15 @@ public class InspectionRequest {
     @Column(name = "agent_extras", columnDefinition = "TEXT")
     private String agentExtras;
 
+    /**
+     * Reason supplied when this request was cancelled via the cancel-with-reason flow
+     * (Gap C of post-session-tasks Item 7). Required for cancellations originating from
+     * {@code cancelByEitherParty}; left null for the legacy applicant-only
+     * {@code cancel(callerId, requestId)} path.
+     */
+    @Column(name = "cancellation_reason", length = 200)
+    private String cancellationReason;
+
     @CreatedDate
 
     @Column(name = "created_at", nullable = false, updatable = false)

@@ -55,6 +55,8 @@ class VerificationControllerTest {
     @MockBean com.dreamhomes.haven.auth.blocklist.JwtBlocklistRepository jwtBlocklistRepository;
     @MockBean UserCredentialsService userCredentialsService;
     @MockBean com.dreamhomes.haven.verification.storage.VerificationDocumentStorage verificationDocumentStorage;
+    @MockBean com.dreamhomes.haven.verification.liveness.LivenessCheckService livenessCheckService;
+    @MockBean com.dreamhomes.haven.verification.automation.VerificationAutomationResultRepository automationResultRepository;
 
     @Test
     void ownerSubmitsIdentityVerificationReturns201WithSummary() throws Exception {
@@ -131,9 +133,108 @@ class VerificationControllerTest {
     }
 
     @Test
+    void listMineSurfacesDecisionReasonOnRejectedRowsSoSubmitterKnowsWhatToFix() throws Exception {
+        Verification rejected = Verification.builder()
+                .id(101L)
+                .type(VerificationType.OWNER_IDENTITY)
+                .status(VerificationStatus.REJECTED)
+                .submitterUserId(50L).targetUserId(50L)
+                .documentRefs("{}")
+                .submittedAt(Instant.now())
+                .decidedAt(Instant.now())
+                .decisionReason("photo too blurry, retake in better light")
+                .build();
+        when(verificationService.listMine(eq(50L), any()))
+                .thenReturn(new org.springframework.data.domain.PageImpl<>(List.of(rejected)));
+
+        mockMvc.perform(get("/api/verifications/mine")
+                        .with(asPrincipal(50L, Role.OWNER)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].status", is("REJECTED")))
+                .andExpect(jsonPath("$.content[0].decisionReason",
+                        is("photo too blurry, retake in better light")));
+    }
+
+    @Test
+    void listMineLeavesDecisionReasonNullOnPendingRowsRegardlessOfStoredValue() throws Exception {
+        Verification pendingWithStaleReason = Verification.builder()
+                .id(102L)
+                .type(VerificationType.OWNER_IDENTITY)
+                .status(VerificationStatus.PENDING)
+                .submitterUserId(50L).targetUserId(50L)
+                .documentRefs("{}")
+                .submittedAt(Instant.now())
+                .decisionReason("stale value from a prior cycle — should never leak")
+                .build();
+        when(verificationService.listMine(eq(50L), any()))
+                .thenReturn(new org.springframework.data.domain.PageImpl<>(
+                        List.of(pendingWithStaleReason)));
+
+        mockMvc.perform(get("/api/verifications/mine")
+                        .with(asPrincipal(50L, Role.OWNER)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].status", is("PENDING")))
+                .andExpect(jsonPath("$.content[0].decisionReason")
+                        .value(org.hamcrest.Matchers.nullValue()));
+    }
+
+    @Test
     void listMineRequiresAuthentication() throws Exception {
         mockMvc.perform(get("/api/verifications/mine"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void runLivenessCheckReturns201WithMockedFlagAndScore() throws Exception {
+        com.dreamhomes.haven.verification.liveness.LivenessCheckResult row =
+                com.dreamhomes.haven.verification.liveness.LivenessCheckResult.builder()
+                        .id(42L).userId(50L).status("PASSED")
+                        .score(new java.math.BigDecimal("0.97"))
+                        .providerName("MOCK")
+                        .createdAt(Instant.parse("2026-05-24T08:30:00Z"))
+                        .build();
+        when(livenessCheckService.runMockedCheck(50L)).thenReturn(row);
+
+        mockMvc.perform(post("/api/verifications/liveness-check")
+                        .with(asPrincipal(50L, Role.OWNER)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id", is(42)))
+                .andExpect(jsonPath("$.status", is("PASSED")))
+                .andExpect(jsonPath("$.score", is(0.97)))
+                .andExpect(jsonPath("$.provider", is("MOCK")))
+                .andExpect(jsonPath("$._mocked", is(true)));
+    }
+
+    @Test
+    void runLivenessCheckRequiresAuthentication() throws Exception {
+        mockMvc.perform(post("/api/verifications/liveness-check"))
+                .andExpect(status().isUnauthorized());
+
+        verify(livenessCheckService, never()).runMockedCheck(any());
+    }
+
+    @Test
+    void submitWithLivenessCheckIdForwardsTheIdIntoTheCommand() throws Exception {
+        when(verificationService.submit(eq(50L), any(SubmitVerificationCommand.class)))
+                .thenAnswer(inv -> stub(99L, VerificationType.OWNER_IDENTITY));
+
+        mockMvc.perform(post("/api/verifications")
+                        .with(asPrincipal(50L, Role.OWNER))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "type": "OWNER_IDENTITY",
+                                  "documentRefs": { "kind": "NIN", "ref": "AB1234" },
+                                  "livenessCheckId": 42
+                                }
+                                """))
+                .andExpect(status().isCreated());
+
+        org.mockito.ArgumentCaptor<SubmitVerificationCommand> cap =
+                org.mockito.ArgumentCaptor.forClass(SubmitVerificationCommand.class);
+        verify(verificationService).submit(eq(50L), cap.capture());
+        org.assertj.core.api.Assertions.assertThat(cap.getValue().livenessCheckId())
+                .isEqualTo(42L);
     }
 
     @Test

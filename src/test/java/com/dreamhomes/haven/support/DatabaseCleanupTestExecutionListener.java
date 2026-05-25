@@ -1,5 +1,8 @@
 package com.dreamhomes.haven.support;
 
+import org.springframework.beans.factory.NoSuchBeanDefinitionException;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.context.ApplicationContext;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.TestContext;
@@ -22,6 +25,14 @@ import org.springframework.test.context.support.AbstractTestExecutionListener;
  * <p>The seeded V11 admin row gets wiped along with everything else — tests that need
  * an admin already re-seed via {@code jwtTestSupport.persistUser(Role.ADMIN)}, so this
  * matches the pre-existing assumption.</p>
+ *
+ * <p><b>Caffeine cache eviction (Item 1 follow-up).</b> After truncating the schema, we
+ * also clear every Spring-managed cache so cached read-through entries from the previous
+ * test don't survive into the next one (and fake hits on rows that no longer exist).
+ * Without this step the {@code listings:detail}, {@code listings:browse}, and
+ * {@code users:publicProfile} caches added by {@code CacheConfig} broke test isolation
+ * for ITs that re-seed listings/users across methods (ListingFlowEndToEndIT,
+ * ListingMapsAndMediaIT, ListingTrustSignalsIT).</p>
  */
 public class DatabaseCleanupTestExecutionListener extends AbstractTestExecutionListener {
 
@@ -35,6 +46,7 @@ public class DatabaseCleanupTestExecutionListener extends AbstractTestExecutionL
                 listing_reports,
                 listing_reviews,
                 listing_saves,
+                photo_upload_intent,
                 listing_photos,
                 listing_leads,
                 inspection_requests,
@@ -71,5 +83,26 @@ public class DatabaseCleanupTestExecutionListener extends AbstractTestExecutionL
         ApplicationContext ctx = testContext.getApplicationContext();
         JdbcTemplate jdbc = ctx.getBean(JdbcTemplate.class);
         jdbc.execute(TRUNCATE_SQL);
+        evictAllCaches(ctx);
+    }
+
+    /**
+     * Clears every named cache registered with the active {@link CacheManager}. Quietly
+     * skips when no CacheManager is present (e.g. a slice test that excludes
+     * {@code CacheConfig}) so existing tests without caching aren't affected.
+     */
+    private static void evictAllCaches(ApplicationContext ctx) {
+        CacheManager cacheManager;
+        try {
+            cacheManager = ctx.getBean(CacheManager.class);
+        } catch (NoSuchBeanDefinitionException ignored) {
+            return;
+        }
+        for (String name : cacheManager.getCacheNames()) {
+            Cache cache = cacheManager.getCache(name);
+            if (cache != null) {
+                cache.clear();
+            }
+        }
     }
 }

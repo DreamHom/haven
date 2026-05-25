@@ -56,7 +56,8 @@ public class AnthropicListingCompareClient {
               id (number), type (RENT or SALE), price (number), currency (string),
               title, headline, description (may be truncated), address, bedrooms, bathrooms,
               geo (optional "lat,lng" string or null), priceNegotiable (boolean),
-              petsAllowed (string or null), utilitiesNote (string or null).
+              petsAllowed (string or null), utilitiesNote (string or null),
+              ownerVerified (boolean), propertyDocumentsVerified (boolean).
 
             Respond with EXACTLY ONE JSON object and no other characters before or after it:
 
@@ -83,6 +84,8 @@ public class AnthropicListingCompareClient {
               "A retiree who wants quiet streets and minimal stairs").
             - If the user mentions a constraint (budget, family situation, commute, pets), weight
               it heavily in your reasoning.
+            - "ownerVerified" / "propertyDocumentsVerified" — when the user asks for "verified"
+              owners or properties, prefer rows where the relevant field is true.
             - If listings are too similar to call, set recommendedListingId to null and explain
               the tradeoffs in summary so the user can decide.
             - Use Nigerian / Lagos context when relevant (mention specific neighbourhoods, schools,

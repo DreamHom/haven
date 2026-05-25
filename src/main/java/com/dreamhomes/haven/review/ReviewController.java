@@ -3,6 +3,7 @@ package com.dreamhomes.haven.review;
 import com.dreamhomes.haven.auth.JwtPrincipal;
 import com.dreamhomes.haven.review.dto.DeleteReviewRequest;
 import com.dreamhomes.haven.review.dto.PostReviewRequest;
+import com.dreamhomes.haven.review.dto.ReviewEligibilityResponse;
 import com.dreamhomes.haven.review.dto.ReviewResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -43,17 +44,21 @@ public class ReviewController {
     @Operation(
             summary = "Post a review on the user the deal closed with",
             description = """
-                    Records a 1-5 star review with optional text body. The reviewee can be \
-                    the listing's owner OR the listing's assigned agent — whoever you \
-                    actually transacted with.
+                    Records a 1-5 star review with required text body. The reviewee can be \
+                    the listing's owner OR the listing's currently-ACCEPTED agent (Item 11, \
+                    post-session-tasks.md) — whoever you actually transacted with.
 
                     **Gating** (enforced server-side):
                     - Listing status must be `CLOSED`.
                     - The caller must have an `ACCEPTED` offer on this listing (you can \
                       only review someone you closed a deal with).
-                    - The chosen `revieweeUserId` must be the listing owner or its assigned agent.
+                    - The chosen `revieweeUserId` must be the listing owner OR an agent \
+                      with an ACCEPTED `agent_listings` row on the listing.
                     - At most one review per `(listingId, reviewerUserId, revieweeUserId)` — \
                       duplicates rejected with 409.
+
+                    To pre-check eligibility before navigating to the review form, call \
+                    `GET /api/listings/{id}/reviews/me/eligibility` first (Item 9).
 
                     **Side effect**: the reviewee's profile aggregate (`averageRating`, \
                     `reviewCount`) is updated immediately on every write/delete.
@@ -87,6 +92,68 @@ public class ReviewController {
         return reviewMapper.toResponse(reviewService.post(
                 principal.userId(), listingId, request.revieweeUserId(),
                 request.rating(), request.body()));
+    }
+
+    @Operation(
+            summary = "Pre-check whether the caller can review the listing's owner / agent",
+            description = """
+                    Returns the caller's current ability to post reviews on the listing's \
+                    owner and (when present) the listing's currently-ACCEPTED agent. \
+                    Returns HTTP 200 even when neither side is eligible — eligibility is \
+                    data, not an error. Vista uses this to conditionally render \
+                    "Review the owner" / "Review the agent" CTAs on the listing-detail \
+                    page once the deal has closed.
+
+                    **Auth**: any authenticated user.
+
+                    **Responses (200 each):**
+
+                    - `canReviewOwner=true, canReviewAgent=true` — closed deal with both \
+                      counterparties present; show both CTAs.
+                    - `canReviewOwner=true, canReviewAgent=false` (with `agentUserId=null`) — \
+                      closed deal, no agent involved; show only the owner CTA.
+                    - `canReviewOwner=false, canReviewAgent=false` — caller wasn't a \
+                      participant, or listing isn't CLOSED, or caller is the owner/agent \
+                      themselves. {@code reasons} explains which.
+                    """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200",
+                    description = "Eligibility snapshot. Always 200 when listing exists.",
+                    content = @Content(
+                            schema = @Schema(implementation = ReviewEligibilityResponse.class),
+                            examples = {
+                                @ExampleObject(name = "BothEligible", value = """
+                                        { "listingStatus": "CLOSED",
+                                          "canReviewOwner": true, "canReviewAgent": true,
+                                          "ownerUserId": 50, "agentUserId": 77,
+                                          "reasons": { "owner": null, "agent": null } }
+                                        """),
+                                @ExampleObject(name = "OwnerOnly", value = """
+                                        { "listingStatus": "CLOSED",
+                                          "canReviewOwner": true, "canReviewAgent": false,
+                                          "ownerUserId": 50, "agentUserId": null,
+                                          "reasons": { "owner": null,
+                                                       "agent": "This listing has no assigned agent to review." } }
+                                        """),
+                                @ExampleObject(name = "NeitherEligible", value = """
+                                        { "listingStatus": "LIVE",
+                                          "canReviewOwner": false, "canReviewAgent": false,
+                                          "ownerUserId": 50, "agentUserId": 77,
+                                          "reasons": { "owner": "Reviews open once the listing is CLOSED — current status is LIVE.",
+                                                       "agent": "Reviews open once the listing is CLOSED — current status is LIVE." } }
+                                        """)
+                            })),
+            @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthenticated"),
+            @ApiResponse(responseCode = "404", ref = "#/components/responses/NotFound")
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @GetMapping("/api/listings/{listingId}/reviews/me/eligibility")
+    public ReviewEligibilityResponse myEligibility(
+            @AuthenticationPrincipal JwtPrincipal principal,
+            @Parameter(description = "Listing ID.", example = "17")
+            @PathVariable Long listingId) {
+        return reviewService.eligibility(principal.userId(), listingId);
     }
 
     @Operation(

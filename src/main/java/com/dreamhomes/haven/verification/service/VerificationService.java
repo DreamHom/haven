@@ -24,6 +24,8 @@ import com.dreamhomes.haven.verification.model.Verification;
 import com.dreamhomes.haven.verification.model.VerificationStatus;
 import com.dreamhomes.haven.property.model.Property;
 import com.dreamhomes.haven.verification.VerificationRepository;
+import com.dreamhomes.haven.verification.automation.AutomatedVerificationService;
+import com.dreamhomes.haven.verification.liveness.LivenessCheckService;
 /**
  * Submission side of the verification system (PRD §4.8). The service enforces:
  * <ul>
@@ -48,6 +50,8 @@ public class VerificationService {
     private final PropertyService propertyService;
     private final ObjectMapper objectMapper;
     private final NotificationApi notificationApi;
+    private final LivenessCheckService livenessCheckService;
+    private final AutomatedVerificationService automatedVerificationService;
 
     /**
      * Returns the caller's own submissions, newest first. Backs
@@ -63,6 +67,13 @@ public class VerificationService {
     public Verification submit(Long submitterUserId, SubmitVerificationCommand cmd) {
         Role submitterRole = userProfileService.roleOf(submitterUserId)
                 .orElseThrow(() -> new UserNotFoundException(submitterUserId));
+
+        // Validate + consume the optional liveness check id BEFORE persisting the
+        // verification row. Bad liveness ids surface as 403/409 without leaving an
+        // orphaned PENDING row behind (Item 19 in post-session-tasks.md).
+        if (cmd.livenessCheckId() != null) {
+            livenessCheckService.consume(submitterUserId, cmd.livenessCheckId());
+        }
 
         return switch (cmd.type()) {
             case OWNER_IDENTITY     -> submitForUser(submitterUserId, submitterRole, Role.OWNER, cmd);
@@ -120,6 +131,12 @@ public class VerificationService {
                 .build());
         log.info("Submitted verificationId={} type={} submitterId={} targetUserId={} targetPropertyId={}",
                 saved.getId(), saved.getType(), submitterId, targetUserId, targetPropertyId);
+        // Item 20 (post-session-tasks.md): run the automated provider check before the
+        // submitter even hears back. v1 mock always PASSES but the row lands so admins
+        // can corroborate the documents with what the provider extracted. v1 routes
+        // every submission to admin review regardless of automated score — see the
+        // class-level Javadoc on AutomatedVerificationService for the auto-approve gate.
+        automatedVerificationService.runChecksFor(saved);
         // Persona audit (Ngozi): every submission should land in the user's notifications
         // tray so the "did the system actually receive my docs?" question has a yes.
         notificationApi.recordSync(NotificationKind.VERIFICATION_SUBMITTED, submitterId,

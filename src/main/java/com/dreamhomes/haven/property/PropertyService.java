@@ -1,10 +1,13 @@
 package com.dreamhomes.haven.property;
 
+import com.dreamhomes.haven.common.config.CacheConfig;
 import com.dreamhomes.haven.listing.ListingRepository;
 import com.dreamhomes.haven.listing.embedding.ListingSearchEmbeddingService;
 import com.dreamhomes.haven.listing.model.ListingStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -60,8 +63,19 @@ public class PropertyService {
     /**
      * Partial update. Caller must own the property or be {@link Role#ADMIN}. {@code type}
      * is immutable on this path — bedroom/bathroom rules are re-checked after each patch.
+     *
+     * <p>Every listing payload embeds a {@link PropertySummary} snapshot, so a property
+     * patch must also wipe both listing caches — the detail cache (because every snapshot
+     * we cached for any listing of this property is now stale) and the browse cache
+     * (same reason). We flush both namespaces wholesale rather than locating the affected
+     * listing ids ahead of time because the cost of recomputing the next browse page is
+     * tiny compared to the alternative of returning out-of-date geo / bedroom counts.</p>
      */
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = CacheConfig.LISTINGS_DETAIL, allEntries = true),
+            @CacheEvict(value = CacheConfig.LISTINGS_BROWSE, allEntries = true)
+    })
     public PropertyResponse update(Long callerUserId, Role role, Long propertyId, UpdatePropertyCommand cmd) {
         Property p = propertyRepository.findById(propertyId)
                 .orElseThrow(() -> new PropertyNotFoundException(propertyId));

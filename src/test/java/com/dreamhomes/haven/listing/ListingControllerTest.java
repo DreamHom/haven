@@ -86,6 +86,8 @@ class ListingControllerTest {
     @BeforeEach
     void stubOwnerBio() {
         lenient().when(listingService.findOwnerPublicBio(anyLong())).thenReturn(Optional.empty());
+        lenient().when(listingService.findOwnerTrust(anyLong()))
+                .thenReturn(ListingService.OwnerTrustSnapshot.EMPTY);
     }
 
     @Test

@@ -26,6 +26,15 @@ public class ListingEmbeddingProperties {
 
     private int readTimeoutMs = 60_000;
 
+    /**
+     * Item 22 — cosine-distance cutoff applied to the pgvector NN query. Rows whose
+     * distance to the query embedding is greater than or equal to this value are dropped
+     * before reaching Claude. Tuned empirically: 0.5 is roughly "embedding agrees this is
+     * vaguely on-topic"; junk prompts like "purple elephant tap dance" sit comfortably
+     * above 0.7. Override via {@code HAVEN_DREAM_AI_EMBEDDING_MAX_DISTANCE} on the deploy.
+     */
+    private double maxDistance = 0.5;
+
     public boolean active() {
         return openaiApiKey != null && !openaiApiKey.isBlank();
     }

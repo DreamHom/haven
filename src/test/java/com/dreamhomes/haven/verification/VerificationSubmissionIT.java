@@ -21,6 +21,7 @@ import java.time.Instant;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -118,6 +119,53 @@ class VerificationSubmissionIT extends AbstractPostgresIT {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.targetPropertyId").value(property.getId()))
                 .andExpect(jsonPath("$.targetUserId").doesNotExist());
+    }
+
+    @Test
+    void rejectedVerificationSurfacesAdminReasonOnTheGetMineRoundTrip() throws Exception {
+        // Item 21 (post-session-tasks.md): admin-supplied decisionReason must surface to
+        // the submitter on REJECTED rows so they know what to fix on resubmit.
+        User owner = jwtTestSupport.persistUser(Role.OWNER);
+        Verification rejected = verificationRepository.save(Verification.builder()
+                .type(VerificationType.OWNER_IDENTITY)
+                .submitterUserId(owner.getId())
+                .targetUserId(owner.getId())
+                .status(VerificationStatus.REJECTED)
+                .documentRefs("{\"kind\":\"NIN\",\"ref\":\"AB1234567\"}")
+                .submittedAt(Instant.now().minusSeconds(60))
+                .decidedAt(Instant.now())
+                .decisionReason("Photo too blurry, retake in better light.")
+                .build());
+
+        mockMvc.perform(get("/api/verifications/mine")
+                        .header("Authorization", jwtTestSupport.bearerFor(owner)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].id").value(rejected.getId()))
+                .andExpect(jsonPath("$.content[0].status").value("REJECTED"))
+                .andExpect(jsonPath("$.content[0].decisionReason")
+                        .value("Photo too blurry, retake in better light."));
+    }
+
+    @Test
+    void pendingVerificationKeepsDecisionReasonHiddenEvenIfStoredValueIsPresent()
+            throws Exception {
+        User owner = jwtTestSupport.persistUser(Role.OWNER);
+        verificationRepository.save(Verification.builder()
+                .type(VerificationType.OWNER_IDENTITY)
+                .submitterUserId(owner.getId())
+                .targetUserId(owner.getId())
+                .status(VerificationStatus.PENDING)
+                .documentRefs("{}")
+                .submittedAt(Instant.now())
+                .decisionReason("stale value from a prior cycle — should never leak")
+                .build());
+
+        mockMvc.perform(get("/api/verifications/mine")
+                        .header("Authorization", jwtTestSupport.bearerFor(owner)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].status").value("PENDING"))
+                .andExpect(jsonPath("$.content[0].decisionReason")
+                        .value(org.hamcrest.Matchers.nullValue()));
     }
 
     @Test

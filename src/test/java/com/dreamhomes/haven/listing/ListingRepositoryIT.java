@@ -71,13 +71,16 @@ class ListingRepositoryIT extends AbstractPostgresIT {
     @Test
     void findByStatusReturnsOnlyMatchingListings() {
         // We declared findByStatus(status, pageable) — exercising it confirms our
-        // method signature wires up correctly to the column.
+        // method signature wires up correctly to the column. Each LIVE listing
+        // lives on its own property so Item 12's partial UQ
+        // (listings_one_open_per_type_per_property) is respected.
         Long ownerId = newOwner("owner-listing-status@example.com").getId();
-        Long propertyId = newProperty(ownerId).getId();
+        Long propertyAId = newProperty(ownerId).getId();
+        Long propertyBId = newProperty(ownerId).getId();
 
-        listingRepository.save(newListing(propertyId, ownerId, ListingStatus.LIVE));
-        listingRepository.save(newListing(propertyId, ownerId, ListingStatus.PAUSED));
-        listingRepository.save(newListing(propertyId, ownerId, ListingStatus.LIVE));
+        listingRepository.save(newListing(propertyAId, ownerId, ListingStatus.LIVE));
+        listingRepository.save(newListing(propertyAId, ownerId, ListingStatus.PAUSED));
+        listingRepository.save(newListing(propertyBId, ownerId, ListingStatus.LIVE));
 
         Page<Listing> live = listingRepository.findByStatus(
                 ListingStatus.LIVE, PageRequest.of(0, 20, Sort.by("createdAt").descending()));

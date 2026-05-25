@@ -86,6 +86,16 @@ cors:
 # clickable explainer for each error family. Override per environment via
 # HAVEN_ERRORS_TYPE_BASE once a hosted docs site exists (e.g. `https://docs.dreamhomes.com/errors/`).
 haven:
+  verification:
+    # Active VerificationProvider implementation. Default `mock` returns PASSED 0.95
+    # with plausible extracted fields — see MockVerificationProvider. Swap to
+    # `smile-id` or `dojah` once the corresponding scaffolded provider is filled in.
+    # Item 20 in docs/demo-prep/post-session-tasks.md describes the v2 swap path.
+    provider: ${HAVEN_VERIFICATION_PROVIDER:mock}
+    # v2 placeholder — auto-approve a verification whose every automated check passes
+    # above this score. Read but currently unused; v1 routes every submission through
+    # admin review so the queue is never empty. See AutomatedVerificationService docs.
+    auto-approve-threshold: ${HAVEN_VERIFICATION_AUTO_APPROVE_THRESHOLD:0.85}
   auth:
     jwt-cookie:
       # When true, login sets an httpOnly SameSite=Lax JWT cookie (name below) and the
@@ -150,6 +160,13 @@ haven:
     agent-marketing:
       # Max multipart size per agent gallery image (bytes). Default 8 MiB.
       max-bytes: ${HAVEN_PHOTOS_AGENT_MARKETING_MAX_BYTES:8388608}
+    upload-intent:
+      # Item 2 — pre-signed URL TTL. R2 best practice is 10 min; long enough for a
+      # 10 MB upload on a slow mobile connection, short enough that a leaked URL
+      # is useless in practice.
+      ttl-seconds: ${HAVEN_PHOTOS_UPLOAD_INTENT_TTL_SECONDS:600}
+      # Hourly cleanup of intent rows older than 24h (confirmed + unconfirmed).
+      cleanup-interval-ms: ${HAVEN_PHOTOS_UPLOAD_INTENT_CLEANUP_INTERVAL_MS:3600000}
   demo:
     # When true, an ApplicationRunner checks the listings table at boot. If empty,
     # it self-seeds the demo dataset (10 users + 8 properties/listings + photos +
@@ -158,6 +175,16 @@ haven:
     # demo accounts share a known password (Demo2026!).
     auto-seed: ${HAVEN_DEMO_AUTO_SEED:false}
   dream-ai:
+    # Item 25 — active LLM ranking provider. Each value resolves a different
+    # LlmRankingProvider bean via @ConditionalOnProperty: `anthropic` (default — wraps
+    # the existing Claude Haiku integration), `openai` (scaffolded — throws
+    # UnsupportedOperationException until v2 fills it in), `gemini` (same).
+    # See docs/dream-ai-providers.md for the swap matrix.
+    llm-provider: ${HAVEN_DREAM_AI_LLM_PROVIDER:anthropic}
+    # Item 25 — active embedding provider. `openai` (default — wraps the existing
+    # text-embedding-3-small client), `voyage` (Anthropic's recommended partner —
+    # scaffolded), `self-hosted` (Hugging Face TEI / sentence-transformers — scaffolded).
+    embedding-provider: ${HAVEN_DREAM_AI_EMBEDDING_PROVIDER:openai}
     anthropic:
       # When set, POST /api/dream-ai/suggestions ranks LIVE listings with Claude Haiku over the Messages API.
       # Leave empty to use the legacy location= substring stub (no outbound LLM call).
@@ -168,9 +195,30 @@ haven:
       max-output-tokens: ${HAVEN_ANTHROPIC_MAX_OUTPUT_TOKENS:512}
       connect-timeout-ms: ${HAVEN_ANTHROPIC_CONNECT_TIMEOUT_MS:10000}
       read-timeout-ms: ${HAVEN_ANTHROPIC_READ_TIMEOUT_MS:60000}
+    embeddings:
+      # When set, candidate selection uses OpenAI text-embedding-3-small + pgvector NN.
+      # Leave empty to use first-page catalogue (legacy fallback). Item 24 in
+      # docs/demo-prep/post-session-tasks.md — these bindings were missing so
+      # ListingEmbeddingProperties.active() always returned false even with the env
+      # var set; the whole embedding subsystem was dead code in production.
+      openai-api-key: ${HAVEN_OPENAI_API_KEY:}
+      model: ${HAVEN_OPENAI_EMBEDDING_MODEL:text-embedding-3-small}
+      dimensions: ${HAVEN_OPENAI_EMBEDDING_DIMENSIONS:1536}
+      openai-base-url: ${HAVEN_OPENAI_BASE_URL:https://api.openai.com}
+      connect-timeout-ms: ${HAVEN_OPENAI_CONNECT_TIMEOUT_MS:10000}
+      read-timeout-ms: ${HAVEN_OPENAI_READ_TIMEOUT_MS:60000}
+      # Item 22 (post-session-tasks.md) — cosine-distance cutoff applied to the pgvector
+      # NN query. Candidates whose distance to the query is >= this value are dropped
+      # before reaching Claude, so junk prompts ("purple elephant tap dance") can't burn
+      # the Anthropic budget. 0.5 is a sensible empirical default for the current corpus
+      # — re-tune via HAVEN_DREAM_AI_EMBEDDING_MAX_DISTANCE as the catalogue grows.
+      max-distance: ${HAVEN_DREAM_AI_EMBEDDING_MAX_DISTANCE:0.5}
     moderation:
-      # Case-insensitive substring block list (empty = no-op). Phase 2: external classifier.
-      banned-substrings: []
+      # Case-insensitive substring block list. Phase 2: external classifier.
+      # Defaults below cover the cheapest prompt-injection canaries — phrases that
+      # have effectively zero false-positive risk in a real-estate search box but
+      # are the canonical openings for "jailbreak" attempts. Tune via env var.
+      banned-substrings: ${HAVEN_DREAM_AI_BANNED_SUBSTRINGS:ignore previous instructions,ignore all previous,ignore your instructions,disregard the above,disregard previous,system prompt,you are now a}
     rate-limit:
       enabled: true
       capacity: ${HAVEN_DREAM_AI_RATE_CAPACITY:30}

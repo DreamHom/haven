@@ -3,6 +3,8 @@ package com.dreamhomes.haven.review;
 import com.dreamhomes.haven.admin.model.AdminAction;
 import com.dreamhomes.haven.admin.AdminAuditApi;
 import com.dreamhomes.haven.admin.model.AuditTargetType;
+import com.dreamhomes.haven.agentlisting.AgentListingRepository;
+import com.dreamhomes.haven.agentlisting.model.AgentListingStatus;
 import com.dreamhomes.haven.listing.ListingService;
 import com.dreamhomes.haven.listing.dto.ListingResponse;
 import com.dreamhomes.haven.listing.model.ListingStatus;
@@ -22,6 +24,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import com.dreamhomes.haven.listing.exception.ListingNotFoundException;
 import com.dreamhomes.haven.review.dto.ReviewAggregate;
+import com.dreamhomes.haven.review.dto.ReviewEligibilityResponse;
 import com.dreamhomes.haven.review.exception.DuplicateReviewException;
 import com.dreamhomes.haven.review.exception.InvalidRevieweeException;
 import com.dreamhomes.haven.review.exception.ListingNotClosedException;
@@ -54,6 +57,7 @@ public class ReviewService {
     private final OfferService offerService;
     private final NotificationApi notificationApi;
     private final AdminAuditApi adminAuditApi;
+    private final AgentListingRepository agentListingRepository;
 
     @Transactional
     public ListingReview post(Long reviewerId, Long listingId, Long revieweeId,
@@ -84,7 +88,11 @@ public class ReviewService {
             if (!offerService.hadAcceptedOffer(listingId, reviewerId)) {
                 throw new NotADealParticipantException();
             }
-            if (!listing.ownerId().equals(revieweeId)) {
+            // Item 11: applicant can review the listing OWNER or the listing's ACCEPTED
+            // agent. Anyone else is an invalid reviewee.
+            boolean revieweeIsOwner = listing.ownerId().equals(revieweeId);
+            boolean revieweeIsAcceptedAgent = !revieweeIsOwner && isAcceptedAgent(listingId, revieweeId);
+            if (!revieweeIsOwner && !revieweeIsAcceptedAgent) {
                 throw new InvalidRevieweeException();
             }
         }
@@ -172,6 +180,77 @@ public class ReviewService {
     public ReviewAggregate aggregateForUser(Long userId) {
         ReviewAggregate agg = reviewRepository.aggregateForUser(userId);
         return agg == null ? ReviewAggregate.empty() : agg;
+    }
+
+    /**
+     * Item 9: pre-flight "can the caller review the owner / agent on this listing?"
+     * Returns 200 in every case where the listing exists — eligibility is data, not an
+     * error. 404 still fires when the listing itself is missing (the same shape as every
+     * other listing-scoped endpoint).
+     *
+     * <p>The same rules used inside {@link #post(Long, Long, Long, short, String)} are
+     * applied here, just inverted into "yes / no + reason" outputs instead of throwing.
+     */
+    @Transactional(readOnly = true)
+    public ReviewEligibilityResponse eligibility(Long callerId, Long listingId) {
+        ListingResponse listing = listingService.findById(listingId);  // 404 if missing
+        Long ownerId = listing.ownerId();
+        Long agentId = listingService.activeAgentUserId(listingId);
+
+        if (listing.status() != ListingStatus.CLOSED) {
+            String reason = "Reviews open once the listing is CLOSED — current status is "
+                    + listing.status() + ".";
+            return new ReviewEligibilityResponse(listing.status(), false, false,
+                    ownerId, agentId, new ReviewEligibilityResponse.Reasons(reason, reason));
+        }
+
+        // From here on the listing IS CLOSED. Compute eligibility per side.
+        String ownerReason = ownerEligibilityReason(callerId, listingId, ownerId);
+        String agentReason = agentEligibilityReason(callerId, listingId, agentId);
+
+        boolean canReviewOwner = ownerReason == null;
+        boolean canReviewAgent = agentReason == null;
+        return new ReviewEligibilityResponse(listing.status(),
+                canReviewOwner, canReviewAgent, ownerId, agentId,
+                new ReviewEligibilityResponse.Reasons(ownerReason, agentReason));
+    }
+
+    /**
+     * Item 11 helper: true when {@code userId} currently has an ACCEPTED agent_listings
+     * row for the listing. Used by {@link #post} (reviewee guard) and
+     * {@link #eligibility} (CTA gating).
+     */
+    private boolean isAcceptedAgent(Long listingId, Long userId) {
+        if (userId == null) {
+            return false;
+        }
+        return agentListingRepository.existsByListingIdAndAgentUserIdAndStatus(
+                listingId, userId, AgentListingStatus.ACCEPTED);
+    }
+
+    /** Returns null when the caller may review the listing owner; otherwise the reason. */
+    private String ownerEligibilityReason(Long callerId, Long listingId, Long ownerId) {
+        if (callerId.equals(ownerId)) {
+            return "You cannot review yourself.";
+        }
+        if (!offerService.hadAcceptedOffer(listingId, callerId)) {
+            return "Only the accepted-offer applicant on this listing can review the owner.";
+        }
+        return null;
+    }
+
+    /** Returns null when the caller may review the listing's assigned agent; else reason. */
+    private String agentEligibilityReason(Long callerId, Long listingId, Long agentId) {
+        if (agentId == null) {
+            return "This listing has no assigned agent to review.";
+        }
+        if (callerId.equals(agentId)) {
+            return "You cannot review yourself.";
+        }
+        if (!offerService.hadAcceptedOffer(listingId, callerId)) {
+            return "Only the accepted-offer applicant on this listing can review the agent.";
+        }
+        return null;
     }
 
     private void notifyReviewee(Long recipientId, ListingReview review) {

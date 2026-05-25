@@ -7,9 +7,11 @@ import com.dreamhomes.haven.agentmarketing.exception.AgentMarketingMediaNotFound
 import com.dreamhomes.haven.agentmarketing.exception.AgentMarketingQuotaExceededException;
 import com.dreamhomes.haven.agentmarketing.exception.NotYourMarketingMediaException;
 import com.dreamhomes.haven.agentmarketing.model.AgentMarketingMedia;
+import com.dreamhomes.haven.common.config.CacheConfig;
 import com.dreamhomes.haven.photo.storage.AgentMarketingPhotoStorage;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -51,6 +53,9 @@ public class AgentMarketingMediaService {
     }
 
     @Transactional
+    // The agent's public profile embeds the gallery; uploading invalidates the cached
+    // projection so the next /api/users/{id}/profile read includes the new item.
+    @CacheEvict(value = CacheConfig.USERS_PUBLIC_PROFILE, key = "#userId")
     public AgentMarketingMediaResponse upload(Long userId, MultipartFile file, String caption) {
         validateMarketingImage(file);
         if (repository.countByUserId(userId) >= MAX_ITEMS) {
@@ -70,6 +75,9 @@ public class AgentMarketingMediaService {
     }
 
     @Transactional
+    // Public profile cache embeds the gallery — flush so the deleted media disappears
+    // from the next /api/users/{id}/profile read.
+    @CacheEvict(value = CacheConfig.USERS_PUBLIC_PROFILE, key = "#userId")
     public void deleteMine(Long userId, Long mediaId) {
         AgentMarketingMedia row = repository.findById(mediaId)
                 .orElseThrow(() -> new AgentMarketingMediaNotFoundException(mediaId));
@@ -80,6 +88,8 @@ public class AgentMarketingMediaService {
     }
 
     @Transactional
+    // Display order on the public profile reflects gallery order — flush.
+    @CacheEvict(value = CacheConfig.USERS_PUBLIC_PROFILE, key = "#userId")
     public void reorderMine(Long userId, List<Long> mediaIdsInOrder) {
         List<AgentMarketingMedia> rows = repository.findByUserIdOrderByDisplayOrderAscIdAsc(userId);
         if (rows.isEmpty()) {

@@ -3,6 +3,7 @@ package com.dreamhomes.haven.inspection.service;
 import com.dreamhomes.haven.common.outbox.OutboxEvent;
 import com.dreamhomes.haven.common.outbox.OutboxEventRepository;
 import com.dreamhomes.haven.common.outbox.OutboxRowReadyEvent;
+import com.dreamhomes.haven.inspection.events.InspectionDecidedEvent;
 import com.dreamhomes.haven.inspection.events.InspectionRequestedEvent;
 import com.dreamhomes.haven.listing.ListingService;
 import com.dreamhomes.haven.listing.dto.ListingResponse;
@@ -61,7 +62,13 @@ public class InspectionService {
      * Applicant withdraws a PENDING inspection request. Frees the slot for others.
      * Persona audit (Temi): the previous shape locked the applicant in once they'd
      * claimed a slot, with no recourse if something came up at work.
+     *
+     * @deprecated Use {@link #cancelByEitherParty(Long, Long, String)} — the broader
+     * path accepts cancellations from owner / assigned agent as well as the applicant,
+     * works from both PENDING and APPROVED, and captures a required reason that flows
+     * through to the notification of the other party.
      */
+    @Deprecated
     @Transactional
     public InspectionRequest cancel(Long callerId, Long requestId) {
         InspectionRequest request = requestRepository.findById(requestId)
@@ -77,6 +84,86 @@ public class InspectionService {
         log.info("Applicant {} cancelled inspection request {} (slot {} freed)",
                 callerId, requestId, saved.getSlotId());
         return saved;
+    }
+
+    /**
+     * Cancel from PENDING or APPROVED with a required reason. Either party can call —
+     * the applicant, the listing owner, or the assigned active agent — and the OTHER
+     * parties get a Kafka-fanned notification carrying the reason so they know why.
+     *
+     * <p>Closes Gap C of post-session-tasks Item 7. Today only PENDING requests can be
+     * cancelled via {@link #cancel(Long, Long)} and only by the applicant; once approved
+     * both parties are locked in (applicant emergency = forced no-show on their record,
+     * owner emergency = ghosted meeting). This path gives both sides a graceful exit.
+     *
+     * <p>State guard: 409 if the request is in any terminal state (CANCELLED, DECLINED,
+     * COMPLETED, NO_SHOW). Reason guard: 400 if the reason is null or blank. Auth guard:
+     * 403 if the caller is neither the applicant, the listing owner, nor the assigned
+     * active agent.
+     *
+     * @param callerId  authenticated user attempting the cancellation
+     * @param requestId target inspection request id
+     * @param reason    required, max 200 chars (column-enforced); trimmed before persist
+     */
+    @Transactional
+    public InspectionRequest cancelByEitherParty(Long callerId, Long requestId, String reason) {
+        InspectionRequest request = loadRequest(requestId);
+        InspectionRequestStatus current = request.getStatus();
+        if (current != InspectionRequestStatus.PENDING && current != InspectionRequestStatus.APPROVED) {
+            throw new com.dreamhomes.haven.inspection.exception.InspectionRequestNotCancellableException(requestId);
+        }
+        String cleanReason = trimToNull(reason);
+        if (cleanReason == null) {
+            throw new com.dreamhomes.haven.inspection.exception.InspectionCancellationReasonRequiredException();
+        }
+        Long listingId = requireListingIdForRequest(request);
+        Long ownerId = listingService.ownerOf(listingId)
+                .orElseThrow(() -> new ListingNotFoundException(listingId));
+        Long agentUserId = listingService.activeAgentUserId(listingId);
+        boolean authorised = callerId.equals(request.getApplicantId())
+                || callerId.equals(ownerId)
+                || (agentUserId != null && callerId.equals(agentUserId));
+        if (!authorised) {
+            throw new com.dreamhomes.haven.listing.exception.NotPropertyOwnerException();
+        }
+
+        request.setStatus(InspectionRequestStatus.CANCELLED);
+        request.setCancellationReason(cleanReason);
+        InspectionRequest saved = requestRepository.save(request);
+
+        publishCancelledOutbox(saved, listingId, ownerId, agentUserId, callerId, cleanReason);
+        log.info("Caller {} cancelled inspectionRequestId={} reason={} (was {})",
+                callerId, requestId, cleanReason, current);
+        return saved;
+    }
+
+    private void publishCancelledOutbox(InspectionRequest saved, Long listingId, Long ownerId,
+                                        Long agentUserId, Long cancelledByUserId, String reason) {
+        UUID eventId = UUID.randomUUID();
+        com.dreamhomes.haven.inspection.events.InspectionCancelledEvent event =
+                new com.dreamhomes.haven.inspection.events.InspectionCancelledEvent(
+                        eventId,
+                        saved.getId(),
+                        saved.getSlotId(),
+                        listingId,
+                        saved.getApplicantId(),
+                        ownerId,
+                        agentUserId,
+                        cancelledByUserId,
+                        reason,
+                        Instant.now());
+        outboxRepository.save(OutboxEvent.builder()
+                .eventId(eventId)
+                .aggregateType("InspectionRequest")
+                .aggregateId(saved.getId())
+                .eventType(com.dreamhomes.haven.inspection.events.InspectionCancelledEvent.class.getName())
+                .topic(com.dreamhomes.haven.inspection.events.InspectionCancelledEvent.TOPIC)
+                .partitionKey(String.valueOf(listingId))
+                .payload(serialize(event))
+                .build());
+        applicationEventPublisher.publishEvent(OutboxRowReadyEvent.INSTANCE);
+        log.info("Outbox inspection.cancelled.v1 eventId={} inspectionRequestId={} cancelledByUserId={}",
+                eventId, saved.getId(), cancelledByUserId);
     }
 
     @Transactional
@@ -152,12 +239,28 @@ public class InspectionService {
 
     @Transactional
     public InspectionRequest approveByOwner(Long ownerUserId, Long requestId) {
-        return transitionFromPending(ownerUserId, requestId, InspectionRequestStatus.APPROVED, true);
+        return transitionFromPending(ownerUserId, requestId, InspectionRequestStatus.APPROVED, true, null);
     }
 
+    /**
+     * Overload kept for backwards compatibility with the original controller call. Callers
+     * that want to capture an owner-supplied decline justification should use
+     * {@link #declineByOwner(Long, Long, String)}.
+     */
     @Transactional
     public InspectionRequest declineByOwner(Long ownerUserId, Long requestId) {
-        return transitionFromPending(ownerUserId, requestId, InspectionRequestStatus.DECLINED, true);
+        return declineByOwner(ownerUserId, requestId, null);
+    }
+
+    /**
+     * Decline with an optional owner-supplied reason. The reason is included on the
+     * {@link InspectionDecidedEvent} payload so the applicant-side notification can
+     * surface "why" instead of leaving the applicant guessing.
+     */
+    @Transactional
+    public InspectionRequest declineByOwner(Long ownerUserId, Long requestId, String reason) {
+        return transitionFromPending(ownerUserId, requestId, InspectionRequestStatus.DECLINED, true,
+                trimToNull(reason));
     }
 
     @Transactional
@@ -246,7 +349,8 @@ public class InspectionService {
     }
 
     private InspectionRequest transitionFromPending(Long ownerUserId, Long requestId,
-                                                    InspectionRequestStatus target, boolean requireOwner) {
+                                                    InspectionRequestStatus target, boolean requireOwner,
+                                                    String reason) {
         InspectionRequest request = loadRequest(requestId);
         if (request.getStatus() != InspectionRequestStatus.PENDING) {
             throw new InspectionRequestInvalidStateException(requestId,
@@ -259,7 +363,44 @@ public class InspectionService {
             throw new com.dreamhomes.haven.listing.exception.NotPropertyOwnerException();
         }
         request.setStatus(target);
-        return requestRepository.save(request);
+        InspectionRequest saved = requestRepository.save(request);
+
+        // Outbox the decision so the async fan-out (applicant notification) can run
+        // outside this transaction without coupling the owner's decision to the
+        // applicant's in-tray availability.
+        publishDecisionOutbox(saved, listingId, target, reason);
+        return saved;
+    }
+
+    private void publishDecisionOutbox(InspectionRequest saved, Long listingId,
+                                       InspectionRequestStatus target, String reason) {
+        UUID eventId = UUID.randomUUID();
+        InspectionDecidedEvent.Decision decision = (target == InspectionRequestStatus.APPROVED)
+                ? InspectionDecidedEvent.Decision.APPROVED
+                : InspectionDecidedEvent.Decision.DECLINED;
+        InspectionDecidedEvent event = new InspectionDecidedEvent(
+                eventId,
+                saved.getId(),
+                saved.getSlotId(),
+                listingId,
+                saved.getApplicantId(),
+                decision,
+                reason,
+                Instant.now());
+        outboxRepository.save(OutboxEvent.builder()
+                .eventId(eventId)
+                .aggregateType("InspectionRequest")
+                .aggregateId(saved.getId())
+                .eventType(InspectionDecidedEvent.class.getName())
+                .topic(InspectionDecidedEvent.TOPIC)
+                // Same per-listing ordering as the requested event so consumers see
+                // requested → decided in the same partition order.
+                .partitionKey(String.valueOf(listingId))
+                .payload(serialize(event))
+                .build());
+        applicationEventPublisher.publishEvent(OutboxRowReadyEvent.INSTANCE);
+        log.info("Outbox inspection.decided.v1 eventId={} inspectionRequestId={} decision={}",
+                eventId, saved.getId(), decision);
     }
 
     private InspectionRequest loadRequest(Long requestId) {

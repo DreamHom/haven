@@ -36,7 +36,8 @@ public class AnthropicListingSearchClient {
               id (number), type (RENT or SALE), price (number), currency (string),
               title, headline, description (may be truncated), address, bedrooms, bathrooms,
               geo (optional "lat,lng" string or null), priceNegotiable (boolean),
-              petsAllowed (string or null), utilitiesNote (string or null).
+              petsAllowed (string or null), utilitiesNote (string or null),
+              ownerVerified (boolean), propertyDocumentsVerified (boolean).
 
             Respond with exactly one JSON object and no other characters before or after it:
             {"listingIds":[<numbers>]}
@@ -45,6 +46,8 @@ public class AnthropicListingSearchClient {
             - Order ids from best match to weakest match.
             - Include at most 20 ids.
             - Only use ids that appear in the provided listings array. Never invent ids.
+            - "ownerVerified" / "propertyDocumentsVerified" — when the user asks for "verified"
+              owners or properties, prefer rows where the relevant field is true.
             - If nothing in the catalogue plausibly matches, return {"listingIds":[]}.
             - Do not wrap the JSON in markdown fences. Do not add commentary outside the JSON.
             """;

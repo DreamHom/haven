@@ -2,6 +2,8 @@ package com.dreamhomes.haven.review;
 
 import com.dreamhomes.haven.admin.AdminAuditLogRepository;
 import com.dreamhomes.haven.agentlisting.AgentListingRepository;
+import com.dreamhomes.haven.agentlisting.model.AgentListing;
+import com.dreamhomes.haven.agentlisting.model.AgentListingStatus;
 import com.dreamhomes.haven.support.JwtTestSupport;
 import com.dreamhomes.haven.comment.CommentRepository;
 import com.dreamhomes.haven.support.AbstractPostgresIT;
@@ -198,6 +200,114 @@ class ReviewFlowEndToEndIT extends AbstractPostgresIT {
                                 { "revieweeUserId": %d, "rating": 5, "body": "x" }
                                 """.formatted(applicant.getId())))
                 .andExpect(status().isUnauthorized());
+    }
+
+    // ============================ Items 9 + 11: eligibility + agent reviews ============================
+
+    @Test
+    void eligibilityReturnsBothFalseForUnrelatedApplicant() throws Exception {
+        User owner = jwtTestSupport.persistUser(Role.OWNER);
+        User applicant = jwtTestSupport.persistUser(Role.APPLICANT);
+        User outsider = jwtTestSupport.persistUser(Role.APPLICANT);
+        Long listingId = persistClosedListingWithAcceptedOffer(owner.getId(), applicant.getId());
+
+        mockMvc.perform(get("/api/listings/" + listingId + "/reviews/me/eligibility")
+                        .header("Authorization", jwtTestSupport.bearerFor(outsider)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.listingStatus").value("CLOSED"))
+                .andExpect(jsonPath("$.canReviewOwner").value(false))
+                .andExpect(jsonPath("$.canReviewAgent").value(false))
+                .andExpect(jsonPath("$.ownerUserId").value(owner.getId().intValue()))
+                // No agent on this listing → agentUserId is null in the JSON body.
+                .andExpect(jsonPath("$.reasons.owner").isNotEmpty());
+    }
+
+    @Test
+    void eligibilityShowsCanReviewBothWhenAgentAcceptedAndApplicantWon() throws Exception {
+        User owner = jwtTestSupport.persistUser(Role.OWNER);
+        User applicant = jwtTestSupport.persistUser(Role.APPLICANT);
+        User agent = jwtTestSupport.persistUser(Role.AGENT);
+        Long listingId = persistClosedListingWithAcceptedOffer(owner.getId(), applicant.getId());
+        persistAcceptedAgentListing(listingId, agent.getId(), owner.getId());
+
+        mockMvc.perform(get("/api/listings/" + listingId + "/reviews/me/eligibility")
+                        .header("Authorization", jwtTestSupport.bearerFor(applicant)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.canReviewOwner").value(true))
+                .andExpect(jsonPath("$.canReviewAgent").value(true))
+                .andExpect(jsonPath("$.agentUserId").value(agent.getId().intValue()));
+    }
+
+    @Test
+    void eligibilityEndpointRequiresAuth() throws Exception {
+        User owner = jwtTestSupport.persistUser(Role.OWNER);
+        User applicant = jwtTestSupport.persistUser(Role.APPLICANT);
+        Long listingId = persistClosedListingWithAcceptedOffer(owner.getId(), applicant.getId());
+
+        mockMvc.perform(get("/api/listings/" + listingId + "/reviews/me/eligibility"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void applicantCanReviewBothOwnerAndAcceptedAgentOnClosedListing() throws Exception {
+        User owner = jwtTestSupport.persistUser(Role.OWNER);
+        User applicant = jwtTestSupport.persistUser(Role.APPLICANT);
+        User agent = jwtTestSupport.persistUser(Role.AGENT);
+        Long listingId = persistClosedListingWithAcceptedOffer(owner.getId(), applicant.getId());
+        persistAcceptedAgentListing(listingId, agent.getId(), owner.getId());
+
+        // Owner review (existing behaviour).
+        mockMvc.perform(post("/api/listings/" + listingId + "/reviews")
+                        .header("Authorization", jwtTestSupport.bearerFor(applicant))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                { "revieweeUserId": %d, "rating": 4, "body": "Great owner" }
+                                """.formatted(owner.getId())))
+                .andExpect(status().isCreated());
+
+        // NEW: agent review (Item 11).
+        mockMvc.perform(post("/api/listings/" + listingId + "/reviews")
+                        .header("Authorization", jwtTestSupport.bearerFor(applicant))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                { "revieweeUserId": %d, "rating": 5, "body": "Agent did all the work" }
+                                """.formatted(agent.getId())))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.revieweeUserId").value(agent.getId().intValue()));
+
+        // Aggregate updated for the agent.
+        mockMvc.perform(get("/api/users/" + agent.getId() + "/profile"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.averageRating").value(5.0))
+                .andExpect(jsonPath("$.reviewCount").value(1));
+    }
+
+    @Test
+    void applicantCannotReviewAgentWhoseAssignmentWasRevoked() throws Exception {
+        User owner = jwtTestSupport.persistUser(Role.OWNER);
+        User applicant = jwtTestSupport.persistUser(Role.APPLICANT);
+        User agent = jwtTestSupport.persistUser(Role.AGENT);
+        Long listingId = persistClosedListingWithAcceptedOffer(owner.getId(), applicant.getId());
+        AgentListing al = persistAcceptedAgentListing(listingId, agent.getId(), owner.getId());
+        al.setStatus(AgentListingStatus.REVOKED);
+        agentListingRepository.save(al);
+
+        mockMvc.perform(post("/api/listings/" + listingId + "/reviews")
+                        .header("Authorization", jwtTestSupport.bearerFor(applicant))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                { "revieweeUserId": %d, "rating": 5, "body": "x" }
+                                """.formatted(agent.getId())))
+                .andExpect(status().isForbidden());
+    }
+
+    private AgentListing persistAcceptedAgentListing(Long listingId, Long agentId, Long ownerId) {
+        Instant now = Instant.now();
+        return agentListingRepository.save(AgentListing.builder()
+                .listingId(listingId).agentUserId(agentId).requestedByOwnerId(ownerId)
+                .status(AgentListingStatus.ACCEPTED)
+                .requestedAt(now).decidedAt(now)
+                .build());
     }
 
     private Long persistClosedListingWithAcceptedOffer(Long ownerId, Long applicantId) {

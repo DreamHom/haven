@@ -14,5 +14,11 @@ import com.dreamhomes.haven.verification.model.VerificationType;
 public record SubmitVerificationCommand(
         VerificationType type,
         Long propertyId,
-        Map<String, Object> documentRefs) {
+        Map<String, Object> documentRefs,
+        Long livenessCheckId) {
+
+    /** Back-compat constructor for callers that don't pass a liveness check (most existing). */
+    public SubmitVerificationCommand(VerificationType type, Long propertyId, Map<String, Object> documentRefs) {
+        this(type, propertyId, documentRefs, null);
+    }
 }

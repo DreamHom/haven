@@ -18,6 +18,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import com.dreamhomes.haven.comment.exception.CommentAlreadyDeletedException;
 import com.dreamhomes.haven.comment.exception.CommentNotFoundException;
+import com.dreamhomes.haven.comment.exception.InvalidParentCommentException;
 import com.dreamhomes.haven.comment.exception.NotAuthorisedToDeleteCommentException;
 import com.dreamhomes.haven.listing.model.Listing;
 
@@ -40,17 +41,31 @@ public class CommentService {
     private final NotificationApi notificationApi;
 
     @Transactional
-    public Comment post(Long authorId, Long listingId, String body) {
+    public Comment post(Long authorId, Long listingId, String body, Long parentCommentId) {
         if (body == null || body.isBlank()) {
             throw new IllegalArgumentException("Comment body cannot be empty");
         }
         // Throws ListingNotFoundException if missing.
         ListingResponse listing = listingService.findById(listingId);
 
+        // Item 8: optional reply-to-parent. Validate before write so the response is a
+        // clean 400/404 rather than a constraint violation from the FK.
+        if (parentCommentId != null) {
+            Comment parent = commentRepository.findById(parentCommentId)
+                    .orElseThrow(() -> new CommentNotFoundException(parentCommentId));
+            if (parent.isDeleted()) {
+                throw new InvalidParentCommentException("parent comment has been deleted");
+            }
+            if (!parent.getListingId().equals(listing.id())) {
+                throw new InvalidParentCommentException("parent comment belongs to a different listing");
+            }
+        }
+
         Comment saved = commentRepository.save(Comment.builder()
                 .listingId(listing.id())
                 .authorUserId(authorId)
                 .body(body.trim())
+                .parentCommentId(parentCommentId)
                 .build());
 
         // Self-comments don't notify — owners aren't surprised by their own posts.
@@ -58,7 +73,8 @@ public class CommentService {
             notifyOwner(listing.ownerId(), saved);
         }
 
-        log.info("Posted commentId={} listingId={} authorId={}", saved.getId(), listingId, authorId);
+        log.info("Posted commentId={} listingId={} authorId={} parentCommentId={}",
+                saved.getId(), listingId, authorId, parentCommentId);
         return saved;
     }
 

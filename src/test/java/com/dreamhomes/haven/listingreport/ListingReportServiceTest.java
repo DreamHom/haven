@@ -157,6 +157,6 @@ class ListingReportServiceTest {
                 null, null, null, null,
                 null, false,
                 ListingStatus.LIVE, null, 0L,
-                Instant.now(), Instant.now(), null, null, null, null, null, null, null);
+                Instant.now(), Instant.now(), null, null, null, null, null, null, null, null);
     }
 }
