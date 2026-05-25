@@ -1,8 +1,11 @@
 package com.dreamhomes.haven.dreamai.provider;
 
+import com.dreamhomes.haven.dreamai.client.AnthropicIntentClassifierClient;
 import com.dreamhomes.haven.dreamai.client.AnthropicListingCompareClient;
 import com.dreamhomes.haven.dreamai.client.AnthropicListingSearchClient;
 import com.dreamhomes.haven.dreamai.config.DreamAiAnthropicProperties;
+import com.dreamhomes.haven.dreamai.intent.IntentClassification;
+import com.dreamhomes.haven.dreamai.intent.IntentClassifierContext;
 import com.dreamhomes.haven.dreamai.turn.CompareReasoning;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -35,6 +38,7 @@ public class AnthropicLlmRankingProvider implements LlmRankingProvider {
 
     private final AnthropicListingSearchClient searchClient;
     private final AnthropicListingCompareClient compareClient;
+    private final AnthropicIntentClassifierClient intentClassifierClient;
     private final DreamAiAnthropicProperties properties;
 
     @Override
@@ -55,5 +59,15 @@ public class AnthropicLlmRankingProvider implements LlmRankingProvider {
     @Override
     public CompareReasoning compareListings(String userIntent, String catalogJson, Set<Long> validIds) {
         return compareClient.compareListings(userIntent, catalogJson, validIds);
+    }
+
+    /**
+     * Item 26 sub-task D — delegates to {@link AnthropicIntentClassifierClient}. The
+     * orchestrator wraps every call in try/catch and falls back to regex routing when
+     * we throw, so we don't try to recover here — let the upstream error bubble.
+     */
+    @Override
+    public IntentClassification classifyIntent(String prompt, IntentClassifierContext context) {
+        return intentClassifierClient.classifyIntent(prompt, context);
     }
 }

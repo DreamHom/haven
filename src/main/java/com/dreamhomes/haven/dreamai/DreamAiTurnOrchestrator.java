@@ -1,9 +1,14 @@
 package com.dreamhomes.haven.dreamai;
 
 import com.dreamhomes.haven.dreamai.config.DreamAiAnthropicProperties;
+import com.dreamhomes.haven.dreamai.config.DreamAiIntentClassifierProperties;
 import com.dreamhomes.haven.dreamai.dto.DreamAiRankMode;
 import com.dreamhomes.haven.dreamai.dto.DreamAiSuggestOutcome;
 import com.dreamhomes.haven.dreamai.dto.DreamAiSuggestionRequest;
+import com.dreamhomes.haven.dreamai.intent.Intent;
+import com.dreamhomes.haven.dreamai.intent.IntentClassification;
+import com.dreamhomes.haven.dreamai.intent.IntentClassifierContext;
+import com.dreamhomes.haven.dreamai.provider.LlmRankingProvider;
 import com.dreamhomes.haven.dreamai.turn.AssistantTurnV1;
 import com.dreamhomes.haven.dreamai.turn.ChipOption;
 import com.dreamhomes.haven.dreamai.turn.CompareReasoning;
@@ -48,6 +53,13 @@ public class DreamAiTurnOrchestrator {
     private final DreamAiService dreamAiService;
     private final ListingService listingService;
     private final DreamAiAnthropicProperties anthropicProperties;
+    /**
+     * Item 26 sub-task D — toggle for LLM-classified intent routing. Bound from
+     * {@code HAVEN_DREAM_AI_INTENT_CLASSIFIER}; defaults to {@code true}. When false,
+     * {@link #buildTurn(String, String, List, String, DreamAiRankMode, List, boolean)}
+     * skips the classifier and uses the regex / length fallback path.
+     */
+    private final DreamAiIntentClassifierProperties intentClassifierProperties;
 
     public AssistantTurnV1 buildTurn(String effectivePrompt, String traceId) {
         return buildTurn(effectivePrompt, traceId, List.of(), null, null, List.of(), true);
@@ -115,31 +127,62 @@ public class DreamAiTurnOrchestrator {
         }
 
         // 1. URL-triggered compare — explicit user intent via /listings/N pastes.
+        //    Deterministic, no LLM cost — always wins before the classifier runs.
         List<Long> compareIds = extractListingIdsFromUrls(p);
         if (compareIds != null && compareIds.size() >= MIN_COMPARE_LISTINGS) {
             return compareTurn(compareIds, joinIntent(priorUserIntent, p), traceId);
         }
 
-        // 2. Conversation-aware compare — "which of these is best?" on a chat that just
-        //    showed listings. Triggers when the prompt LOOKS like a comparison question
-        //    AND the prior turn surfaced 2+ listing ids.
-        if (looksLikeComparisonQuestion(p) && priorListingIds != null && priorListingIds.size() >= MIN_COMPARE_LISTINGS) {
-            List<Long> ids = priorListingIds.stream()
-                    .distinct()
-                    .limit(MAX_COMPARE_LISTINGS)
-                    .toList();
-            return compareTurn(ids, joinIntent(priorUserIntent, p), traceId);
-        }
-
-        // 3. Adaptive clarify — Item 26 sub-task A. Only emit chips for constraints the
-        //    user has NOT already provided. When all four are detected we skip the clarify
-        //    path entirely (the user already told us everything we'd ask).
-        if (shouldClarify(p)) {
-            Set<ConstraintKind> provided = inferProvidedConstraints(p);
-            if (provided.size() < ConstraintKind.values().length) {
-                return clarifyTurn(traceId, provided);
+        // 2. Item 26 sub-task D — LLM-classified routing. Replaces the regex / length
+        //    branches below when the classifier is enabled AND the active provider can
+        //    answer. Any exception or unsupported provider transparently falls through
+        //    to the legacy regex routing so we never lose UX continuity on a Claude blip.
+        boolean hasPriorListings = priorListingIds != null && priorListingIds.size() >= MIN_COMPARE_LISTINGS;
+        Intent classified = classifyIntentSafely(p, hasPriorListings);
+        if (classified != null) {
+            switch (classified) {
+                case EMPTY:
+                    return errorTurn(traceId, "Prompt was empty.");
+                case COMPARE_RECENT:
+                    if (hasPriorListings) {
+                        List<Long> ids = priorListingIds.stream()
+                                .distinct()
+                                .limit(MAX_COMPARE_LISTINGS)
+                                .toList();
+                        return compareTurn(ids, joinIntent(priorUserIntent, p), traceId);
+                    }
+                    // Classifier picked COMPARE_RECENT despite no prior listings — defensive
+                    // downgrade to clarify so we don't dead-end the conversation. The
+                    // classifier prompt forbids this case, but we belt-and-brace it.
+                    return clarifyTurn(traceId, inferProvidedConstraints(p));
+                case CLARIFY:
+                    return clarifyTurn(traceId, inferProvidedConstraints(p));
+                case SEARCH:
+                    // fall through to the rank path below
+                    break;
             }
-            // All constraints present — fall through to the rank path even on a short prompt.
+        } else {
+            // Fallback path — the classifier is disabled OR not yet implemented by the
+            // active provider OR threw upstream. Use the original regex / length routing.
+            // 2a. Conversation-aware compare — "which of these is best?" on a chat that just
+            //     showed listings.
+            if (looksLikeComparisonQuestion(p) && hasPriorListings) {
+                List<Long> ids = priorListingIds.stream()
+                        .distinct()
+                        .limit(MAX_COMPARE_LISTINGS)
+                        .toList();
+                return compareTurn(ids, joinIntent(priorUserIntent, p), traceId);
+            }
+            // 2b. Adaptive clarify — Item 26 sub-task A. Only emit chips for constraints the
+            //     user has NOT already provided. When all four are detected we skip the clarify
+            //     path entirely (the user already told us everything we'd ask).
+            if (shouldClarify(p)) {
+                Set<ConstraintKind> provided = inferProvidedConstraints(p);
+                if (provided.size() < ConstraintKind.values().length) {
+                    return clarifyTurn(traceId, provided);
+                }
+                // All constraints present — fall through to the rank path even on a short prompt.
+            }
         }
 
         DreamAiRankMode effectiveRankMode = rankMode != null
@@ -210,6 +253,34 @@ public class DreamAiTurnOrchestrator {
 
     private static boolean shouldClarify(String p) {
         return p.length() < 10 && !p.matches(".*\\d.*");
+    }
+
+    /**
+     * Item 26 sub-task D — runs the LLM intent classifier when enabled + available, returns
+     * the classified {@link Intent}. Returns {@code null} when classification is disabled,
+     * the provider isn't available, or the call fails — caller falls through to the legacy
+     * regex routing on null so we never lose UX continuity on a provider blip.
+     */
+    private Intent classifyIntentSafely(String prompt, boolean hasPriorListings) {
+        if (!intentClassifierProperties.isEnabled()) {
+            return null;
+        }
+        LlmRankingProvider provider = dreamAiService.llmProvider();
+        if (provider == null || !provider.isAvailable()) {
+            return null;
+        }
+        try {
+            IntentClassification result = provider.classifyIntent(prompt,
+                    new IntentClassifierContext(false, hasPriorListings));
+            return result == null ? null : result.intent();
+        } catch (UnsupportedOperationException ex) {
+            // Provider hasn't implemented intent classification yet (e.g. scaffolded
+            // OpenAI / Gemini providers) — fall through to regex routing.
+            return null;
+        } catch (Exception ex) {
+            log.warn("Intent classifier failed, falling back to regex routing: {}", ex.toString());
+            return null;
+        }
     }
 
     /**

@@ -1,5 +1,7 @@
 package com.dreamhomes.haven.dreamai.provider;
 
+import com.dreamhomes.haven.dreamai.intent.IntentClassification;
+import com.dreamhomes.haven.dreamai.intent.IntentClassifierContext;
 import com.dreamhomes.haven.dreamai.turn.CompareReasoning;
 
 import java.util.List;
@@ -66,4 +68,28 @@ public interface LlmRankingProvider {
      *                    and an out-of-set recommendation is forced to null
      */
     CompareReasoning compareListings(String userIntent, String catalogJson, Set<Long> validIds);
+
+    /**
+     * Item 26 sub-task D — classify a user prompt into one of the
+     * {@link com.dreamhomes.haven.dreamai.intent.Intent} routing buckets so the
+     * orchestrator can pick between the rank, compare-recent, clarify, and empty paths
+     * without relying on brittle regex / length heuristics.
+     *
+     * <p>v1 only {@code AnthropicLlmRankingProvider} ships a real implementation; the
+     * scaffolded OpenAI / Gemini providers throw {@link UnsupportedOperationException}
+     * so the orchestrator's fallback (regex routing) takes over transparently. The
+     * default body keeps the contract additive — implementations that don't override
+     * are detected by the orchestrator as "not yet wired" and never get called.</p>
+     *
+     * @param prompt  trimmed user prompt (already length-capped + sanitised)
+     * @param context flags the orchestrator already computed (prior listings, etc.)
+     * @return non-null classification; throwing is reserved for upstream failures so
+     *         the orchestrator can fall back to regex routing
+     * @throws UnsupportedOperationException when the active provider hasn't implemented
+     *         intent classification yet
+     */
+    default IntentClassification classifyIntent(String prompt, IntentClassifierContext context) {
+        throw new UnsupportedOperationException(
+                name() + " provider has no intent-classification implementation yet");
+    }
 }

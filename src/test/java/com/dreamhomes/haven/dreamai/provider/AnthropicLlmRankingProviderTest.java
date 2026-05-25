@@ -1,8 +1,12 @@
 package com.dreamhomes.haven.dreamai.provider;
 
+import com.dreamhomes.haven.dreamai.client.AnthropicIntentClassifierClient;
 import com.dreamhomes.haven.dreamai.client.AnthropicListingCompareClient;
 import com.dreamhomes.haven.dreamai.client.AnthropicListingSearchClient;
 import com.dreamhomes.haven.dreamai.config.DreamAiAnthropicProperties;
+import com.dreamhomes.haven.dreamai.intent.Intent;
+import com.dreamhomes.haven.dreamai.intent.IntentClassification;
+import com.dreamhomes.haven.dreamai.intent.IntentClassifierContext;
 import com.dreamhomes.haven.dreamai.turn.CompareReasoning;
 import com.dreamhomes.haven.dreamai.turn.PerListingNote;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,13 +38,16 @@ class AnthropicLlmRankingProviderTest {
     @Mock
     AnthropicListingCompareClient compareClient;
 
+    @Mock
+    AnthropicIntentClassifierClient intentClassifierClient;
+
     DreamAiAnthropicProperties properties;
     AnthropicLlmRankingProvider provider;
 
     @BeforeEach
     void setUp() {
         properties = new DreamAiAnthropicProperties();
-        provider = new AnthropicLlmRankingProvider(searchClient, compareClient, properties);
+        provider = new AnthropicLlmRankingProvider(searchClient, compareClient, intentClassifierClient, properties);
     }
 
     @Test
@@ -85,5 +92,19 @@ class AnthropicLlmRankingProviderTest {
         assertThat(result).isSameAs(expected);
         verify(compareClient).compareListings("intent", "[]", validIds);
         verifyNoInteractions(searchClient);
+    }
+
+    @Test
+    void classifyIntentDelegatesToIntentClient() {
+        IntentClassifierContext ctx = new IntentClassifierContext(false, true);
+        IntentClassification expected = new IntentClassification(Intent.COMPARE_RECENT, 0.91);
+        when(intentClassifierClient.classifyIntent("which is best?", ctx)).thenReturn(expected);
+
+        IntentClassification result = provider.classifyIntent("which is best?", ctx);
+
+        assertThat(result).isSameAs(expected);
+        verify(intentClassifierClient).classifyIntent("which is best?", ctx);
+        verifyNoInteractions(searchClient);
+        verifyNoInteractions(compareClient);
     }
 }

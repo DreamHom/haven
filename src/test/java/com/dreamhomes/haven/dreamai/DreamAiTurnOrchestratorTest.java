@@ -2,6 +2,7 @@ package com.dreamhomes.haven.dreamai;
 
 import com.dreamhomes.haven.dreamai.DreamAiTurnOrchestrator.ConstraintKind;
 import com.dreamhomes.haven.dreamai.config.DreamAiAnthropicProperties;
+import com.dreamhomes.haven.dreamai.config.DreamAiIntentClassifierProperties;
 import com.dreamhomes.haven.dreamai.dto.DreamAiRankMode;
 import com.dreamhomes.haven.dreamai.dto.DreamAiSuggestOutcome;
 import com.dreamhomes.haven.dreamai.dto.DreamAiSuggestionRequest;
@@ -42,13 +43,19 @@ class DreamAiTurnOrchestratorTest {
     ListingService listingService;
 
     DreamAiAnthropicProperties anthropicProperties = new DreamAiAnthropicProperties();
+    DreamAiIntentClassifierProperties intentClassifierProperties = new DreamAiIntentClassifierProperties();
 
     DreamAiTurnOrchestrator orchestrator;
 
     @BeforeEach
     void setUp() {
         anthropicProperties.setApiKey("sk-ant-test");
-        orchestrator = new DreamAiTurnOrchestrator(dreamAiService, listingService, anthropicProperties);
+        // Intent classifier disabled in unit tests by default so the existing regex-routing
+        // assertions stay valid. Tests that specifically exercise the classifier path flip
+        // intentClassifierProperties.setEnabled(true) before constructing the orchestrator.
+        intentClassifierProperties.setEnabled(false);
+        orchestrator = new DreamAiTurnOrchestrator(
+                dreamAiService, listingService, anthropicProperties, intentClassifierProperties);
     }
 
     // ----------------------- Item 26 sub-task A — adaptive chips -----------------------

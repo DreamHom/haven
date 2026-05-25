@@ -24,7 +24,7 @@ These shipped on the backend but do not change any API contract Vista consumes �
 
 ## VTASK-001 — Listing trust signals (Possible Scam + Verified)
 
-**Status:** ✅ READY FOR VISTA
+**Status:** ✅ DONE (Vista)
 **Backend item:** post-session-tasks.md Item 16
 **Backend status:** ✅ shipped (uncommitted on branch `lukasio` — see Haven repo working tree)
 
@@ -168,7 +168,7 @@ State 3 — both verified (green badge):
 
 ## VTASK-002 — Verification rejection reason exposed to submitter
 
-**Status:** ✅ READY FOR VISTA
+**Status:** ✅ DONE (Vista)
 **Backend item:** post-session-tasks.md Item 21
 **Backend status:** ✅ shipped (uncommitted on branch `lukasio` — see Haven repo working tree)
 
@@ -294,7 +294,7 @@ The quotes around `{decisionReason}` make it clear the text is the admin's words
 
 ## VTASK-003 — UI-level inspection cancellation (post-APPROVED, with reason)
 
-**Status:** ✅ READY FOR VISTA
+**Status:** ✅ DONE (Vista)
 **Backend item:** post-session-tasks.md Item 7 Gap C
 **Backend status:** ✅ shipped on branch `lukasio` (uncommitted)
 
@@ -419,7 +419,7 @@ otherwise → don't show
 
 ## VTASK-004 — Post-APPROVED inspection action menu (docs only — endpoints already exist)
 
-**Status:** ✅ READY FOR VISTA
+**Status:** ✅ DONE (Vista)
 **Backend item:** post-session-tasks.md Item 7 Gap D
 **Backend status:** ✅ shipped on branch `lukasio` (uncommitted) — rich OpenAPI annotations added to all four endpoints.
 
@@ -541,7 +541,7 @@ No request body. Response: `InspectionResponse` with `status: "NO_SHOW"`.
 
 ## VTASK-005 — Inspection notifications surfaced in real time
 
-**Status:** ✅ READY FOR VISTA
+**Status:** ✅ DONE (Vista)
 **Backend item:** post-session-tasks.md Item 7 Gap A + B
 **Backend status:** ✅ shipped on branch `lukasio` (uncommitted)
 
@@ -644,7 +644,7 @@ For INSPECTION_CANCELLED, derive "which party cancelled" by comparing `payload.c
 
 ## VTASK-006 — Comment threading (parent/child)
 
-**Status:** ✅ READY FOR VISTA
+**Status:** ✅ DONE (Vista)
 **Backend item:** post-session-tasks.md Item 8
 **Backend status:** ✅ shipped (V43 migration + service + controller + tests, uncommitted on branch `lukasio`)
 
@@ -784,7 +784,7 @@ A reply whose parent isn't in the same page (orphan after paging) falls back to 
 
 ## VTASK-007 — "Can I review?" pre-check + post-close review CTA
 
-**Status:** ✅ READY FOR VISTA
+**Status:** ✅ DONE (Vista)
 **Backend item:** post-session-tasks.md Item 9
 **Backend status:** ✅ shipped (new endpoint + tests, uncommitted on branch `lukasio`)
 
@@ -908,7 +908,7 @@ Errors:
 
 ## VTASK-008 — Wire up the existing comment-flag endpoint
 
-**Status:** ✅ READY FOR VISTA
+**Status:** ✅ DONE (Vista)
 **Backend item:** post-session-tasks.md Item 10
 **Backend status:** ✅ shipped (endpoint already lived in code; OpenAPI annotations expanded — uncommitted on branch `lukasio`)
 
@@ -1001,7 +1001,7 @@ After an admin transitions the flag to `RESOLVED` or `DISMISSED`, the same repor
 
 ## VTASK-009 — Agent review eligibility (post-deal)
 
-**Status:** ✅ READY FOR VISTA
+**Status:** ✅ DONE (Vista)
 **Backend item:** post-session-tasks.md Item 11
 **Backend status:** ✅ shipped (`ReviewService.post` extended + eligibility shipped via VTASK-007 — uncommitted on branch `lukasio`)
 
@@ -1111,7 +1111,7 @@ The aggregate (`averageRating`, `reviewCount`) on the agent's public profile upd
 
 ## VTASK-010 — Pre-signed photo upload (browser → R2 direct)
 
-**Status:** ✅ READY FOR VISTA
+**Status:** ✅ DONE (Vista)
 **Backend item:** post-session-tasks.md Item 2
 **Backend status:** ✅ shipped (uncommitted on branch `lukasio` — V46 migration, new endpoints, service, presigned-storage abstraction, scheduled cleanup, unit + controller + IT tests)
 
@@ -1331,7 +1331,7 @@ function putToR2(url: string, blob: Blob, contentType: string,
 
 ## VTASK-011 — Automated-verification UI (mocked, swappable providers)
 
-**Status:** ✅ READY FOR VISTA
+**Status:** ✅ DONE (Vista)
 **Backend item:** post-session-tasks.md Item 20
 **Backend status:** ✅ shipped (uncommitted on branch `lukasio` — see Haven repo working tree)
 
@@ -1503,7 +1503,7 @@ PROPERTY_DOCUMENTS submission:
 
 ## VTASK-012 — Liveness check UI (mocked, with v2 framing)
 
-**Status:** ✅ READY FOR VISTA
+**Status:** ✅ DONE (Vista)
 **Backend item:** post-session-tasks.md Item 19
 **Backend status:** ✅ shipped (uncommitted on branch `lukasio` — see Haven repo working tree)
 
@@ -1671,7 +1671,7 @@ After tap → call the endpoint → show a small green "✅ Liveness check passe
 
 ## VTASK-013 — Dream AI compare via UI checkbox selection
 
-**Status:** ✅ READY FOR VISTA
+**Status:** ✅ DONE (Vista)
 **Backend item:** post-session-tasks.md Item 26 sub-task B
 **Backend status:** ✅ shipped on branch `lukasio` (uncommitted)
 
@@ -1754,7 +1754,7 @@ Today compare requires the user to paste `/listings/17` URLs into chat. Nobody d
 
 ## VTASK-014 — Dream AI soft fallback on no_results
 
-**Status:** ✅ READY FOR VISTA
+**Status:** ✅ DONE (Vista)
 **Backend item:** post-session-tasks.md Item 26 sub-task C
 **Backend status:** ✅ shipped on branch `lukasio` (uncommitted)
 
@@ -1835,7 +1835,7 @@ When BOTH the strict pass AND the broader pass come up empty, the genuine `kind=
 
 ## VTASK-015 — Adaptive Dream AI clarify chips
 
-**Status:** ✅ READY FOR VISTA
+**Status:** ✅ DONE (Vista)
 **Backend item:** post-session-tasks.md Item 26 sub-task A
 **Backend status:** ✅ shipped on branch `lukasio` (uncommitted)
 
@@ -1886,7 +1886,7 @@ The chip ids are stable: `budget`, `area`, `bedrooms`, `term` (rent-or-buy). New
 
 ## VTASK-016 — Dream AI mode-honesty indicator
 
-**Status:** ⏳ BACKEND IN PROGRESS
+**Status:** ✅ DONE (Vista)
 **Backend item:** post-session-tasks.md Item 26 sub-task E
 **Backend status:** ✅ already exposes `meta.provider` (no backend change needed)
 

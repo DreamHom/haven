@@ -126,6 +126,9 @@ class VerificationSubmissionIT extends AbstractPostgresIT {
         // Item 21 (post-session-tasks.md): admin-supplied decisionReason must surface to
         // the submitter on REJECTED rows so they know what to fix on resubmit.
         User owner = jwtTestSupport.persistUser(Role.OWNER);
+        // Populate decidedAt + decidedByAdminId together with the REJECTED status so the
+        // verifications_decision_complete CHECK constraint accepts the fixture row.
+        User admin = jwtTestSupport.persistUser(Role.ADMIN);
         Verification rejected = verificationRepository.save(Verification.builder()
                 .type(VerificationType.OWNER_IDENTITY)
                 .submitterUserId(owner.getId())
@@ -134,6 +137,7 @@ class VerificationSubmissionIT extends AbstractPostgresIT {
                 .documentRefs("{\"kind\":\"NIN\",\"ref\":\"AB1234567\"}")
                 .submittedAt(Instant.now().minusSeconds(60))
                 .decidedAt(Instant.now())
+                .decidedByAdminId(admin.getId())
                 .decisionReason("Photo too blurry, retake in better light.")
                 .build());
 
