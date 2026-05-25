@@ -335,7 +335,7 @@ public class DemoDataSeeder implements ApplicationRunner {
             adminAuditLogRepository.save(AdminAuditLog.builder()
                     .adminId(PLATFORM_ADMIN_ID).action(AdminAction.LISTING_TAKEDOWN)
                     .targetType(AuditTargetType.LISTING).targetId(yabaStudio.getId())
-                    .metadata("Spot-check moderation cycle for audit-log demonstration.")
+                    .metadata("{\"reason\":\"Spot-check moderation cycle for audit-log demonstration.\"}")
                     .createdAt(now).build());
             adminAuditLogRepository.save(AdminAuditLog.builder()
                     .adminId(PLATFORM_ADMIN_ID).action(AdminAction.LISTING_APPROVED)
