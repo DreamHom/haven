@@ -65,6 +65,10 @@ spring:
       # dedup by event_id keeps the insert idempotent.
       enable-auto-commit: false
       properties:
+        # Back off reconnect when the broker is down (see KafkaBrokerStartupCheck).
+        reconnect.backoff.ms: 10000
+        reconnect.backoff.max.ms: 60000
+        retry.backoff.ms: 10000
         spring.json.trusted.packages: com.dreamhomes.haven.inspection.events,com.dreamhomes.haven.offer.events
         spring.json.value.default.type: com.dreamhomes.haven.inspection.events.InspectionRequestedEvent
     listener:
