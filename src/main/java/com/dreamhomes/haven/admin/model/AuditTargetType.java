@@ -10,5 +10,6 @@ public enum AuditTargetType {
     LISTING,
     USER,
     /** Phase 12: review takedowns. */
-    REVIEW
+    REVIEW,
+    PROMOTION
 }
