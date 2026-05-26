@@ -48,11 +48,15 @@ public class AnthropicListingSearchClient {
             - Only use ids that appear in the provided listings array. Never invent ids.
             - "ownerVerified" / "propertyDocumentsVerified" — when the user asks for "verified"
               owners or properties, prefer rows where the relevant field is true.
-            - HARD location constraint: if the user names a specific state, city, or
-              neighbourhood (e.g. "Ogun state", "in Lekki", "Surulere"), ONLY return listings
-              whose address contains that location. If no listing in the catalogue matches
-              the named location, return {"listingIds":[]} — never substitute listings from
-              other locations as a "close enough" fallback. Location is not negotiable.
+            - Location preference: if the user names a specific state, city, or
+              neighbourhood (e.g. "in Lekki", "Surulere", "Ikeja"), rank exact address
+              matches first. If no listing matches that exact neighbourhood, fall back
+              to listings in the broader area (same city / same state) ranked by how
+              close they appear to the requested place. Only return {"listingIds":[]}
+              for location reasons if every listing is in a completely different region
+              (e.g. user asked for Lagos, the catalogue is entirely Abuja). Sparse
+              inventory in a single neighbourhood must not produce an empty response —
+              expand outward and return the closest alternatives.
             - HARD price ceiling: if the user names an explicit upper price ("under ₦4m",
               "less than 2 million"), drop listings whose price exceeds it. Return empty
               before returning over-budget listings.
@@ -60,7 +64,7 @@ public class AnthropicListingSearchClient {
               "2-bed"), drop listings whose bedrooms field doesn't match. Don't return a
               4-bed when the user asked for 3.
             - If nothing in the catalogue plausibly matches AFTER applying the hard
-              constraints above, return {"listingIds":[]}.
+              constraints (price + bedroom) above, return {"listingIds":[]}.
             - Do not wrap the JSON in markdown fences. Do not add commentary outside the JSON.
             """;
 
