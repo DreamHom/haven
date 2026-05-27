@@ -112,6 +112,22 @@ Cross-feature reads use direct service autowires. Two narrow `*Api` interfaces s
 
 ---
 
+## Key design decisions
+
+The five calls that shaped the rest of the system. Full ledger of every "X over Y" choice lives in [`docs/TRADEOFFS.md`](docs/TRADEOFFS.md).
+
+- **Listings go live the moment they're created — verification is non-blocking.** A new listing from an unverified owner is public immediately, with a visible "unverified" badge. The alternative (admin-approval queue) would have starved supply on day one. The cost: a fraudulent listing can be public for a window. We shrink that window with a community report endpoint + an admin moderation queue.
+
+- **Kafka events keyed by `listingId`, not `inspectionId` / `offerId`.** Every event for one listing — request, decision, cancellation, offer — lands on the same partition, so consumers see them in production order. Trades horizontal throughput on viral listings for a coherent audit trail and consumer story. At our scale, correctness was free.
+
+- **Slot non-overlap enforced by Postgres GIST EXCLUDE, not the service layer.** `inspection_slots` carries `EXCLUDE USING gist (listing_id WITH =, tstzrange(starts_at, ends_at, '[)') WITH &&)` (migration V8). Twenty concurrent inserts of the same slot → exactly one commits, nineteen rejected, atomically — verified by `InspectionSlotConcurrentIT`. The race condition can't exist, not just "we caught it."
+
+- **Transactional outbox for every Kafka event.** Domain writes and outbox row commit in the same transaction; a 1-second poller ships outbox rows to Kafka. If the commit fails, no event fires. If Kafka is down, the row waits. No dual-write inconsistency between database state and the event stream.
+
+- **Provider abstraction for the LLM, not a hard dependency on Anthropic.** `LlmProvider` interface + Spring `@ConditionalOnProperty` selection — Anthropic Haiku is the default, OpenAI / Gemini are wired and ready behind config. Same shape for embeddings (OpenAI today, Voyage / self-hosted scaffolded). Swap a vendor without touching call sites.
+
+---
+
 ## Documentation map
 
 | If you want to... | Read |
