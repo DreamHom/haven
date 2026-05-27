@@ -1,5 +1,6 @@
 package com.dreamhomes.haven.dreamai.config;
 
+import com.dreamhomes.haven.dreamai.client.AnthropicIntentClassifierClient;
 import com.dreamhomes.haven.dreamai.client.AnthropicListingCompareClient;
 import com.dreamhomes.haven.dreamai.client.AnthropicListingSearchClient;
 import com.dreamhomes.haven.listing.embedding.ListingEmbeddingProperties;
@@ -15,6 +16,7 @@ import java.time.Duration;
 @Configuration
 @EnableConfigurationProperties({
     DreamAiAnthropicProperties.class,
+    DreamAiIntentClassifierProperties.class,
     ListingEmbeddingProperties.class,
     DreamAiModerationProperties.class,
     DreamAiRateLimitProperties.class
@@ -39,6 +41,20 @@ public class DreamAiConfig {
             DreamAiAnthropicProperties properties,
             ObjectMapper objectMapper) {
         return new AnthropicListingCompareClient(
+                buildAnthropicRestClient(properties), properties, objectMapper);
+    }
+
+    /**
+     * Item 26 sub-task D — intent classifier reuses the same Anthropic transport
+     * (baseUrl + auth + timeouts) as the rank/compare clients. Single-purpose tiny
+     * Haiku call; the orchestrator wraps every invocation in try/catch and falls back
+     * to regex routing on any failure.
+     */
+    @Bean
+    AnthropicIntentClassifierClient anthropicIntentClassifierClient(
+            DreamAiAnthropicProperties properties,
+            ObjectMapper objectMapper) {
+        return new AnthropicIntentClassifierClient(
                 buildAnthropicRestClient(properties), properties, objectMapper);
     }
 

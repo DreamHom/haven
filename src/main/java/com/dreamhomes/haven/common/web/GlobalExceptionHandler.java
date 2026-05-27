@@ -35,7 +35,9 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DomainException.class)
     public ProblemDetail handleDomain(DomainException ex) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(ex.status(), ex.getMessage());
-        problem.setType(typeFor(ex.status()));
+        problem.setType(ex.typeSuffix() != null
+                ? URI.create(errorTypeBase + ex.typeSuffix())
+                : typeFor(ex.status()));
         return problem;
     }
 

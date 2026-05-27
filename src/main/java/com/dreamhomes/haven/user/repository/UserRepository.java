@@ -81,4 +81,31 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     @Query("select u.id as ownerId, u.publicBio as publicBio from User u where u.id in :ids and u.accountDeletedAt is null")
     List<OwnerPublicBioRow> findPublicBiosByUserIds(@Param("ids") Collection<Long> ids);
+
+    /**
+     * Single-owner trust + bio row used by the listing detail endpoint to embed both
+     * {@code ownerPublicBio} and {@code ownerIdentityVerifiedAt} on the response in one
+     * round trip (Item 16 in post-session-tasks.md).
+     */
+    @Query("""
+            select u.id as ownerId,
+                   u.publicBio as publicBio,
+                   u.identityVerifiedAt as identityVerifiedAt
+              from User u
+             where u.id = :id and u.accountDeletedAt is null
+            """)
+    Optional<OwnerTrustRow> findOwnerTrustByUserId(@Param("id") Long id);
+
+    /**
+     * Bulk variant of {@link #findOwnerTrustByUserId}. Backs the listing browse path so
+     * each card can render the "Possible Scam" warning chip without an N+1 fetch.
+     */
+    @Query("""
+            select u.id as ownerId,
+                   u.publicBio as publicBio,
+                   u.identityVerifiedAt as identityVerifiedAt
+              from User u
+             where u.id in :ids and u.accountDeletedAt is null
+            """)
+    List<OwnerTrustRow> findOwnerTrustByUserIds(@Param("ids") Collection<Long> ids);
 }

@@ -2,6 +2,9 @@ name: Deploy to EKS
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
 
 concurrency:
   group: deploy-eks-main

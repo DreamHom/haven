@@ -258,6 +258,207 @@ class InspectionServiceTest {
     }
 
     @Test
+    void approveByOwnerWritesOutboxEventCarryingApplicantIdSoTheApplicantCanBeNotified() throws Exception {
+        InspectionRequest pending = pendingRequest(10L, 1L, /*applicantId=*/2L);
+        when(requestRepository.findById(10L)).thenReturn(Optional.of(pending));
+        when(slotRepository.findById(1L)).thenReturn(Optional.of(slotFor(1L, 7L)));
+        when(listingService.ownerOf(7L)).thenReturn(Optional.of(99L));
+        when(requestRepository.save(any(InspectionRequest.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        service.approveByOwner(99L, 10L);
+
+        ArgumentCaptor<OutboxEvent> cap = ArgumentCaptor.forClass(OutboxEvent.class);
+        verify(outboxRepository).save(cap.capture());
+        OutboxEvent saved = cap.getValue();
+        assertThat(saved.getAggregateType()).isEqualTo("InspectionRequest");
+        assertThat(saved.getAggregateId()).isEqualTo(10L);
+        assertThat(saved.getTopic())
+                .isEqualTo(com.dreamhomes.haven.inspection.events.InspectionDecidedEvent.TOPIC);
+        // Same per-listing partition key as the requested event so ordering is preserved.
+        assertThat(saved.getPartitionKey()).isEqualTo("7");
+        assertThat(saved.getEventId()).isNotNull();
+        assertThat(saved.getPublishedAt()).isNull();
+
+        com.dreamhomes.haven.inspection.events.InspectionDecidedEvent payload = new ObjectMapper()
+                .findAndRegisterModules()
+                .readValue(saved.getPayload(),
+                        com.dreamhomes.haven.inspection.events.InspectionDecidedEvent.class);
+        assertThat(payload.inspectionRequestId()).isEqualTo(10L);
+        assertThat(payload.slotId()).isEqualTo(1L);
+        assertThat(payload.listingId()).isEqualTo(7L);
+        assertThat(payload.applicantId()).isEqualTo(2L);
+        assertThat(payload.decision())
+                .isEqualTo(com.dreamhomes.haven.inspection.events.InspectionDecidedEvent.Decision.APPROVED);
+        assertThat(payload.reason()).isNull();
+    }
+
+    @Test
+    void declineByOwnerWritesOutboxEventCarryingDeclineReasonOnPayload() throws Exception {
+        InspectionRequest pending = pendingRequest(10L, 1L, /*applicantId=*/2L);
+        when(requestRepository.findById(10L)).thenReturn(Optional.of(pending));
+        when(slotRepository.findById(1L)).thenReturn(Optional.of(slotFor(1L, 7L)));
+        when(listingService.ownerOf(7L)).thenReturn(Optional.of(99L));
+        when(requestRepository.save(any(InspectionRequest.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        service.declineByOwner(99L, 10L, "Tenant has emergency on that day");
+
+        ArgumentCaptor<OutboxEvent> cap = ArgumentCaptor.forClass(OutboxEvent.class);
+        verify(outboxRepository).save(cap.capture());
+        com.dreamhomes.haven.inspection.events.InspectionDecidedEvent payload = new ObjectMapper()
+                .findAndRegisterModules()
+                .readValue(cap.getValue().getPayload(),
+                        com.dreamhomes.haven.inspection.events.InspectionDecidedEvent.class);
+        assertThat(payload.decision())
+                .isEqualTo(com.dreamhomes.haven.inspection.events.InspectionDecidedEvent.Decision.DECLINED);
+        assertThat(payload.reason()).isEqualTo("Tenant has emergency on that day");
+    }
+
+    @Test
+    void cancelByEitherPartyAllowsApplicantToCancelPendingAndStampsReason() {
+        InspectionRequest pending = pendingRequest(10L, 1L, /*applicantId=*/2L);
+        when(requestRepository.findById(10L)).thenReturn(Optional.of(pending));
+        when(slotRepository.findById(1L)).thenReturn(Optional.of(slotFor(1L, 7L)));
+        when(listingService.ownerOf(7L)).thenReturn(Optional.of(99L));
+        when(listingService.activeAgentUserId(7L)).thenReturn(null);
+        when(requestRepository.save(any(InspectionRequest.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        InspectionRequest saved = service.cancelByEitherParty(/*callerId=*/2L, 10L,
+                "Work emergency, sorry");
+
+        assertThat(saved.getStatus()).isEqualTo(InspectionRequestStatus.CANCELLED);
+        assertThat(saved.getCancellationReason()).isEqualTo("Work emergency, sorry");
+    }
+
+    @Test
+    void cancelByEitherPartyAllowsOwnerToCancelApproved() {
+        InspectionRequest approved = approvedRequest(10L, 1L);
+        when(requestRepository.findById(10L)).thenReturn(Optional.of(approved));
+        when(slotRepository.findById(1L)).thenReturn(Optional.of(slotFor(1L, 7L)));
+        when(listingService.ownerOf(7L)).thenReturn(Optional.of(99L));
+        when(listingService.activeAgentUserId(7L)).thenReturn(null);
+        when(requestRepository.save(any(InspectionRequest.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        InspectionRequest saved = service.cancelByEitherParty(/*callerId=*/99L, 10L,
+                "Sold the property");
+
+        assertThat(saved.getStatus()).isEqualTo(InspectionRequestStatus.CANCELLED);
+    }
+
+    @Test
+    void cancelByEitherPartyAllowsAssignedAgentToCancelApproved() {
+        InspectionRequest approved = approvedRequest(10L, 1L);
+        when(requestRepository.findById(10L)).thenReturn(Optional.of(approved));
+        when(slotRepository.findById(1L)).thenReturn(Optional.of(slotFor(1L, 7L)));
+        when(listingService.ownerOf(7L)).thenReturn(Optional.of(99L));
+        when(listingService.activeAgentUserId(7L)).thenReturn(50L);
+        when(requestRepository.save(any(InspectionRequest.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        service.cancelByEitherParty(/*agentCallerId=*/50L, 10L, "Property unavailable");
+
+        verify(requestRepository).save(any());
+    }
+
+    @Test
+    void cancelByEitherPartyRejectsCallerWhoIsNeitherApplicantOwnerNorAgent() {
+        InspectionRequest approved = approvedRequest(10L, 1L);
+        when(requestRepository.findById(10L)).thenReturn(Optional.of(approved));
+        when(slotRepository.findById(1L)).thenReturn(Optional.of(slotFor(1L, 7L)));
+        when(listingService.ownerOf(7L)).thenReturn(Optional.of(99L));
+        when(listingService.activeAgentUserId(7L)).thenReturn(50L);
+
+        assertThatThrownBy(() ->
+                service.cancelByEitherParty(/*strangerCallerId=*/777L, 10L, "I am noseying"))
+                .isInstanceOf(NotPropertyOwnerException.class);
+
+        verify(requestRepository, never()).save(any());
+    }
+
+    @Test
+    void cancelByEitherPartyRejectsCancellingAnAlreadyCancelledRequestWith409() {
+        InspectionRequest cancelled = InspectionRequest.builder()
+                .id(10L).slotId(1L).applicantId(2L)
+                .status(InspectionRequestStatus.CANCELLED)
+                .createdAt(Instant.now()).updatedAt(Instant.now())
+                .build();
+        when(requestRepository.findById(10L)).thenReturn(Optional.of(cancelled));
+
+        assertThatThrownBy(() ->
+                service.cancelByEitherParty(2L, 10L, "Trying again"))
+                .isInstanceOf(com.dreamhomes.haven.inspection.exception.InspectionRequestNotCancellableException.class);
+
+        verify(requestRepository, never()).save(any());
+    }
+
+    @Test
+    void cancelByEitherPartyRejectsCancellingACompletedRequestWith409() {
+        InspectionRequest completed = InspectionRequest.builder()
+                .id(10L).slotId(1L).applicantId(2L)
+                .status(InspectionRequestStatus.COMPLETED)
+                .createdAt(Instant.now()).updatedAt(Instant.now())
+                .build();
+        when(requestRepository.findById(10L)).thenReturn(Optional.of(completed));
+
+        assertThatThrownBy(() ->
+                service.cancelByEitherParty(2L, 10L, "Tried"))
+                .isInstanceOf(com.dreamhomes.haven.inspection.exception.InspectionRequestNotCancellableException.class);
+    }
+
+    @Test
+    void cancelByEitherPartyRejectsBlankReasonWith400() {
+        InspectionRequest approved = approvedRequest(10L, 1L);
+        when(requestRepository.findById(10L)).thenReturn(Optional.of(approved));
+
+        assertThatThrownBy(() ->
+                service.cancelByEitherParty(/*callerId=*/2L, 10L, "   "))
+                .isInstanceOf(com.dreamhomes.haven.inspection.exception.InspectionCancellationReasonRequiredException.class);
+
+        verify(requestRepository, never()).save(any());
+    }
+
+    @Test
+    void cancelByEitherPartyWritesOutboxEventCarryingReasonForNotifyingTheOtherParty() throws Exception {
+        InspectionRequest approved = approvedRequest(10L, 1L);
+        when(requestRepository.findById(10L)).thenReturn(Optional.of(approved));
+        when(slotRepository.findById(1L)).thenReturn(Optional.of(slotFor(1L, 7L)));
+        when(listingService.ownerOf(7L)).thenReturn(Optional.of(99L));
+        when(listingService.activeAgentUserId(7L)).thenReturn(50L);
+        when(requestRepository.save(any(InspectionRequest.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        service.cancelByEitherParty(/*ownerCallerId=*/99L, 10L, "Sold");
+
+        ArgumentCaptor<OutboxEvent> cap = ArgumentCaptor.forClass(OutboxEvent.class);
+        verify(outboxRepository).save(cap.capture());
+        OutboxEvent saved = cap.getValue();
+        assertThat(saved.getTopic())
+                .isEqualTo(com.dreamhomes.haven.inspection.events.InspectionCancelledEvent.TOPIC);
+        assertThat(saved.getPartitionKey()).isEqualTo("7");
+
+        com.dreamhomes.haven.inspection.events.InspectionCancelledEvent payload = new ObjectMapper()
+                .findAndRegisterModules()
+                .readValue(saved.getPayload(),
+                        com.dreamhomes.haven.inspection.events.InspectionCancelledEvent.class);
+        assertThat(payload.cancelledByUserId()).isEqualTo(99L);
+        assertThat(payload.applicantId()).isEqualTo(2L);
+        assertThat(payload.ownerId()).isEqualTo(99L);
+        assertThat(payload.agentUserId()).isEqualTo(50L);
+        assertThat(payload.reason()).isEqualTo("Sold");
+        assertThat(payload.inspectionRequestId()).isEqualTo(10L);
+    }
+
+    @Test
+    void approvalFiresOutboxRowReadyEventSoTheRelayShipsImmediately() {
+        InspectionRequest pending = pendingRequest(10L, 1L, /*applicantId=*/2L);
+        when(requestRepository.findById(10L)).thenReturn(Optional.of(pending));
+        when(slotRepository.findById(1L)).thenReturn(Optional.of(slotFor(1L, 7L)));
+        when(listingService.ownerOf(7L)).thenReturn(Optional.of(99L));
+        when(requestRepository.save(any(InspectionRequest.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        service.approveByOwner(99L, 10L);
+
+        verify(applicationEventPublisher).publishEvent(OutboxRowReadyEvent.INSTANCE);
+    }
+
+    @Test
     void patchAgentExtrasBlankClearsField() {
         InspectionRequest req = approvedRequest(10L, 1L);
         req.setAgentExtras("old");
@@ -269,6 +470,15 @@ class InspectionServiceTest {
         InspectionRequest saved = service.patchAgentExtras(50L, 10L, "   ");
 
         assertThat(saved.getAgentExtras()).isNull();
+    }
+
+    private static InspectionRequest pendingRequest(long id, long slotId, long applicantId) {
+        return InspectionRequest.builder()
+                .id(id).slotId(slotId).applicantId(applicantId)
+                .status(InspectionRequestStatus.PENDING)
+                .notes("n")
+                .createdAt(Instant.now()).updatedAt(Instant.now())
+                .build();
     }
 
     private static InspectionRequest approvedRequest(long id, long slotId) {
@@ -294,6 +504,6 @@ class InspectionServiceTest {
                 new BigDecimal("100.00"), "NGN", null, null, null,
                 null, null, null, null,
                 null, false,
-                ListingStatus.LIVE, null, 0L, now, now, null, null, null, null, null, null, null);
+                ListingStatus.LIVE, null, 0L, now, now, null, null, null, null, null, null, null, null);
     }
 }

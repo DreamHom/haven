@@ -44,12 +44,18 @@ class VerificationAdminServiceTest {
     @Mock VerificationRepository verificationRepository;
     @Mock UserAdminService userAdminService;
     @Mock PropertyService propertyService;
+    @Mock com.dreamhomes.haven.verification.automation.VerificationAutomationResultRepository automationResultRepository;
 
     VerificationAdminService service;
 
     @BeforeEach
     void setUp() {
-        service = new VerificationAdminService(verificationRepository, userAdminService, propertyService, new com.dreamhomes.haven.verification.mapping.VerificationAdminMapperImpl());
+        service = new VerificationAdminService(verificationRepository, userAdminService, propertyService,
+                new com.dreamhomes.haven.verification.mapping.VerificationAdminMapperImpl(),
+                automationResultRepository);
+        org.mockito.Mockito.lenient()
+                .when(automationResultRepository.findByVerificationIdOrderByRunAtAsc(any()))
+                .thenReturn(java.util.List.of());
     }
 
     @Test

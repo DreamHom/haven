@@ -47,4 +47,29 @@ public class ListingSearchEmbeddingStore {
                 (rs, rowNum) -> rs.getLong(1),
                 qv, limit);
     }
+
+    /**
+     * Item 22 — cost-defence variant of {@link #nearestLive(float[], int)} that also enforces
+     * a cosine-distance cutoff. Rows whose distance to {@code query} is at or above
+     * {@code maxDistance} are dropped, so junk prompts (e.g. "purple elephant tap dance")
+     * resolve to an empty result and the orchestrator can skip the downstream Claude call.
+     *
+     * <p>Distance semantics: pgvector's {@code <=>} is cosine distance ∈ [0, 2] — 0 is
+     * identical direction, 1 is orthogonal, 2 is opposite. 0.5 is a reasonable starting
+     * threshold for English real-estate prompts; tune per corpus.
+     */
+    public List<Long> nearestLive(float[] query, int limit, double maxDistance) {
+        PGvector qv = new PGvector(query);
+        return jdbcTemplate.query("""
+                        SELECT e.listing_id
+                        FROM listing_search_embeddings e
+                        JOIN listings l ON l.id = e.listing_id
+                        WHERE l.status = 'LIVE'
+                          AND (e.embedding <=> ?) < ?
+                        ORDER BY e.embedding <=> ?
+                        LIMIT ?
+                        """,
+                (rs, rowNum) -> rs.getLong(1),
+                qv, maxDistance, qv, limit);
+    }
 }

@@ -131,7 +131,7 @@ class AdminVerificationControllerTest {
                 id, type, VerificationStatus.PENDING,
                 50L, 50L, null,
                 "{}", Instant.now(),
-                null, null, null);
+                null, null, null, null);
     }
 
     private static VerificationAdminView decided(Long id, VerificationType type,
@@ -140,7 +140,7 @@ class AdminVerificationControllerTest {
                 id, type, status,
                 50L, 50L, null,
                 "{}", Instant.now(),
-                Instant.now(), 7L, reason);
+                Instant.now(), 7L, reason, null);
     }
 
     private static RequestPostProcessor asPrincipal(Long userId, Role role) {

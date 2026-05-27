@@ -615,6 +615,7 @@ class PromotionServiceTest {
                 null,
                 null,
                 null,
+                null,
                 null);
     }
 

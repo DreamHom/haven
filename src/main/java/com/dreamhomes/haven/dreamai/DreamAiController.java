@@ -41,12 +41,52 @@ public class DreamAiController {
             description = """
                     **MVP contract**
 
-                    - **Request**: natural-language `prompt` and/or structured `userChoice.sendText` after a `clarify` turn; optional `chatId`; optional `clientMessageId` for idempotent replay.
+                    - **Request**: natural-language `prompt` and/or structured `userChoice.sendText` after a `clarify` turn; optional `chatId`; optional `clientMessageId` for idempotent replay; optional `rankMode` (Item 23) and `compareListingIds` (Item 26 sub-task B).
                     - **Response**: `DreamAiRunTurnResponse` — `traceId` (logs + SSE), versioned `turn` (`AssistantTurnV1`), and `listingIds` for backward-compatible listing rails when `turn.kind=reply`.
+
+                    **Provider configuration (Item 25)**
+
+                    The LLM and embedding integrations are independently swappable via env vars:
+
+                    - `HAVEN_DREAM_AI_LLM_PROVIDER` — `anthropic` (default) | `openai` | `gemini`. Picks which `LlmRankingProvider` bean is active at boot. Only one is loaded; the others are scaffolded with `UnsupportedOperationException` until v2 fills them in.
+                    - `HAVEN_DREAM_AI_EMBEDDING_PROVIDER` — `openai` (default) | `voyage` | `self-hosted`. Picks which `EmbeddingProvider` bean is active at boot.
+
+                    Two new optional fields on `turn.meta` reflect the active provider per call:
+
+                    - `meta.llmProvider` — name of the LLM provider that actually ran (e.g. `"anthropic"`). Null when the LLM wasn't invoked on this turn (stub fallback, FAST rankMode, clarify / no_results / inventory-empty branches).
+                    - `meta.embeddingProvider` — name of the embedding provider that ran. Null when embeddings weren't consulted (stub fallback, browse-only catalogue path, embedding subsystem dark).
+
+                    These are purely additive — `meta.provider` keeps its existing high-level semantics (`anthropic` / `stub` / `embeddings-only` / `compare`).
+
+                    See `docs/dream-ai-providers.md` for the full provider matrix + sample env-var sets.
 
                     **Orchestration**
 
-                    Short prompts may yield `kind=clarify` with chip blocks; two listing URLs yield `kind=compare`; ranking uses Anthropic when configured, else stub browse. Empty catalogue vs strict query vs plain no-match are distinguished in `turn.meta` (`inventoryEmpty`, `queryTooStrict`).
+                    Routing precedence (first match wins):
+
+                    1. `compareListingIds` with 2–5 entries → `kind=compare` directly, no URL extraction needed (Item 26 sub-task B; longer lists capped at 5).
+                    2. `/listings/N` URLs in the prompt (2+ distinct ids) → `kind=compare`.
+                    3. Conversation-aware compare — prompt looks like "which is best?" AND the prior assistant turn surfaced 2+ listing ids.
+                    4. Short prompts where the user hasn't already supplied area / budget / bedrooms / rent-or-buy → `kind=clarify` with the chips that AREN'T already implied by the prompt (Item 26 sub-task A — e.g. "lekki" drops the Area chip).
+                    5. Rank path — see `rankMode` below.
+
+                    **rankMode** (Item 23)
+
+                    - `SMART` (default for authenticated callers) — embed the prompt, take pgvector NN candidates that clear the cosine-distance threshold (Item 22), and ask Claude to rank them. Higher quality on constraint-heavy prompts.
+                    - `FAST` (default for anonymous callers — cost defence) — skip the Claude call; return pgvector NN order capped at 20. Cheaper, weaker on constraints. `meta.provider` is `embeddings-only` so the UI can render a "quick search" indicator (VTASK-016).
+                    - Clients may always override the default by sending `rankMode` explicitly.
+
+                    **Embedding distance threshold** (Item 22)
+
+                    The pgvector NN query enforces a cosine-distance cutoff (`haven.dream-ai.embeddings.max-distance`, default 0.5). Junk prompts like "purple elephant tap dance" produce zero candidates and the orchestrator returns `kind=no_results` with `meta.queryTooStrict=true` WITHOUT calling Claude — cuts Anthropic spend on adversarial traffic.
+
+                    **Soft fallback on no_results** (Item 26 sub-task C)
+
+                    When the strict pass yields nothing but a relaxed embedding lookup (threshold × 1.5) finds up to 3 close-but-not-perfect listings, the response is `kind=reply` with markdown `"No exact matches; here are N close options — want to see them?"` and the listings block carries those broader matches. Distinguished from a real `kind=reply` by the markdown prefix; `meta.queryTooStrict=true` is also set so clients can branch on it if they want softer copy.
+
+                    **Empty / strict / inventory** semantics on `turn.meta`:
+                    - `inventoryEmpty=true` — LIVE catalogue is empty (`kind=no_results`).
+                    - `queryTooStrict=true` — embeddings/Claude returned nothing; either real no-match (`kind=no_results`) or paired with broader-matches reply (above).
 
                     **Thread read**
 

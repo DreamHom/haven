@@ -36,7 +36,8 @@ public class AnthropicListingSearchClient {
               id (number), type (RENT or SALE), price (number), currency (string),
               title, headline, description (may be truncated), address, bedrooms, bathrooms,
               geo (optional "lat,lng" string or null), priceNegotiable (boolean),
-              petsAllowed (string or null), utilitiesNote (string or null).
+              petsAllowed (string or null), utilitiesNote (string or null),
+              ownerVerified (boolean), propertyDocumentsVerified (boolean).
 
             Respond with exactly one JSON object and no other characters before or after it:
             {"listingIds":[<numbers>]}
@@ -45,7 +46,25 @@ public class AnthropicListingSearchClient {
             - Order ids from best match to weakest match.
             - Include at most 20 ids.
             - Only use ids that appear in the provided listings array. Never invent ids.
-            - If nothing in the catalogue plausibly matches, return {"listingIds":[]}.
+            - "ownerVerified" / "propertyDocumentsVerified" — when the user asks for "verified"
+              owners or properties, prefer rows where the relevant field is true.
+            - Location preference: if the user names a specific state, city, or
+              neighbourhood (e.g. "in Lekki", "Surulere", "Ikeja"), rank exact address
+              matches first. If no listing matches that exact neighbourhood, fall back
+              to listings in the broader area (same city / same state) ranked by how
+              close they appear to the requested place. Only return {"listingIds":[]}
+              for location reasons if every listing is in a completely different region
+              (e.g. user asked for Lagos, the catalogue is entirely Abuja). Sparse
+              inventory in a single neighbourhood must not produce an empty response —
+              expand outward and return the closest alternatives.
+            - HARD price ceiling: if the user names an explicit upper price ("under ₦4m",
+              "less than 2 million"), drop listings whose price exceeds it. Return empty
+              before returning over-budget listings.
+            - HARD bedroom count: if the user names a specific bedroom count ("3 bedroom",
+              "2-bed"), drop listings whose bedrooms field doesn't match. Don't return a
+              4-bed when the user asked for 3.
+            - If nothing in the catalogue plausibly matches AFTER applying the hard
+              constraints (price + bedroom) above, return {"listingIds":[]}.
             - Do not wrap the JSON in markdown fences. Do not add commentary outside the JSON.
             """;
 

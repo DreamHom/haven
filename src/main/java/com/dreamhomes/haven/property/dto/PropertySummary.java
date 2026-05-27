@@ -1,5 +1,7 @@
 package com.dreamhomes.haven.property.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 import java.math.BigDecimal;
 import java.time.Instant;
 import com.dreamhomes.haven.property.model.PropertyType;
@@ -22,6 +24,17 @@ public record PropertySummary(
         Integer bedrooms,
         Integer bathrooms,
         BigDecimal sizeSqm,
+        @Schema(
+                description = """
+                        Property-document verification timestamp. **Non-null = an admin has \
+                        approved the property's title/registry documents.** UI should render \
+                        a "✓ Verified" green badge on listings where this is non-null. Null \
+                        means baseline (no badge); ownership of the property itself is not \
+                        vouched for. Pair with {@code ListingResponse.ownerIdentityVerifiedAt} \
+                        for the full trust-signal matrix (Item 16, post-session-tasks.md).
+                        """,
+                example = "2026-04-12T10:00:00Z",
+                nullable = true)
         Instant documentsVerifiedAt,
         Double latitude,
         Double longitude

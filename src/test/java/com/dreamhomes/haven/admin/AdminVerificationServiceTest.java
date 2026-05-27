@@ -148,6 +148,6 @@ class AdminVerificationServiceTest {
                 99L, type, status,
                 50L, targetUserId, targetPropertyId,
                 "{}", Instant.now(),
-                Instant.now(), 7L, reason);
+                Instant.now(), 7L, reason, null);
     }
 }

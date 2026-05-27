@@ -12,6 +12,7 @@ import com.dreamhomes.haven.dreamai.chat.payload.DreamAiMessageDocumentV1;
 import com.dreamhomes.haven.dreamai.dto.DreamAiRunTurnRequest;
 import com.dreamhomes.haven.dreamai.dto.DreamAiRunTurnResponse;
 import com.dreamhomes.haven.dreamai.moderation.DreamAiModerationService;
+import com.dreamhomes.haven.dreamai.moderation.DreamAiPromptSanitizer;
 import com.dreamhomes.haven.dreamai.turn.AssistantTurnV1;
 import com.dreamhomes.haven.dreamai.turn.TurnBlock;
 import com.dreamhomes.haven.dreamai.turn.TurnMeta;
@@ -44,6 +45,7 @@ public class DreamAiChatService {
     private final DreamAiChatMessageRepository dreamAiChatMessageRepository;
     private final DreamAiTurnOrchestrator dreamAiTurnOrchestrator;
     private final DreamAiModerationService dreamAiModerationService;
+    private final DreamAiPromptSanitizer dreamAiPromptSanitizer;
     private final ListingService listingService;
     private final ObjectMapper objectMapper;
 
@@ -60,7 +62,7 @@ public class DreamAiChatService {
         MDC.put("traceId", traceId);
         MDC.put("dreamAiUserId", userId == null ? "anonymous" : String.valueOf(userId));
         try {
-            String effective = resolveEffectivePrompt(request);
+            String effective = dreamAiPromptSanitizer.sanitize(resolveEffectivePrompt(request));
             if (effective.isBlank()) {
                 throw new DreamAiBadPromptException();
             }
@@ -70,7 +72,11 @@ public class DreamAiChatService {
             // and return. Anonymous callers can't reference an existing chatId
             // either — silently treat that as a fresh one-shot.
             if (userId == null) {
-                AssistantTurnV1 anonymousTurn = dreamAiTurnOrchestrator.buildTurn(effective, traceId);
+                AssistantTurnV1 anonymousTurn = dreamAiTurnOrchestrator.buildTurn(
+                        effective, traceId, List.of(), null,
+                        request.rankMode(),
+                        request.compareListingIds() == null ? List.of() : request.compareListingIds(),
+                        true);
                 anonymousTurn = stampTraceOnTurn(anonymousTurn, traceId);
                 log.info("Dream AI turn (anonymous) kind={}", anonymousTurn.kind());
                 return toRunResponse(null, traceId, anonymousTurn);
@@ -100,7 +106,10 @@ public class DreamAiChatService {
                     .build());
 
             AssistantTurnV1 turn = dreamAiTurnOrchestrator.buildTurn(
-                    effective, traceId, prior.listingIds(), prior.userPrompt());
+                    effective, traceId, prior.listingIds(), prior.userPrompt(),
+                    request.rankMode(),
+                    request.compareListingIds() == null ? List.of() : request.compareListingIds(),
+                    false);
             turn = stampTraceOnTurn(turn, traceId);
 
             DreamAiMessageDocumentV1 assistantDoc = DreamAiMessageDocumentV1.assistant(turn);
@@ -181,7 +190,9 @@ public class DreamAiChatService {
                 meta.traceId(),
                 meta.moderationBlocked(),
                 meta.retryable(),
-                stale ? Boolean.TRUE : meta.staleIdsFiltered());
+                stale ? Boolean.TRUE : meta.staleIdsFiltered(),
+                meta.llmProvider(),
+                meta.embeddingProvider());
         return new AssistantTurnV1(turn.kind(), turn.markdown(), nextBlocks, nextMeta);
     }
 
@@ -260,7 +271,9 @@ public class DreamAiChatService {
                 traceId,
                 m.moderationBlocked(),
                 m.retryable(),
-                m.staleIdsFiltered());
+                m.staleIdsFiltered(),
+                m.llmProvider(),
+                m.embeddingProvider());
         return new AssistantTurnV1(turn.kind(), turn.markdown(), turn.blocks(), next);
     }
 

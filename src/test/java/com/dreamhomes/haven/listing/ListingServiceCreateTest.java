@@ -19,6 +19,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import com.dreamhomes.haven.listing.dto.CreateListingCommand;
+import com.dreamhomes.haven.listing.exception.ListingDuplicateOpenForTypeException;
 import com.dreamhomes.haven.listing.exception.NotPropertyOwnerException;
 import com.dreamhomes.haven.listing.model.Listing;
 import com.dreamhomes.haven.listing.model.ListingStatus;
@@ -98,5 +99,65 @@ class ListingServiceCreateTest {
                 .isInstanceOf(NotPropertyOwnerException.class);
 
         verify(listingRepository, never()).save(any());
+    }
+
+    /** Item 12 — service-level pre-check before the V47 partial UQ has to refuse. */
+    @Test
+    void throwsWhenPropertyAlreadyHasLiveListingOfSameType() {
+        when(propertyService.ownerOf(7L)).thenReturn(Optional.of(99L));
+        when(listingRepository.existsByPropertyIdAndListingTypeAndStatus(
+                7L, ListingType.RENT, ListingStatus.LIVE)).thenReturn(true);
+
+        assertThatThrownBy(() -> listingService.create(99L, new CreateListingCommand(
+                7L, ListingType.RENT, new BigDecimal("1000000.00"),
+                null, null, null, null,
+                null, null, null,
+                null, null,
+                false, null, null, null)))
+                .isInstanceOf(ListingDuplicateOpenForTypeException.class);
+
+        verify(listingRepository, never()).save(any());
+    }
+
+    /** Item 12 — different listing type on the same property is allowed (RENT + SALE coexist). */
+    @Test
+    void allowsDifferentListingTypeOnSameProperty() {
+        when(propertyService.ownerOf(7L)).thenReturn(Optional.of(99L));
+        when(listingRepository.existsByPropertyIdAndListingTypeAndStatus(
+                7L, ListingType.SALE, ListingStatus.LIVE)).thenReturn(false);
+        when(listingRepository.save(any(Listing.class))).thenAnswer(inv -> {
+            Listing l = inv.getArgument(0);
+            l.setId(124L);
+            return l;
+        });
+
+        Listing result = listingService.create(99L, new CreateListingCommand(
+                7L, ListingType.SALE, new BigDecimal("50000000.00"),
+                null, null, null, null,
+                null, null, null,
+                null, null,
+                false, null, null, null));
+
+        assertThat(result.getId()).isEqualTo(124L);
+        verify(listingRepository).save(any(Listing.class));
+    }
+
+    /** Item 12 — race-safety net: even if the pre-check missed, a DB UQ violation maps to 409. */
+    @Test
+    void translatesDataIntegrityViolationToDuplicateOpenException() {
+        when(propertyService.ownerOf(7L)).thenReturn(Optional.of(99L));
+        when(listingRepository.existsByPropertyIdAndListingTypeAndStatus(
+                7L, ListingType.RENT, ListingStatus.LIVE)).thenReturn(false);
+        when(listingRepository.save(any(Listing.class)))
+                .thenThrow(new org.springframework.dao.DataIntegrityViolationException(
+                        "duplicate key value violates unique constraint \"listings_one_open_per_type_per_property\""));
+
+        assertThatThrownBy(() -> listingService.create(99L, new CreateListingCommand(
+                7L, ListingType.RENT, new BigDecimal("1000000.00"),
+                null, null, null, null,
+                null, null, null,
+                null, null,
+                false, null, null, null)))
+                .isInstanceOf(ListingDuplicateOpenForTypeException.class);
     }
 }

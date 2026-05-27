@@ -1,5 +1,6 @@
 package com.dreamhomes.haven.listing.embedding;
 
+import com.dreamhomes.haven.dreamai.provider.EmbeddingProvider;
 import com.dreamhomes.haven.listing.ListingRepository;
 import com.dreamhomes.haven.listing.model.Listing;
 import com.dreamhomes.haven.listing.model.ListingStatus;
@@ -19,12 +20,12 @@ public class ListingEmbeddingWriter {
     private final ListingEmbeddingProperties properties;
     private final ListingRepository listingRepository;
     private final PropertyRepository propertyRepository;
-    private final OpenAiEmbeddingsClient openAiEmbeddingsClient;
+    private final EmbeddingProvider embeddingProvider;
     private final ListingSearchEmbeddingStore listingSearchEmbeddingStore;
 
     @Transactional
     public void refresh(long listingId) {
-        if (!properties.active()) {
+        if (!properties.active() || !embeddingProvider.isAvailable()) {
             return;
         }
         Listing listing = listingRepository.findById(listingId).orElse(null);
@@ -40,7 +41,7 @@ public class ListingEmbeddingWriter {
                 .map(ListingEmbeddingWriter::toSummary)
                 .orElse(null);
         String text = ListingEmbeddingText.format(listing, property);
-        float[] vector = openAiEmbeddingsClient.embed(text);
+        float[] vector = embeddingProvider.embed(text);
         listingSearchEmbeddingStore.upsert(listingId, vector, properties.getModel());
         log.debug("Updated listing_search_embeddings for listingId={}", listingId);
     }

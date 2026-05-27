@@ -1,218 +1,167 @@
-# DreamHomes Haven — The Engine 🏠
+# DreamHomes Haven 🏠
 
-> The secure backend powering DreamHomes. Every listing, every inspection request, every offer — it runs through here.
+> Backend for **DreamHomes** — a Lagos-focused real-estate marketplace where verified listings, verified agents, and verified property documents are the default, not the exception.
 
-## What This Is
+**Live:** API at [`haven.dreamhomes.today`](https://haven.dreamhomes.today) · UI at [`dreamhomes.today`](https://www.dreamhomes.today) · API explorer at [`/scalar.html`](https://haven.dreamhomes.today/scalar.html) · Health at [`/actuator/health`](https://haven.dreamhomes.today/actuator/health)
 
-A Spring Boot 3.3 / Java 21 backend for the DreamHomes Moniepoint DreamDev capstone.
-Owners list properties, applicants submit offers and request inspections, agents
-handshake on assignments, admins moderate. Everything ships behind a stateless JWT,
-with a Postgres + Flyway data layer and a transactional outbox writing to Kafka for
-the two events that matter (`inspection.requested.v1`, `offer.submitted.v1`).
+---
 
-The codebase is organised **package-by-feature** in a single Maven module:
-`com.dreamhomes.haven.<feature>` for each feature package, plus
-`com.dreamhomes.haven.common.*` for cross-cutting infra (errors, validation,
-rate limiting, the outbox pattern). Cross-feature reads happen through normal
-service-to-service autowires, with two narrow `*Api` interfaces preserved where
-they earn their keep (`NotificationApi`, `AdminAuditApi`).
+## Why it exists
 
-For the design rationale + every "we chose X over Y" decision, see
-[`docs/TRADEOFFS.md`](docs/TRADEOFFS.md). For the system overview at a snapshot, see
-[`docs/STATE-OF-THE-SYSTEM.md`](docs/STATE-OF-THE-SYSTEM.md).
+Nigerian property rentals run on trust friction — fake listings, ghost agents, after-the-fact "C of O issues". DreamHomes flips the trust default: identity, documents, and agent credentials are reviewed by admins before a listing reaches the public, and applicants see those signals on every card. Haven is the backend that enforces that contract — listings, inspections, offers, agent assignments, verifications, moderation, promotions, and a Dream AI assistant — behind a single Spring Boot service.
 
-Promotions are modeled as a trust-preserving visibility layer: owners and agents can
-request featured placement, admins approve or revoke it, public clients read dedicated
-promotion feeds, and impression/click metrics track performance. A promoted listing or
-agent still has to pass the normal safety checks before it appears publicly.
+Built for the Moniepoint DreamDev Bootcamp 2026 capstone.
 
-## Tech stack
+---
 
-- **Java 21** (LTS) · **Spring Boot 3.3.5** (Web, Security, Data JPA, Validation, Actuator)
-- **PostgreSQL 16** + **Flyway** (V1..V42 migrations)
-- **Spring Kafka** + **Apache Kafka 3.7 (KRaft)** — transactional outbox, dead-letter topic, partition-pinned `NewTopic` beans
-- **JJWT 0.12.x** — JWT issuance + verification
-- **Bucket4j** — in-process auth rate limiting
-- **Micrometer** + **Prometheus** scrape endpoint
-- **springdoc-openapi** — `/v3/api-docs` and `/scalar.html` served at runtime
-- **AWS SDK v2 (S3)** — Cloudflare R2 image upload pipeline (pluggable `PhotoStorage` interface)
-- **Spring Data JPA auditing** — automatic `@CreatedDate` / `@LastModifiedDate` on entities
-- **JUnit 5** · **Mockito** · **Spring Security Test** · **Spring Kafka Test** (`@EmbeddedKafka`) · **Testcontainers** (Postgres) · **AssertJ**
-- **Lombok** — boilerplate
-- **Spring Boot DevTools** (dev only) — local hot reload
-- **Maven** (single module)
-
-## Project structure
+## Architecture in one picture
 
 ```
-haven/
-├── pom.xml
-├── docker-compose.yml
-├── docs/                                     PRD, userflows, state-of-system, trade-offs, diagrams
-└── src/
-    ├── main/
-    │   ├── java/com/dreamhomes/haven/
-    │   │   ├── DreamhomesHavenApplication.java
-    │   │   ├── common/                       cross-cutting: errors, validation,
-    │   │   │   │                              rate limiting, request-id, web config
-    │   │   │   └── outbox/                   transactional outbox infra
-    │   │   ├── auth/                         AuthService, AuthController, JwtService,
-    │   │   │                                  JwtAuthenticationFilter, MeController
-    │   │   ├── user/                         User, AgentProfile, public profile, admin user ops
-    │   │   ├── property/
-    │   │   ├── listing/
-    │   │   ├── photo/                        ListingPhoto
-    │   │   ├── promotion/                    featured listings/agents, approval, metrics
-    │   │   ├── engagement/                   ListingSave (saved listings)
-    │   │   ├── agentlisting/                 owner ↔ agent handshake
-    │   │   ├── comment/                      Q&A on listings
-    │   │   ├── inspection/                   slots + requests
-    │   │   ├── offer/                        offers + counter-offers
-    │   │   ├── review/                       post-deal reviews
-    │   │   ├── verification/                 4-track verification + admin decisions
-    │   │   ├── notification/                 notification entity + Kafka listeners + NotificationApi
-    │   │   └── admin/                        moderation + AdminAuditLog + AdminAuditApi
-    │   └── resources/
-    │       ├── application.yml
-    │       ├── logback-spring.xml
-    │       ├── db/migration/V1..V42.sql
-    │       └── static/scalar.html
-    └── test/
-        ├── java/com/dreamhomes/haven/
-        │   ├── support/                      AbstractPostgresIT, JwtTestSupport
-        │   ├── auth/, user/, property/, …    tests next to the code they exercise
-        │   └── ...
-        └── resources/
+       ┌──────────────────────────┐
+       │   Vista (Next.js, SSR)   │
+       │   vista.dreamhomes.today │
+       └────────────┬─────────────┘
+                    │ HTTPS (JWT)
+                    ▼
+   ┌───────────────────────────────────────────────────┐
+   │   Haven — Spring Boot 3.3 / Java 21               │
+   │   haven.dreamhomes.today                          │
+   │                                                   │
+   │   Controllers → Services → Repositories           │
+   │   Cross-cutting: JWT, rate limit, ProblemDetail,  │
+   │   transactional outbox, MDC traceId               │
+   └──┬───────────┬──────────────┬──────────────┬──────┘
+      ▼           ▼              ▼              ▼
+   Postgres   Kafka          Cloudflare R2   Anthropic
+   +pgvector  (transactional  (photo bytes)  (Dream AI)
+              outbox)
 ```
 
-## Architecture
+Two deployable shapes share the same jar — `aws` profile (RDS + MSK in production) and `railway` profile (bundled Postgres + Confluent Cloud as fallback / local dev). One codebase, config-driven swap.
 
-Single module; package-by-feature; cross-feature reads via direct service autowires.
-Two `*Api` interfaces survive because they're genuinely cross-cutting:
+---
 
-- **`NotificationApi`** — many features write notifications; the seam is worth its weight.
-- **`AdminAuditApi`** — many features write audit log entries on admin actions.
+## Quickstart
 
-Everything else inlines. `AuthService` autowires `UserRepository` directly;
-`AdminUserService` does too. There is no build-time enforcement preventing a service
-from reaching across feature lines — the codebase is small enough that code review
-is the discipline. This is a deliberate scale-down from an earlier modular-monolith
-experiment (33 Maven modules with `BannedDependencies`), reverted once it became
-clear the build-time enforcement wasn't pulling its weight at our scale; see
-[`docs/TRADEOFFS.md`](docs/TRADEOFFS.md).
-
-Public promotion reads intentionally use dedicated placement endpoints rather than
-flags on the broad listing/agent browse APIs. That keeps organic discovery and paid
-visibility separate in the contract, makes "Featured" / "Sponsored" labeling explicit,
-and gives admins a clean place to pause, revoke, and measure campaigns without changing
-the core listing search semantics.
-
-## Development philosophy
-
-**TDD-first.** Tests are written before implementation. No exceptions. Every
-architectural decision worth remembering lives in [`docs/TRADEOFFS.md`](docs/TRADEOFFS.md)
-with a `why → cost → revisit` triplet.
-
-## Getting started
-
-Two paths: the **one-command Docker stack** (no Java/Maven on your machine —
-fastest way for an evaluator to kick the tyres) or the **dev loop**
-(`mvn spring-boot:run` against compose infra, hot reload via DevTools).
-
-### Prerequisites — required by both paths
+### Option A — full stack via Docker (no Java/Maven on your machine)
 
 ```bash
-# (a) JWT — RS256 keypair. The app refuses to start if either is missing or
-#     not a valid RSA key (>= 2048 bits).
+docker compose up --build
+# App ready at http://localhost:8080
+# Postgres on host port 5433, Kafka on 9092
+```
+
+### Option B — dev loop with hot reload
+
+```bash
+docker compose up -d postgres kafka    # infra only
+mvn spring-boot:run                     # app on host
+```
+
+### Required env vars (no defaults — Spring fails fast on missing)
+
+```bash
+# JWT keypair (RS256, RSA ≥ 2048)
 openssl genpkey -algorithm RSA -out jwt-private.pem -pkeyopt rsa_keygen_bits:2048
-openssl rsa     -in jwt-private.pem -pubout -out jwt-public.pem
+openssl rsa -in jwt-private.pem -pubout -out jwt-public.pem
 export HAVEN_JWT_PRIVATE_KEY="$(cat jwt-private.pem)"
 export HAVEN_JWT_PUBLIC_KEY="$(cat jwt-public.pem)"
 
-# (b) Seeded platform admin — also required at startup, no defaults.
+# Platform admin seed (Flyway V11 reads these)
 export ADMIN_EMAIL="admin@dreamhomes.local"
 export ADMIN_PASSWORD_HASH="$(htpasswd -nbBC 10 '' 'ChangeMeNow!' | tail -c +2)"
 ```
 
-### Path A: full stack via Docker Compose (one command)
+See [`.env.example`](.env.example) for the full set (R2 keys, Anthropic key, Kafka credentials, etc. — all optional with graceful degradation when unset).
 
-Requires Docker (Docker Desktop on macOS). No local Java/Maven needed.
-
-```bash
-docker compose up --build
-```
-
-Brings up Postgres + Kafka + the app. App ready on `http://localhost:8080`
-once the healthchecks pass. Stop with `Ctrl+C` (or `docker compose down`).
-Wipe data with `docker compose down -v`.
-
-### Path B: dev loop (hot reload)
-
-Requires Java 21 + Maven on your machine. Faster iteration loop.
+### Run the tests
 
 ```bash
-docker compose up -d postgres kafka     # infra only
-mvn spring-boot:run                      # app on host
+mvn test     # unit tests (~5 sec)
+mvn verify   # + Testcontainers integration tests (needs Docker running, ~3 min)
 ```
 
-Postgres is on host port `5433` (container still listens on `5432` internally).
-Kafka on host port `9092`.
+---
 
-### Deploying on Railway
+## Codebase tour
 
-Railway picks up the `Dockerfile` automatically and injects a dynamic `PORT` —
-the app honors it via `server.port=${PORT:8080}` in `application.yml`. To deploy:
+Package-by-feature in a single Maven module. Each feature owns its own controller, service, repository, DTOs, and tests.
 
-1. Add a **PostgreSQL** plugin to your Railway project. Set the app's `DB_HOST`,
-   `DB_PORT`, `DB_NAME`, `DB_USERNAME`, `DB_PASSWORD` from Railway's plugin variables.
-2. Provision **Kafka** (Railway has no native Kafka; use Upstash, Aiven, or a
-   self-hosted bitnami/kafka container template) and set `KAFKA_BOOTSTRAP_SERVERS`.
-3. Set the JWT keypair + admin seed env vars (see prerequisites above) in the
-   Railway service's Variables tab. PEMs are multi-line — paste with real newlines.
-4. Set `CORS_ALLOWED_ORIGINS` to your frontend's deployed origin.
-5. Configure Railway's healthcheck to hit `/actuator/health`.
-
-## API documentation
-
-- **OpenAPI 3 spec**: `GET /v3/api-docs`
-- **Scalar UI** (interactive docs): `http://localhost:8080/scalar.html`
-- **Health check** (anonymous): `GET /actuator/health` → `200 UP`
-- **Prometheus scrape** (auth-gated): `GET /actuator/prometheus`
-
-Every authenticated request stamps an `X-Request-ID` header (echoed from the client
-if supplied, otherwise generated server-side) and threads it through MDC + structured
-logs for end-to-end tracing.
-
-## Running tests
-
-```bash
-mvn test     # surefire — unit tests
-mvn verify   # surefire + failsafe — adds ITs (Testcontainers needs Docker running)
+```
+src/main/java/com/dreamhomes/haven/
+├── auth/          JWT, register/login, refresh tokens, /me
+├── user/          profiles, role, agent profile, public discovery
+├── property/      physical asset (one per real-world building)
+├── listing/       offers/availabilities of properties (rent/sale, state machine)
+├── photo/         R2-backed photo storage + pre-signed upload flow
+├── inspection/    slots (GIST EXCLUDE non-overlap), requests, lifecycle
+├── offer/         offers + counter-offer chain via parent_offer_id
+├── comment/       Q&A on listings (soft-delete, threading-ready)
+├── review/        post-deal reviews (deal-participant gate)
+├── engagement/    saves (idempotent)
+├── agentlisting/  owner ↔ agent assignments (request/accept/revoke)
+├── verification/  4-track verification + admin decisions + mocked KYC providers
+├── promotion/     featured placements, approval workflow, impression/click tracking
+├── notification/  notification entity + Kafka listeners + SSE push
+├── admin/         moderation queue, audit log, takedowns, suspensions
+├── dreamai/       LLM-backed search + compare, provider abstractions
+└── common/        cross-cutting: errors, validation, rate limit, outbox, kafka config
 ```
 
-- Unit tests follow the `*Test` / `*Tests` naming convention and run via Surefire.
-- Integration tests follow the `*IT` convention, extend `AbstractPostgresIT`
-  (Testcontainers Postgres + Embedded Kafka, started once per JVM), and run via Failsafe.
-- **Last saved reports:** 431 tests, 1 failure, 0 errors. The existing failure is
-  `ListingPhotoIT`, where the expected local media URL prefix no longer matches the
-  current R2-backed URL.
+Cross-feature reads use direct service autowires. Two narrow `*Api` interfaces survive (`NotificationApi`, `AdminAuditApi`) where multiple features write through them. See [`docs/TRADEOFFS.md`](docs/TRADEOFFS.md) for why we reverted an earlier modular-monolith experiment.
 
-To run a single test:
+---
 
-```bash
-mvn -Dtest=PublicUserProfileIT verify -DfailIfNoTests=false
-```
+## Documentation map
 
-## Reference docs
+| If you want to... | Read |
+|---|---|
+| Understand the product + personas | [`docs/dreamhomes-prd.md`](docs/dreamhomes-prd.md) · [`docs/users/`](docs/users/) |
+| Get the architecture deep-dive (10 sessions) | [`docs/demo-prep/01-overview.md`](docs/demo-prep/01-overview.md) → [`10-cross-cutting.md`](docs/demo-prep/10-cross-cutting.md) |
+| See every "why X over Y" decision | [`docs/TRADEOFFS.md`](docs/TRADEOFFS.md) |
+| Know what's shipped vs deferred | [`docs/STATE-OF-THE-SYSTEM.md`](docs/STATE-OF-THE-SYSTEM.md) · [`docs/demo-prep/post-session-tasks.md`](docs/demo-prep/post-session-tasks.md) |
+| Build the Vista frontend | [`docs/vista/cursor-handoff-prompt.md`](docs/vista/cursor-handoff-prompt.md) · [`docs/vista/vista-task-queue.md`](docs/vista/vista-task-queue.md) |
+| Integrate the Promotion feature | [`docs/vista/promotions-frontend-prompt.md`](docs/vista/promotions-frontend-prompt.md) |
+| Understand Dream AI | [`docs/dream-ai-capabilities.md`](docs/dream-ai-capabilities.md) · [`docs/dream-ai-providers.md`](docs/dream-ai-providers.md) |
+| Drill into API contracts | [`/v3/api-docs`](https://haven.dreamhomes.today/v3/api-docs) or the rendered Scalar UI |
 
-- [`docs/dreamhomes-prd.md`](docs/dreamhomes-prd.md) — product brief
-- [`docs/dreamhomes-userflows.md`](docs/dreamhomes-userflows.md) — user journeys
-- [`docs/STATE-OF-THE-SYSTEM.md`](docs/STATE-OF-THE-SYSTEM.md) — what's shipped, by phase
-- [`docs/TRADEOFFS.md`](docs/TRADEOFFS.md) — every "X over Y" decision with revisit signals
-- `docs/diagrams/` — drawio sources for the architecture, ERD, and flow diagrams
+---
+
+## Tech stack
+
+| Layer | Choice |
+|---|---|
+| Language / framework | Java 21 · Spring Boot 3.3.5 |
+| Persistence | PostgreSQL 16 + pgvector · Flyway (V1–V47) · Spring Data JPA |
+| Messaging | Apache Kafka (KRaft) · Transactional outbox · Manual-ack consumer discipline |
+| Auth | RS256 JWT (JJWT 0.12) · Refresh-token rotation with replay detection · Bucket4j rate limit |
+| AI | Anthropic Claude Haiku (default) · OpenAI / Gemini scaffolded via provider abstraction |
+| Embeddings | OpenAI text-embedding-3-small · pgvector cosine NN · Voyage / self-hosted scaffolded |
+| Photos | Cloudflare R2 (S3-compatible) · AWS SDK v2 · pre-signed PUT + legacy multipart |
+| Observability | Micrometer + Prometheus · Structured logs (SLF4J + Logback) · MDC traceId |
+| Docs | springdoc-openapi → Scalar UI |
+| Tests | JUnit 5 · Mockito · MockMvc · Spring Kafka Test · Testcontainers (Postgres) |
+| Build | Maven (single module) · Lombok |
+
+---
+
+## Deployment
+
+Production runs on **Railway** today (auto-deploy from `main`), with a parallel **AWS EKS** workflow in `.github/workflows/deploy-eks.yml` and an EC2 deploy at `.github/workflows/deploy-ec2.yml`. The all-in-one `Dockerfile` bundles Postgres+JRE+jar for the Railway path; `Dockerfile.app` is the app-only image for managed-Postgres deploys.
+
+CI runs `mvn verify` with Testcontainers + JDK 21 on every push and PR (`.github/workflows/ci.yml`).
+
+---
+
+## The team
+
+- **lukasio** — feature breadth: controllers, services, Dream AI, demo seeding, the test suite
+- **Silas** — infrastructure: AWS migration (RDS + MSK), EC2 deploy, promotion feature, senior review on cross-cutting decisions
+
+The "Silas the Integrator" entry in [`docs/users/silas-the-integrator.md`](docs/users/silas-the-integrator.md) is the same Silas — promoted to a first-class persona because his integrator lens catches gaps customer personas can't.
+
+---
 
 ## License
 
-See [LICENSE](LICENSE).
-
-Built for Moniepoint DreamDev Bootcamp 2026.
+See [LICENSE](LICENSE). Built for the Moniepoint DreamDev Bootcamp 2026.
