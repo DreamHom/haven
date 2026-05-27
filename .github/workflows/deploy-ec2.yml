@@ -95,5 +95,11 @@ jobs:
              IMAGE_URI='$IMAGE_URI' docker compose pull app
              IMAGE_URI='$IMAGE_URI' docker compose up -d app
              docker image prune -f
-             sleep 10
-             curl -fsS http://localhost:8080/actuator/health"
+             for i in \$(seq 1 30); do
+               if curl -fsS http://localhost:8080/actuator/health; then
+                 exit 0
+               fi
+               sleep 5
+             done
+             docker logs --tail=120 haven-api
+             exit 1"
