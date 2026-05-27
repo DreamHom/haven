@@ -60,6 +60,10 @@ class AdminAnalyticsIT extends AbstractPostgresIT {
 
     @Test
     void summaryReflectsSeededDatabaseShape() throws Exception {
+        // Wipe the V11-seeded platform admin so user counts are deterministic when this
+        // class runs first in the JVM (no other IT's cleanup has truncated it yet).
+        userRepository.deleteAll();
+
         // Seed: 3 users (1 admin + 2 owners), suspend one owner.
         User admin = jwtTestSupport.persistUser(Role.ADMIN);
         User ownerA = jwtTestSupport.persistUser(Role.OWNER);
@@ -67,11 +71,11 @@ class AdminAnalyticsIT extends AbstractPostgresIT {
         ownerB.setSuspendedAt(Instant.now());
         userRepository.save(ownerB);
 
-        // 3 listings: 2 LIVE + 1 CLOSED.
-        Long propertyId = persistPropertyFor(ownerA.getId());
-        persistListing(propertyId, ownerA.getId(), ListingStatus.LIVE);
-        persistListing(propertyId, ownerA.getId(), ListingStatus.LIVE);
-        Listing closed = persistListing(propertyId, ownerA.getId(), ListingStatus.CLOSED);
+        // 3 listings: 2 LIVE + 1 CLOSED. V47 enforces one LIVE listing per
+        // (property, listing_type) — so each LIVE listing needs its own property.
+        persistListing(persistPropertyFor(ownerA.getId()), ownerA.getId(), ListingStatus.LIVE);
+        persistListing(persistPropertyFor(ownerA.getId()), ownerA.getId(), ListingStatus.LIVE);
+        Listing closed = persistListing(persistPropertyFor(ownerA.getId()), ownerA.getId(), ListingStatus.CLOSED);
 
         // 2 verifications: 1 PENDING + 1 APPROVED. Only PENDING shows in the summary.
         verificationRepository.save(verification(ownerA.getId(), VerificationStatus.PENDING, admin.getId()));

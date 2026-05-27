@@ -190,6 +190,63 @@ class InspectionControllerTest {
         verify(inspectionService).patchAgentExtras(50L, 10L, "Meet at side gate");
     }
 
+    @Test
+    void anyAuthenticatedPartyCanCancelWithReasonReturning200WithUpdatedRequest() throws Exception {
+        when(inspectionService.cancelByEitherParty(eq(100L), eq(33L), eq("Work emergency")))
+                .thenReturn(InspectionRequest.builder()
+                        .id(33L).slotId(12L).applicantId(100L)
+                        .status(InspectionRequestStatus.CANCELLED)
+                        .createdAt(Instant.now()).updatedAt(Instant.now())
+                        .build());
+
+        mockMvc.perform(post("/api/inspections/33/cancel")
+                        .with(asPrincipal(100L, Role.APPLICANT))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{ \"reason\": \"Work emergency\" }"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id", is(33)))
+                .andExpect(jsonPath("$.status", is("CANCELLED")));
+
+        verify(inspectionService).cancelByEitherParty(100L, 33L, "Work emergency");
+    }
+
+    @Test
+    void cancelWithReasonRejectsUnauthenticatedCallerWith401() throws Exception {
+        mockMvc.perform(post("/api/inspections/33/cancel")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{ \"reason\": \"Tried to cancel\" }"))
+                .andExpect(status().isUnauthorized());
+
+        verify(inspectionService, never()).cancelByEitherParty(any(), any(), any());
+    }
+
+    @Test
+    void cancelWithReasonRejectsMissingReasonWith400ViaBeanValidation() throws Exception {
+        mockMvc.perform(post("/api/inspections/33/cancel")
+                        .with(asPrincipal(100L, Role.APPLICANT))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest());
+
+        verify(inspectionService, never()).cancelByEitherParty(any(), any(), any());
+    }
+
+    @Test
+    void cancelWithReasonAllowsOwnerToCancel() throws Exception {
+        when(inspectionService.cancelByEitherParty(eq(99L), eq(33L), eq("Sold")))
+                .thenReturn(InspectionRequest.builder()
+                        .id(33L).status(InspectionRequestStatus.CANCELLED)
+                        .createdAt(Instant.now()).updatedAt(Instant.now()).build());
+
+        mockMvc.perform(post("/api/inspections/33/cancel")
+                        .with(asPrincipal(99L, Role.OWNER))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{ \"reason\": \"Sold\" }"))
+                .andExpect(status().isOk());
+
+        verify(inspectionService).cancelByEitherParty(99L, 33L, "Sold");
+    }
+
     private static RequestPostProcessor asPrincipal(Long userId, Role role) {
         UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
                 new JwtPrincipal(userId, "x@example.com", role, 1),

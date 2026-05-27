@@ -56,6 +56,15 @@ public class ListingController {
 
                     **Role gate**: `OWNER` only. Agents publish via the agent-assignment flow.
 
+                    **One LIVE per (property, listing_type) — Item 12.** A property can carry \
+                    at most one LIVE `RENT` listing and at most one LIVE `SALE` listing at any \
+                    moment. The two coexist (rent + sale on the same home is legitimate), but \
+                    a second LIVE listing of the same type on the same property is rejected \
+                    with `409 Conflict` and the type URI suffix \
+                    `listing.duplicate-open-listing-for-property-and-type`. Close (or pause) \
+                    the existing one first. Enforced by both a service-level pre-check and a \
+                    Postgres partial unique index (V47) — the second is the race-safety net.
+
                     Optional marketing: `virtualTourUrl` (max 2048 chars), `priceNegotiable` \
                     (defaults to `false` when omitted). The response includes `ownerPublicBio` \
                     when the owner has set `publicBio` on their account (`PATCH /api/me`).
@@ -76,7 +85,20 @@ public class ListingController {
             @ApiResponse(responseCode = "400", ref = "#/components/responses/ValidationFailed"),
             @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthenticated"),
             @ApiResponse(responseCode = "403", ref = "#/components/responses/Forbidden"),
-            @ApiResponse(responseCode = "404", ref = "#/components/responses/NotFound")
+            @ApiResponse(responseCode = "404", ref = "#/components/responses/NotFound"),
+            @ApiResponse(responseCode = "409",
+                    description = "Either an optimistic-lock conflict, or — per Item 12 — the "
+                            + "property already has a LIVE listing of the same `listing_type`. "
+                            + "ProblemDetail `type` URI suffix "
+                            + "`listing.duplicate-open-listing-for-property-and-type` "
+                            + "distinguishes the duplicate-LIVE case.",
+                    content = @Content(
+                            examples = @ExampleObject(name = "DuplicateOpenListing", value = """
+                                    { "type": "https://github.com/DreamHom/haven/blob/main/docs/errors/listing.duplicate-open-listing-for-property-and-type",
+                                      "title": "Conflict",
+                                      "status": 409,
+                                      "detail": "Property 42 already has an active RENT listing — close it before publishing a new one" }
+                                    """)))
     })
     @SecurityRequirement(name = "bearerAuth")
     @PostMapping
@@ -139,6 +161,19 @@ public class ListingController {
 
                     Use `?page=` and `?size=` for pagination (defaults: page 0, size 20). \
                     Sort defaults to creation time descending.
+
+                    **Trust signal rendering (Item 16, post-session-tasks.md).** Each \
+                    `ListingResponse` carries two timestamps the UI uses to render trust \
+                    chips on the card without any follow-up fetch:
+
+                    | Owner identity verified? | Property docs verified? | UI signal |
+                    |---|---|---|
+                    | `ownerIdentityVerifiedAt == null` | (any) | "⚠️ Possible Scam" warning chip |
+                    | non-null | `property.documentsVerifiedAt == null` | no chip (baseline) |
+                    | non-null | non-null | "✓ Verified" badge |
+
+                    Both chips can appear together on the rare card where the owner is \
+                    unverified but the property docs got verified separately.
                     """
     )
     @ApiResponses({
@@ -181,7 +216,7 @@ public class ListingController {
         return listingService.browsePublic(listingType, priceMin, priceMax, bedrooms,
                         propertyType, location, pageable)
                 .map(lwp -> listingMapper.toResponse(lwp.listing(), lwp.property(), null, null,
-                        lwp.ownerPublicBio()));
+                        lwp.ownerPublicBio(), lwp.ownerIdentityVerifiedAt()));
     }
 
     @Operation(
@@ -220,7 +255,7 @@ public class ListingController {
                                           @PageableDefault(size = 20) Pageable pageable) {
         return listingService.listMine(principal.userId(), pageable)
                 .map(lwp -> listingMapper.toResponse(lwp.listing(), lwp.property(), null, null,
-                        lwp.ownerPublicBio()));
+                        lwp.ownerPublicBio(), lwp.ownerIdentityVerifiedAt()));
     }
 
     @Operation(
@@ -233,6 +268,16 @@ public class ListingController {
                     Public — no auth required. Cache-Control headers stamped by the \
                     interceptor. Returns 404 if the listing doesn't exist or has been \
                     administratively taken down.
+
+                    **Trust signal rendering (Item 16, post-session-tasks.md).** The \
+                    response carries two trust-signal timestamps so detail pages can render \
+                    the chip alongside the listing without an N+1 fetch:
+
+                    | Owner identity verified? | Property docs verified? | UI signal |
+                    |---|---|---|
+                    | `ownerIdentityVerifiedAt == null` | (any) | "⚠️ Possible Scam" warning chip |
+                    | non-null | `property.documentsVerifiedAt == null` | no chip (baseline) |
+                    | non-null | non-null | "✓ Verified" badge |
                     """
     )
     @ApiResponses({
@@ -247,10 +292,12 @@ public class ListingController {
             @Parameter(description = "Listing ID.", example = "17")
             @PathVariable Long id) {
         ListingWithProperty lwp = listingService.findPubliclyVisible(id);
+        listingService.recordPublicView(id);
         return listingMapper.toResponse(lwp.listing(), lwp.property(),
                 listingService.activeAgentUserId(id),
                 listingService.pendingReportCount(id),
-                lwp.ownerPublicBio());
+                lwp.ownerPublicBio(),
+                lwp.ownerIdentityVerifiedAt());
     }
 
     @Operation(
@@ -268,6 +315,13 @@ public class ListingController {
 
                     **Concurrency**: the entity carries `@Version`. A racing PATCH against \
                     the same row produces 409.
+
+                    **One LIVE per (property, listing_type) — Item 12.** Transitioning a \
+                    PAUSED / CLOSED-and-reopened-via-admin listing back to `LIVE` is blocked \
+                    with `409 Conflict` (type URI suffix \
+                    `listing.duplicate-open-listing-for-property-and-type`) if the property \
+                    already has a sibling LIVE listing of the same `listing_type`. Close (or \
+                    pause) the existing one first.
 
                     **Response**: includes `ownerPublicBio` when the listing owner has set \
                     `publicBio` (`PATCH /api/me`).
@@ -296,7 +350,9 @@ public class ListingController {
     }
 
     private ListingResponse listingResponseWithOwnerBio(Listing listing) {
-        String ownerBio = listingService.findOwnerPublicBio(listing.getOwnerId()).orElse(null);
-        return listingMapper.toResponse(listing, null, null, null, ownerBio);
+        ListingService.OwnerTrustSnapshot trust =
+                listingService.findOwnerTrust(listing.getOwnerId());
+        return listingMapper.toResponse(listing, null, null, null,
+                trust.publicBio(), trust.identityVerifiedAt());
     }
 }

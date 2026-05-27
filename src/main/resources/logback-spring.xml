@@ -31,6 +31,10 @@
 
     <!-- Quieter framework chatter; our own packages remain at INFO. -->
     <logger name="org.apache.kafka" level="WARN"/>
+    <!-- Reconnect loops otherwise WARN every few seconds — see KafkaBrokerStartupCheck. -->
+    <logger name="org.apache.kafka.clients.NetworkClient" level="ERROR"/>
+    <logger name="org.apache.kafka.clients.consumer.internals" level="ERROR"/>
+    <logger name="org.apache.kafka.common.network" level="ERROR"/>
     <logger name="kafka" level="WARN"/>
     <logger name="org.hibernate" level="WARN"/>
     <logger name="org.springframework.kafka" level="WARN"/>

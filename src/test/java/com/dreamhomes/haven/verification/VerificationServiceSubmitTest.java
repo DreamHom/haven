@@ -37,13 +37,15 @@ class VerificationServiceSubmitTest {
     @Mock UserProfileService userProfileService;
     @Mock PropertyService propertyService;
     @Mock com.dreamhomes.haven.notification.NotificationApi notificationApi;
+    @Mock com.dreamhomes.haven.verification.liveness.LivenessCheckService livenessCheckService;
+    @Mock com.dreamhomes.haven.verification.automation.AutomatedVerificationService automatedVerificationService;
 
     VerificationService service;
 
     @BeforeEach
     void setUp() {
         service = new VerificationService(verificationRepository, userProfileService, propertyService,
-                new ObjectMapper(), notificationApi);
+                new ObjectMapper(), notificationApi, livenessCheckService, automatedVerificationService);
     }
 
     @Test
@@ -167,6 +169,52 @@ class VerificationServiceSubmitTest {
         assertThatThrownBy(() -> service.submit(50L, new SubmitVerificationCommand(
                 VerificationType.PROPERTY_DOCUMENTS, 7L, propertyDocs())))
                 .isInstanceOf(DuplicatePendingVerificationException.class);
+    }
+
+    @Test
+    void submitRunsAutomatedVerificationChecksAfterPersistingThePendingRow() {
+        when(userProfileService.roleOf(50L)).thenReturn(Optional.of(Role.OWNER));
+        when(verificationRepository.existsByTypeAndTargetUserIdAndStatus(
+                VerificationType.OWNER_IDENTITY, 50L, VerificationStatus.PENDING))
+                .thenReturn(false);
+        when(verificationRepository.save(any(Verification.class)))
+                .thenAnswer(inv -> { Verification v = inv.getArgument(0); v.setId(99L); return v; });
+
+        Verification saved = service.submit(50L, new SubmitVerificationCommand(
+                VerificationType.OWNER_IDENTITY, null, idDocs()));
+
+        verify(automatedVerificationService).runChecksFor(saved);
+    }
+
+    @Test
+    void submitWithLivenessCheckIdConsumesItBeforePersistingTheVerificationRow() {
+        when(userProfileService.roleOf(50L)).thenReturn(Optional.of(Role.OWNER));
+        when(verificationRepository.existsByTypeAndTargetUserIdAndStatus(
+                VerificationType.OWNER_IDENTITY, 50L, VerificationStatus.PENDING))
+                .thenReturn(false);
+        when(verificationRepository.save(any(Verification.class)))
+                .thenAnswer(inv -> { Verification v = inv.getArgument(0); v.setId(99L); return v; });
+
+        service.submit(50L, new SubmitVerificationCommand(
+                VerificationType.OWNER_IDENTITY, null, idDocs(), 42L));
+
+        verify(livenessCheckService).consume(50L, 42L);
+        verify(verificationRepository).save(any(Verification.class));
+    }
+
+    @Test
+    void submitWithoutLivenessCheckIdSkipsConsume() {
+        when(userProfileService.roleOf(50L)).thenReturn(Optional.of(Role.OWNER));
+        when(verificationRepository.existsByTypeAndTargetUserIdAndStatus(
+                VerificationType.OWNER_IDENTITY, 50L, VerificationStatus.PENDING))
+                .thenReturn(false);
+        when(verificationRepository.save(any(Verification.class)))
+                .thenAnswer(inv -> { Verification v = inv.getArgument(0); v.setId(99L); return v; });
+
+        service.submit(50L, new SubmitVerificationCommand(
+                VerificationType.OWNER_IDENTITY, null, idDocs()));
+
+        verify(livenessCheckService, never()).consume(any(), any());
     }
 
     @Test

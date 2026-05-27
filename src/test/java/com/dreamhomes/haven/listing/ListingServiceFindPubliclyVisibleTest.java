@@ -21,6 +21,7 @@ import com.dreamhomes.haven.listing.exception.ListingNotFoundException;
 import com.dreamhomes.haven.listing.model.Listing;
 import com.dreamhomes.haven.listing.model.ListingStatus;
 import com.dreamhomes.haven.listing.model.ListingType;
+import com.dreamhomes.haven.user.repository.OwnerTrustRow;
 
 /**
  * Covers the public-visibility rule we wrote in {@code findPubliclyVisible}:
@@ -52,13 +53,48 @@ class ListingServiceFindPubliclyVisibleTest {
         Listing live = listing(50L, 7L, ListingStatus.LIVE);
         when(listingRepository.findById(50L)).thenReturn(Optional.of(live));
         when(propertyService.findSummary(7L)).thenReturn(Optional.of(summary(7L)));
-        when(userRepository.findPublicBioByUserId(1L)).thenReturn(Optional.empty());
-        when(listingRepository.incrementViewCount(50L)).thenReturn(1);
+        when(userRepository.findOwnerTrustByUserId(1L)).thenReturn(Optional.empty());
 
         ListingWithProperty result = listingService.findPubliclyVisible(50L);
 
         assertThat(result.listing().getId()).isEqualTo(50L);
         assertThat(result.property().id()).isEqualTo(7L);
+    }
+
+    @Test
+    void liveListingCarriesOwnerIdentityVerifiedAtFromTheOwnerRow() {
+        Instant verifiedAt = Instant.parse("2026-04-12T10:00:00Z");
+        Listing live = listing(50L, 7L, ListingStatus.LIVE);
+        when(listingRepository.findById(50L)).thenReturn(Optional.of(live));
+        when(propertyService.findSummary(7L)).thenReturn(Optional.of(summary(7L)));
+        when(userRepository.findOwnerTrustByUserId(1L))
+                .thenReturn(Optional.of(ownerTrust(1L, "About me", verifiedAt)));
+
+        ListingWithProperty result = listingService.findPubliclyVisible(50L);
+
+        assertThat(result.ownerIdentityVerifiedAt()).isEqualTo(verifiedAt);
+        assertThat(result.ownerPublicBio()).isEqualTo("About me");
+    }
+
+    @Test
+    void liveListingForUnverifiedOwnerReturnsNullVerifiedAtSoUiCanRenderPossibleScamChip() {
+        Listing live = listing(50L, 7L, ListingStatus.LIVE);
+        when(listingRepository.findById(50L)).thenReturn(Optional.of(live));
+        when(propertyService.findSummary(7L)).thenReturn(Optional.of(summary(7L)));
+        when(userRepository.findOwnerTrustByUserId(1L))
+                .thenReturn(Optional.of(ownerTrust(1L, null, null)));
+
+        ListingWithProperty result = listingService.findPubliclyVisible(50L);
+
+        assertThat(result.ownerIdentityVerifiedAt()).isNull();
+    }
+
+    private static OwnerTrustRow ownerTrust(Long ownerId, String publicBio, Instant identityVerifiedAt) {
+        return new OwnerTrustRow() {
+            @Override public Long getOwnerId() { return ownerId; }
+            @Override public String getPublicBio() { return publicBio; }
+            @Override public Instant getIdentityVerifiedAt() { return identityVerifiedAt; }
+        };
     }
 
     @Test

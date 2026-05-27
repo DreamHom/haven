@@ -66,6 +66,28 @@ public enum NotificationKind {
     /** Sync — fired to the applicant immediately on inspection booking. */
     INSPECTION_BOOKED,
 
+    /**
+     * Async — fired to the applicant after the listing owner approves their inspection
+     * request. Sourced from {@code inspection.decided.v1} via {@code InspectionDecidedListener}.
+     * Payload mirrors {@link com.dreamhomes.haven.inspection.events.InspectionDecidedEvent}.
+     */
+    INSPECTION_APPROVED,
+
+    /**
+     * Async — fired to the applicant after the listing owner declines their inspection
+     * request. Sourced from {@code inspection.decided.v1} via {@code InspectionDecidedListener}.
+     * Payload includes the optional {@code reason} the owner supplied (may be null).
+     */
+    INSPECTION_DECLINED,
+
+    /**
+     * Async — fired to the OTHER party (not the canceller) after a PENDING or APPROVED
+     * inspection is cancelled via the cancel-with-reason flow. Sourced from
+     * {@code inspection.cancelled.v1}; payload carries the required cancellation reason
+     * so the surviving party understands what happened.
+     */
+    INSPECTION_CANCELLED,
+
     /** Sync — fired to the applicant on offer submission so they have a confirmation in-platform. */
     OFFER_RECEIVED_BY_PLATFORM,
 

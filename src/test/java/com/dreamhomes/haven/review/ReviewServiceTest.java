@@ -3,6 +3,9 @@ package com.dreamhomes.haven.review;
 import com.dreamhomes.haven.admin.model.AdminAction;
 import com.dreamhomes.haven.admin.AdminAuditApi;
 import com.dreamhomes.haven.admin.model.AuditTargetType;
+import com.dreamhomes.haven.agentlisting.AgentListingRepository;
+import com.dreamhomes.haven.agentlisting.model.AgentListing;
+import com.dreamhomes.haven.agentlisting.model.AgentListingStatus;
 import com.dreamhomes.haven.listing.ListingService;
 import com.dreamhomes.haven.listing.exception.ListingNotFoundException;
 import com.dreamhomes.haven.listing.dto.ListingResponse;
@@ -11,6 +14,7 @@ import com.dreamhomes.haven.listing.model.ListingType;
 import com.dreamhomes.haven.notification.NotificationApi;
 import com.dreamhomes.haven.notification.model.NotificationKind;
 import com.dreamhomes.haven.offer.OfferService;
+import com.dreamhomes.haven.review.dto.ReviewEligibilityResponse;
 import com.dreamhomes.haven.user.model.Role;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,6 +27,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -49,12 +54,14 @@ class ReviewServiceTest {
     @Mock OfferService offerService;
     @Mock NotificationApi notificationApi;
     @Mock AdminAuditApi adminAuditApi;
+    @Mock AgentListingRepository agentListingRepository;
 
     ReviewService service;
 
     @BeforeEach
     void setUp() {
-        service = new ReviewService(reviewRepository, listingService, offerService, notificationApi, adminAuditApi);
+        service = new ReviewService(reviewRepository, listingService, offerService,
+                notificationApi, adminAuditApi, agentListingRepository);
     }
 
     @Test
@@ -128,9 +135,127 @@ class ReviewServiceTest {
     void rejectsApplicantReviewingSomeoneOtherThanTheOwner() {
         when(listingService.findById(7L)).thenReturn(closedListing(7L, /*ownerId=*/50L));
         when(offerService.hadAcceptedOffer(7L, /*reviewerId=*/100L)).thenReturn(true);
+        // Reviewee 999 is neither the owner nor an ACCEPTED-assigned agent.
+        when(agentListingRepository.existsByListingIdAndAgentUserIdAndStatus(
+                7L, 999L, AgentListingStatus.ACCEPTED)).thenReturn(false);
 
         assertThatThrownBy(() -> service.post(/*reviewerId=*/100L, 7L, /*revieweeId=*/999L, (short) 5, "x"))
                 .isInstanceOf(InvalidRevieweeException.class);
+    }
+
+    // ============================ Item 11: agent reviews ============================
+
+    @Test
+    void applicantReviewsAcceptedAgentOnClosedListing() {
+        when(listingService.findById(7L)).thenReturn(closedListing(7L, /*ownerId=*/50L));
+        when(offerService.hadAcceptedOffer(7L, /*reviewerId=*/100L)).thenReturn(true);
+        when(agentListingRepository.existsByListingIdAndAgentUserIdAndStatus(
+                7L, /*agentId=*/77L, AgentListingStatus.ACCEPTED)).thenReturn(true);
+        when(reviewRepository.save(any(ListingReview.class))).thenAnswer(inv -> {
+            ListingReview r = inv.getArgument(0);
+            r.setId(200L);
+            return r;
+        });
+
+        ListingReview saved = service.post(/*reviewerId=*/100L, 7L, /*revieweeId=*/77L,
+                (short) 5, "Agent did all the work");
+
+        assertThat(saved.getId()).isEqualTo(200L);
+        verify(notificationApi).recordSync(eq(NotificationKind.REVIEW_RECEIVED), eq(77L), any());
+    }
+
+    @Test
+    void applicantCannotReviewAgentWhoIsOnlyRequestedOrRevoked() {
+        when(listingService.findById(7L)).thenReturn(closedListing(7L, /*ownerId=*/50L));
+        when(offerService.hadAcceptedOffer(7L, /*reviewerId=*/100L)).thenReturn(true);
+        // Only ACCEPTED agents count. REQUESTED / DECLINED / REVOKED do not.
+        when(agentListingRepository.existsByListingIdAndAgentUserIdAndStatus(
+                7L, /*agentId=*/77L, AgentListingStatus.ACCEPTED)).thenReturn(false);
+
+        assertThatThrownBy(() -> service.post(100L, 7L, /*agentId=*/77L, (short) 5, "no"))
+                .isInstanceOf(InvalidRevieweeException.class);
+    }
+
+    // ============================ Item 9: eligibility ============================
+
+    @Test
+    void eligibilityReturnsCanReviewOwnerForWinningApplicant() {
+        when(listingService.findById(7L)).thenReturn(closedListing(7L, /*ownerId=*/50L));
+        when(offerService.hadAcceptedOffer(7L, /*callerId=*/100L)).thenReturn(true);
+        when(listingService.activeAgentUserId(7L)).thenReturn(null);
+
+        ReviewEligibilityResponse e = service.eligibility(/*callerId=*/100L, 7L);
+
+        assertThat(e.listingStatus()).isEqualTo(ListingStatus.CLOSED);
+        assertThat(e.ownerUserId()).isEqualTo(50L);
+        assertThat(e.agentUserId()).isNull();
+        assertThat(e.canReviewOwner()).isTrue();
+        assertThat(e.canReviewAgent()).isFalse();
+        assertThat(e.reasons().owner()).isNull();
+        assertThat(e.reasons().agent()).isNotBlank();
+    }
+
+    @Test
+    void eligibilityReturnsCanReviewBothWhenAgentAssigned() {
+        when(listingService.findById(7L)).thenReturn(closedListing(7L, /*ownerId=*/50L));
+        when(offerService.hadAcceptedOffer(7L, /*callerId=*/100L)).thenReturn(true);
+        when(listingService.activeAgentUserId(7L)).thenReturn(77L);
+
+        ReviewEligibilityResponse e = service.eligibility(100L, 7L);
+
+        assertThat(e.canReviewOwner()).isTrue();
+        assertThat(e.canReviewAgent()).isTrue();
+        assertThat(e.agentUserId()).isEqualTo(77L);
+        assertThat(e.reasons().owner()).isNull();
+        assertThat(e.reasons().agent()).isNull();
+    }
+
+    @Test
+    void eligibilityReturnsBothFalseForApplicantWhoLostTheOffer() {
+        when(listingService.findById(7L)).thenReturn(closedListing(7L, /*ownerId=*/50L));
+        when(offerService.hadAcceptedOffer(7L, /*callerId=*/100L)).thenReturn(false);
+        when(listingService.activeAgentUserId(7L)).thenReturn(77L);
+
+        ReviewEligibilityResponse e = service.eligibility(100L, 7L);
+
+        assertThat(e.canReviewOwner()).isFalse();
+        assertThat(e.canReviewAgent()).isFalse();
+        assertThat(e.reasons().owner()).isNotBlank();
+        assertThat(e.reasons().agent()).isNotBlank();
+    }
+
+    @Test
+    void eligibilityReturnsBothFalseForOwnerOnTheirOwnListing() {
+        // Owner can't review themselves, and isn't an applicant so can't review the agent.
+        when(listingService.findById(7L)).thenReturn(closedListing(7L, /*ownerId=*/50L));
+        when(offerService.hadAcceptedOffer(7L, /*callerId=*/50L)).thenReturn(false);
+        when(listingService.activeAgentUserId(7L)).thenReturn(77L);
+
+        ReviewEligibilityResponse e = service.eligibility(/*callerId=*/50L, 7L);
+
+        assertThat(e.canReviewOwner()).isFalse();
+        assertThat(e.canReviewAgent()).isFalse();
+    }
+
+    @Test
+    void eligibilityReturnsBothFalseWhenListingNotClosed() {
+        when(listingService.findById(7L)).thenReturn(liveListing(7L, /*ownerId=*/50L));
+
+        ReviewEligibilityResponse e = service.eligibility(100L, 7L);
+
+        assertThat(e.listingStatus()).isEqualTo(ListingStatus.LIVE);
+        assertThat(e.canReviewOwner()).isFalse();
+        assertThat(e.canReviewAgent()).isFalse();
+        assertThat(e.reasons().owner()).contains("CLOSED");
+        assertThat(e.reasons().agent()).contains("CLOSED");
+    }
+
+    @Test
+    void eligibilityThrows404OnUnknownListing() {
+        when(listingService.findById(404L)).thenThrow(new ListingNotFoundException(404L));
+
+        assertThatThrownBy(() -> service.eligibility(100L, 404L))
+                .isInstanceOf(ListingNotFoundException.class);
     }
 
     @Test
@@ -325,6 +450,6 @@ class ReviewServiceTest {
                 new BigDecimal("80000000.00"), "NGN", null, null, null,
                 null, null, null, null,
                 null, false,
-                status, null, 0L, now, now, null, null, null, null, null, null, null);
+                status, null, 0L, now, now, null, null, null, null, null, null, null, null);
     }
 }

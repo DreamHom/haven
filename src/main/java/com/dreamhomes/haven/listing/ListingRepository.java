@@ -17,6 +17,17 @@ public interface ListingRepository extends JpaRepository<Listing, Long> {
     /** All listings tied to a property (any status) — used to refresh Dream AI embeddings after address/geo changes. */
     List<Listing> findByPropertyId(Long propertyId);
 
+    /**
+     * Service-level pre-check for "at most one LIVE listing per (property, listing_type)"
+     * (Item 12). Throws {@code ListingDuplicateOpenForTypeException} on positive hits
+     * before the DB partial-UQ has to refuse the insert. The DB constraint (V47) remains
+     * the race-safety net for two concurrent creates that both pass this check.
+     */
+    boolean existsByPropertyIdAndListingTypeAndStatus(
+            Long propertyId,
+            com.dreamhomes.haven.listing.model.ListingType listingType,
+            ListingStatus status);
+
     /** Backs the public browse endpoint — only LIVE listings are visible to anonymous callers. */
     Page<Listing> findByStatus(ListingStatus status, Pageable pageable);
 

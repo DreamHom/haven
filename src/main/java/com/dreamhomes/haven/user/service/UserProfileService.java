@@ -2,12 +2,14 @@ package com.dreamhomes.haven.user.service;
 
 import com.dreamhomes.haven.agentmarketing.AgentMarketingMediaRepository;
 import com.dreamhomes.haven.agentmarketing.model.AgentMarketingMedia;
+import com.dreamhomes.haven.common.config.CacheConfig;
 import com.dreamhomes.haven.listing.ListingRepository;
 import com.dreamhomes.haven.listing.model.ListingStatus;
 import com.dreamhomes.haven.offer.OfferRepository;
 import com.dreamhomes.haven.review.dto.ReviewAggregate;
 import com.dreamhomes.haven.review.ReviewService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -44,6 +46,7 @@ public class UserProfileService {
     private final AgentMarketingMediaRepository agentMarketingMediaRepository;
 
     @Transactional(readOnly = true)
+    @Cacheable(value = CacheConfig.USERS_PUBLIC_PROFILE, key = "#userId")
     public PublicUserProfile findPublicProfile(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException(userId));

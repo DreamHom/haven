@@ -6,6 +6,8 @@ import com.dreamhomes.haven.property.dto.PropertySummary;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
+import java.time.Instant;
+
 @Mapper(componentModel = "spring")
 public interface ListingMapper {
     /**
@@ -40,8 +42,22 @@ public interface ListingMapper {
     @Mapping(target = "petsAllowed", source = "listing.petsAllowed")
     @Mapping(target = "utilitiesNote", source = "listing.utilitiesNote")
     @Mapping(target = "ownerPublicBio", source = "ownerPublicBio")
+    @Mapping(target = "ownerIdentityVerifiedAt", source = "ownerIdentityVerifiedAt")
     ListingResponse toResponse(Listing listing, PropertySummary property,
-                               Long assignedAgentId, Long pendingReportCount, String ownerPublicBio);
+                               Long assignedAgentId, Long pendingReportCount,
+                               String ownerPublicBio, Instant ownerIdentityVerifiedAt);
+
+    /**
+     * Back-compat overload — callers that haven't loaded owner trust pass null.
+     * Prefer the 6-arg form on public surfaces so the "⚠️ Possible Scam" warning
+     * chip can be rendered without an N+1 fetch (Item 16, post-session-tasks.md).
+     */
+    default ListingResponse toResponse(Listing listing, PropertySummary property,
+                                       Long assignedAgentId, Long pendingReportCount,
+                                       String ownerPublicBio) {
+        return toResponse(listing, property, assignedAgentId, pendingReportCount,
+                ownerPublicBio, null);
+    }
 
     /**
      * List/browse callsites don't pay the cost of looking up trust signals (each one is
@@ -49,6 +65,6 @@ public interface ListingMapper {
      * {@code assignedAgentId} + {@code pendingReportCount} + {@code ownerPublicBio}.
      */
     default ListingResponse toResponse(Listing listing, PropertySummary property) {
-        return toResponse(listing, property, null, null, null);
+        return toResponse(listing, property, null, null, null, null);
     }
 }

@@ -1,5 +1,7 @@
 package com.dreamhomes.haven.common.config;
 
+import com.dreamhomes.haven.inspection.events.InspectionCancelledEvent;
+import com.dreamhomes.haven.inspection.events.InspectionDecidedEvent;
 import com.dreamhomes.haven.inspection.events.InspectionRequestedEvent;
 import com.dreamhomes.haven.offer.events.OfferSubmittedEvent;
 import org.apache.kafka.clients.admin.NewTopic;
@@ -50,6 +52,38 @@ public class KafkaTopicConfig {
     @Bean
     NewTopic inspectionRequestedDlt() {
         return TopicBuilder.name(InspectionRequestedEvent.TOPIC + ".DLT")
+                .partitions(partitions)
+                .replicas(replicationFactor)
+                .build();
+    }
+
+    @Bean
+    NewTopic inspectionDecidedTopic() {
+        return TopicBuilder.name(InspectionDecidedEvent.TOPIC)
+                .partitions(partitions)
+                .replicas(replicationFactor)
+                .build();
+    }
+
+    @Bean
+    NewTopic inspectionDecidedDlt() {
+        return TopicBuilder.name(InspectionDecidedEvent.TOPIC + ".DLT")
+                .partitions(partitions)
+                .replicas(replicationFactor)
+                .build();
+    }
+
+    @Bean
+    NewTopic inspectionCancelledTopic() {
+        return TopicBuilder.name(InspectionCancelledEvent.TOPIC)
+                .partitions(partitions)
+                .replicas(replicationFactor)
+                .build();
+    }
+
+    @Bean
+    NewTopic inspectionCancelledDlt() {
+        return TopicBuilder.name(InspectionCancelledEvent.TOPIC + ".DLT")
                 .partitions(partitions)
                 .replicas(replicationFactor)
                 .build();

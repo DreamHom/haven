@@ -18,6 +18,10 @@ import com.dreamhomes.haven.verification.model.Verification;
 import com.dreamhomes.haven.verification.model.VerificationStatus;
 import com.dreamhomes.haven.verification.model.VerificationType;
 import com.dreamhomes.haven.verification.VerificationRepository;
+import com.dreamhomes.haven.verification.automation.AutomatedCheckResultResponse;
+import com.dreamhomes.haven.verification.automation.VerificationAutomationResultRepository;
+
+import java.util.List;
 
 /**
  * Decision side of the verification system (PRD §4.8). Replaces what was previously
@@ -44,6 +48,7 @@ public class VerificationAdminService {
     private final UserAdminService userAdminService;
     private final PropertyService propertyService;
     private final VerificationAdminMapper verificationAdminMapper;
+    private final VerificationAutomationResultRepository automationResultRepository;
 
     @Transactional(readOnly = true)
     public Page<VerificationAdminView> listPending(VerificationType type, Pageable pageable) {
@@ -60,21 +65,21 @@ public class VerificationAdminService {
         if (type != null && status != null) {
             return verificationRepository
                     .findByTypeAndStatusOrderBySubmittedAtAsc(type, status, pageable)
-                    .map(verificationAdminMapper::toView);
+                    .map(this::toViewWithAutomatedChecks);
         }
         if (type != null) {
             return verificationRepository
                     .findByTypeOrderBySubmittedAtAsc(type, pageable)
-                    .map(verificationAdminMapper::toView);
+                    .map(this::toViewWithAutomatedChecks);
         }
         if (status != null) {
             return verificationRepository
                     .findByStatusOrderBySubmittedAtAsc(status, pageable)
-                    .map(verificationAdminMapper::toView);
+                    .map(this::toViewWithAutomatedChecks);
         }
         return verificationRepository
                 .findAllByOrderBySubmittedAtAsc(pageable)
-                .map(verificationAdminMapper::toView);
+                .map(this::toViewWithAutomatedChecks);
     }
 
     @Transactional
@@ -91,7 +96,7 @@ public class VerificationAdminService {
 
         log.info("Admin {} approved verificationId={} type={}",
                 adminId, verification.getId(), verification.getType());
-        return verificationAdminMapper.toView(verification);
+        return toViewWithAutomatedChecks(verification);
     }
 
     @Transactional
@@ -109,7 +114,26 @@ public class VerificationAdminService {
 
         log.info("Admin {} rejected verificationId={} type={} reason='{}'",
                 adminId, verification.getId(), verification.getType(), reason);
-        return verificationAdminMapper.toView(verification);
+        return toViewWithAutomatedChecks(verification);
+    }
+
+    /**
+     * Composes the {@link VerificationAdminView} with the automated check rows
+     * (Item 20). The mapper handles the verification-side fields; we splice in the
+     * automation rows here because they live in a sibling aggregate.
+     */
+    private VerificationAdminView toViewWithAutomatedChecks(Verification verification) {
+        VerificationAdminView base = verificationAdminMapper.toView(verification);
+        List<AutomatedCheckResultResponse> automated = automationResultRepository
+                .findByVerificationIdOrderByRunAtAsc(verification.getId()).stream()
+                .map(AutomatedCheckResultResponse::from)
+                .toList();
+        return new VerificationAdminView(
+                base.id(), base.type(), base.status(),
+                base.submitterUserId(), base.targetUserId(), base.targetPropertyId(),
+                base.documentRefs(), base.submittedAt(),
+                base.decidedAt(), base.decidedByAdminId(), base.decisionReason(),
+                automated.isEmpty() ? null : automated);
     }
 
     private Verification loadPending(Long id) {

@@ -31,8 +31,15 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import com.dreamhomes.haven.verification.automation.AutomatedCheckResultResponse;
+import com.dreamhomes.haven.verification.automation.VerificationAutomationResultRepository;
 import com.dreamhomes.haven.verification.dto.UploadedDocumentResponse;
+import com.dreamhomes.haven.verification.liveness.LivenessCheckResult;
+import com.dreamhomes.haven.verification.liveness.LivenessCheckResultResponse;
+import com.dreamhomes.haven.verification.liveness.LivenessCheckService;
 import com.dreamhomes.haven.verification.storage.VerificationDocumentStorage;
+
+import java.util.List;
 
 /**
  * Submission endpoint for the four verification tracks. Admin queue + decision endpoints
@@ -46,6 +53,8 @@ public class VerificationController {
 
     private final VerificationService verificationService;
     private final VerificationDocumentStorage verificationDocumentStorage;
+    private final LivenessCheckService livenessCheckService;
+    private final VerificationAutomationResultRepository automationResultRepository;
 
     @Operation(
             summary = "Submit a verification for admin review",
@@ -93,7 +102,8 @@ public class VerificationController {
     public VerificationResponse submit(@AuthenticationPrincipal JwtPrincipal principal,
                                        @Valid @RequestBody SubmitVerificationRequest request) {
         Verification saved = verificationService.submit(principal.userId(),
-                new SubmitVerificationCommand(request.type(), request.propertyId(), request.documentRefs()));
+                new SubmitVerificationCommand(request.type(), request.propertyId(),
+                        request.documentRefs(), request.livenessCheckId()));
         return toResponse(saved);
     }
 
@@ -107,6 +117,11 @@ public class VerificationController {
 
                     Scoped strictly to the caller — there is no `?userId=` parameter; the admin
                     queue (`GET /api/admin/verifications`) is the cross-user view.
+
+                    **REJECTED rows carry `decisionReason`** — the reason the admin supplied
+                    when rejecting (Item 21, post-session-tasks.md). The UI should render this
+                    prominently so the user knows what to fix on resubmit. PENDING and APPROVED
+                    rows always return `decisionReason: null` regardless of any stored value.
                     """
     )
     @ApiResponses({
@@ -156,9 +171,65 @@ public class VerificationController {
         return new UploadedDocumentResponse(url);
     }
 
+    @Operation(
+            summary = "(MOCKED) Run a liveness check before verification submission",
+            description = """
+                    **⚠️ This endpoint is MOCKED for v1.** It always returns a PASSED result
+                    with score 0.97 regardless of input. The integration point is in place
+                    so v2 can swap in a real biometric provider (Smile ID, Dojah, Sourcefin)
+                    without changing the caller contract.
+
+                    **What v2 will do:** open a camera session, ask the user to blink /
+                    turn head / smile on command, verify the motion is real-time (not a
+                    recording), and return PASSED/FAILED with a confidence score.
+
+                    **What v1 does:** returns PASSED. The `_mocked: true` flag in
+                    the response makes it obvious this isn't real.
+
+                    Callers should still consume + persist the response; verification
+                    submit accepts the returned `id` as `livenessCheckId` on the request
+                    body, and the same id cannot be replayed across multiple submissions
+                    (server stamps `consumed_at` on the row).
+                    """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "201",
+                    description = "(MOCKED) Liveness check passed — caller forwards `id` to verification submit.",
+                    content = @Content(
+                            schema = @Schema(implementation = LivenessCheckResultResponse.class),
+                            examples = @ExampleObject(name = "MockedPassed", value = """
+                                    { "id": 42, "status": "PASSED", "score": 0.97,
+                                      "provider": "MOCK", "checkedAt": "2026-05-24T08:30:00Z",
+                                      "_mocked": true }
+                                    """))),
+            @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthenticated")
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @PostMapping("/liveness-check")
+    @ResponseStatus(HttpStatus.CREATED)
+    public LivenessCheckResultResponse runLivenessCheck(
+            @AuthenticationPrincipal JwtPrincipal principal) {
+        LivenessCheckResult row = livenessCheckService.runMockedCheck(principal.userId());
+        return new LivenessCheckResultResponse(row.getId(), row.getStatus(), row.getScore(),
+                row.getProviderName(), row.getCreatedAt(),
+                "MOCK".equals(row.getProviderName()));
+    }
+
     private VerificationResponse toResponse(Verification v) {
+        // decisionReason is only meaningful on REJECTED rows — see Item 21
+        // (docs/demo-prep/post-session-tasks.md). The submitter sees the admin's reason
+        // and knows what to fix on resubmit; PENDING / APPROVED rows leak no value.
+        String reason = v.getStatus() == com.dreamhomes.haven.verification.model.VerificationStatus.REJECTED
+                ? v.getDecisionReason() : null;
+        // Item 20: surface the automated check rows so Vista (and admins via this same
+        // response shape) can show what the provider extracted. Null when nothing ran.
+        List<AutomatedCheckResultResponse> automatedChecks = automationResultRepository
+                .findByVerificationIdOrderByRunAtAsc(v.getId()).stream()
+                .map(AutomatedCheckResultResponse::from)
+                .toList();
         return new VerificationResponse(v.getId(), v.getType(), v.getStatus(),
                 v.getSubmitterUserId(), v.getTargetUserId(), v.getTargetPropertyId(),
-                v.getDocumentRefs(), v.getSubmittedAt(), v.getDecidedAt());
+                v.getDocumentRefs(), v.getSubmittedAt(), v.getDecidedAt(), reason,
+                automatedChecks.isEmpty() ? null : automatedChecks);
     }
 }

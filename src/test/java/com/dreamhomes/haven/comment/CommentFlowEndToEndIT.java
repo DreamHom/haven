@@ -149,6 +149,76 @@ class CommentFlowEndToEndIT extends AbstractPostgresIT {
         assertThat(commentRepository.findById(commentId).orElseThrow().isDeleted()).isFalse();
     }
 
+    // ============================ Item 8: threading ============================
+
+    @Test
+    void replyAndParentBothReturnedInFlatListWithParentCommentIdPopulated() throws Exception {
+        User owner = jwtTestSupport.persistUser(Role.OWNER);
+        User applicant = jwtTestSupport.persistUser(Role.APPLICANT);
+        Long listingId = persistLiveListingFor(owner.getId());
+
+        // Top-level comment.
+        mockMvc.perform(post("/api/listings/" + listingId + "/comments")
+                        .header("Authorization", jwtTestSupport.bearerFor(applicant))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"body\":\"Is it still available?\"}"))
+                .andExpect(status().isCreated())
+                // Top-level → parentCommentId is null in the body (Jackson serializes record nulls).
+                .andExpect(jsonPath("$.parentCommentId").doesNotExist());
+        Long parentId = commentRepository.findAll().get(0).getId();
+
+        // Owner reply targeting the parent.
+        mockMvc.perform(post("/api/listings/" + listingId + "/comments")
+                        .header("Authorization", jwtTestSupport.bearerFor(owner))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"body\":\"Yes, still available.\",\"parentCommentId\":" + parentId + "}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.parentCommentId").value(parentId.intValue()));
+
+        // List returns both rows with parentCommentId populated (null for parent, set for reply).
+        mockMvc.perform(get("/api/listings/" + listingId + "/comments"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(2))
+                .andExpect(jsonPath("$.content[0].parentCommentId").doesNotExist())
+                .andExpect(jsonPath("$.content[1].parentCommentId").value(parentId.intValue()));
+    }
+
+    @Test
+    void replyToDeletedParentRejectedAs400AndDoesNotPersist() throws Exception {
+        User owner = jwtTestSupport.persistUser(Role.OWNER);
+        User applicantA = jwtTestSupport.persistUser(Role.APPLICANT);
+        User applicantB = jwtTestSupport.persistUser(Role.APPLICANT);
+        Long listingId = persistLiveListingFor(owner.getId());
+
+        mockMvc.perform(post("/api/listings/" + listingId + "/comments")
+                        .header("Authorization", jwtTestSupport.bearerFor(applicantA))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"body\":\"original\"}"))
+                .andExpect(status().isCreated());
+        Long parentId = commentRepository.findAll().get(0).getId();
+
+        // Owner takes down the parent.
+        mockMvc.perform(delete("/api/comments/" + parentId)
+                        .header("Authorization", jwtTestSupport.bearerFor(owner))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"reason\":\"off-topic\"}"))
+                .andExpect(status().isNoContent());
+
+        // Reply attempt → 400.
+        long beforeCount = commentRepository.count();
+        mockMvc.perform(post("/api/listings/" + listingId + "/comments")
+                        .header("Authorization", jwtTestSupport.bearerFor(applicantB))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"body\":\"reply\",\"parentCommentId\":" + parentId + "}"))
+                .andExpect(status().isBadRequest());
+        assertThat(commentRepository.count()).isEqualTo(beforeCount);
+
+        // Public list still excludes deleted parent — sanity check.
+        mockMvc.perform(get("/api/listings/" + listingId + "/comments"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isEmpty());
+    }
+
     @Test
     void adminCanDeleteAnyComment() throws Exception {
         User owner = jwtTestSupport.persistUser(Role.OWNER);

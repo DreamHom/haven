@@ -30,6 +30,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import com.dreamhomes.haven.comment.exception.CommentAlreadyDeletedException;
 import com.dreamhomes.haven.comment.exception.CommentNotFoundException;
+import com.dreamhomes.haven.comment.exception.InvalidParentCommentException;
 import com.dreamhomes.haven.comment.exception.NotAuthorisedToDeleteCommentException;
 
 @ExtendWith(MockitoExtension.class)
@@ -55,7 +56,7 @@ class CommentServiceTest {
             return c;
         });
 
-        Comment posted = service.post(/*authorId=*/100L, 7L, "Hi, is this still available?");
+        Comment posted = service.post(/*authorId=*/100L, 7L, "Hi, is this still available?", null);
 
         ArgumentCaptor<Comment> commentCap = ArgumentCaptor.forClass(Comment.class);
         verify(commentRepository).save(commentCap.capture());
@@ -76,7 +77,7 @@ class CommentServiceTest {
         when(listingService.findById(7L)).thenReturn(liveListing(7L, /*ownerId=*/99L));
         when(commentRepository.save(any(Comment.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        service.post(/*authorId=*/99L, 7L, "Anything I should clarify?");
+        service.post(/*authorId=*/99L, 7L, "Anything I should clarify?", null);
 
         verify(notificationApi, never()).recordSync(any(), anyLong(), any());
     }
@@ -85,7 +86,7 @@ class CommentServiceTest {
     void postingOnNonExistentListingThrows404() {
         when(listingService.findById(404L)).thenThrow(new ListingNotFoundException(404L));
 
-        assertThatThrownBy(() -> service.post(100L, 404L, "..."))
+        assertThatThrownBy(() -> service.post(100L, 404L, "...", null))
                 .isInstanceOf(ListingNotFoundException.class);
 
         verify(commentRepository, never()).save(any());
@@ -93,7 +94,7 @@ class CommentServiceTest {
 
     @Test
     void emptyBodyIsRejectedAtServiceLayerIndependentOfControllerValidation() {
-        assertThatThrownBy(() -> service.post(100L, 7L, "  "))
+        assertThatThrownBy(() -> service.post(100L, 7L, "  ", null))
                 .isInstanceOf(IllegalArgumentException.class);
 
         verify(listingService, never()).findById(any());
@@ -167,6 +168,81 @@ class CommentServiceTest {
                 .isInstanceOf(CommentNotFoundException.class);
     }
 
+    // ============================ Item 8: threading ============================
+
+    @Test
+    void topLevelCommentPostedWithNullParent() {
+        when(listingService.findById(7L)).thenReturn(liveListing(7L, /*ownerId=*/99L));
+        when(commentRepository.save(any(Comment.class))).thenAnswer(inv -> {
+            Comment c = inv.getArgument(0);
+            c.setId(10L);
+            return c;
+        });
+
+        service.post(/*authorId=*/100L, 7L, "Top-level question", /*parentCommentId=*/null);
+
+        ArgumentCaptor<Comment> cap = ArgumentCaptor.forClass(Comment.class);
+        verify(commentRepository).save(cap.capture());
+        assertThat(cap.getValue().getParentCommentId()).isNull();
+    }
+
+    @Test
+    void replyWithValidParentPersistsParentCommentId() {
+        when(listingService.findById(7L)).thenReturn(liveListing(7L, /*ownerId=*/99L));
+        Comment parent = active(5L, /*authorId=*/200L, /*listingId=*/7L);
+        when(commentRepository.findById(5L)).thenReturn(Optional.of(parent));
+        when(commentRepository.save(any(Comment.class))).thenAnswer(inv -> {
+            Comment c = inv.getArgument(0);
+            c.setId(11L);
+            return c;
+        });
+
+        service.post(/*authorId=*/100L, 7L, "My reply", /*parentCommentId=*/5L);
+
+        ArgumentCaptor<Comment> cap = ArgumentCaptor.forClass(Comment.class);
+        verify(commentRepository).save(cap.capture());
+        assertThat(cap.getValue().getParentCommentId()).isEqualTo(5L);
+    }
+
+    @Test
+    void replyToDeletedParentRejectedAsBadRequest() {
+        when(listingService.findById(7L)).thenReturn(liveListing(7L, /*ownerId=*/99L));
+        Comment deletedParent = active(5L, /*authorId=*/200L, /*listingId=*/7L);
+        deletedParent.setDeletedAt(Instant.now());
+        deletedParent.setDeletedByUserId(99L);
+        when(commentRepository.findById(5L)).thenReturn(Optional.of(deletedParent));
+
+        assertThatThrownBy(() -> service.post(100L, 7L, "reply", 5L))
+                .isInstanceOf(InvalidParentCommentException.class);
+
+        verify(commentRepository, never()).save(any());
+    }
+
+    @Test
+    void replyToParentOnDifferentListingRejectedAsBadRequest() {
+        when(listingService.findById(7L)).thenReturn(liveListing(7L, /*ownerId=*/99L));
+        Comment foreignParent = active(5L, /*authorId=*/200L, /*listingId=*/99L);
+        when(commentRepository.findById(5L)).thenReturn(Optional.of(foreignParent));
+
+        assertThatThrownBy(() -> service.post(100L, 7L, "reply", 5L))
+                .isInstanceOf(InvalidParentCommentException.class);
+
+        verify(commentRepository, never()).save(any());
+    }
+
+    @Test
+    void replyToNonExistentParentReturns404() {
+        when(listingService.findById(7L)).thenReturn(liveListing(7L, /*ownerId=*/99L));
+        when(commentRepository.findById(999L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.post(100L, 7L, "reply", 999L))
+                .isInstanceOf(CommentNotFoundException.class);
+
+        // The repository's save() must not run for an invalid parent — only the parent
+        // lookup is expected. Reset assertions confirm no insert was attempted.
+        verify(commentRepository, never()).save(any());
+    }
+
     private static Comment active(Long id, Long authorId, Long listingId) {
         return Comment.builder()
                 .id(id).listingId(listingId).authorUserId(authorId)
@@ -179,6 +255,6 @@ class CommentServiceTest {
                 new BigDecimal("80000000.00"), "NGN", null, null, null,
                 null, null, null, null,
                 null, false,
-                ListingStatus.LIVE, null, 0L, now, now, null, null, null, null, null, null, null);
+                ListingStatus.LIVE, null, 0L, now, now, null, null, null, null, null, null, null, null);
     }
 }

@@ -48,6 +48,15 @@ public class Comment {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String body;
 
+    /**
+     * Threading link (Item 8): when non-null this comment is a reply to the referenced
+     * top-level comment. Validated at the service layer — parent must exist, be
+     * non-deleted, and belong to the same listing. Vista builds the tree client-side
+     * from the flat list returned by the list endpoint.
+     */
+    @Column(name = "parent_comment_id")
+    private Long parentCommentId;
+
     @Column(name = "deleted_at")
     private Instant deletedAt;
 
